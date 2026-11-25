@@ -180,7 +180,11 @@ D3D9 driver run as lifted code against our device.
 
 ### 3.4 x87
 
-- SA is x87-heavy. Remill models ST(i) as `double`, which differs from real 80-bit x87.
+- SA is x87-heavy. Remill's semantics model ST(i) as `x86_fp80`, which arm64 has no type for.
+  `sa-recomp` lowers every `x86_fp80` value to `double`. It is stored in the first 8 bytes of
+  each 10-byte stack slot, and only real 80-bit memory operands (`fld`/`fstp m80`) convert
+  formats. ST(i) is therefore effectively double precision, which differs from real 80-bit x87.
+  The interpreter uses the same slot layout, so state passes between the two unchanged.
 - Direct3D9 drops the FPU to 24-bit precision on device creation unless
   `D3DCREATE_FPU_PRESERVE` is passed. Check RW's `CreateDevice` flags. If the original ran in
   single precision, lower x87 arithmetic to round-to-float to match it. Either way, track
@@ -397,6 +401,76 @@ Exit criteria:
 ### M1 — Lift & boot
 
 Goal: the whole exe lifted and running natively from entry point to `WinMain`.
+
+Status: **exit criteria met** (details below). A full `sa-recomp build` lifts 76.5k traces from
+71.8k roots into 189 shards with 0 unresolved stubs, and compiles and links them in about
+11 minutes on a 10-core M-series machine. Booting runs about 387k API calls:
+- The CRT runs: heap, TLS, locale, C and C++ static initializers.
+- WinMain loads `AMERICAN.GXT`, opens `MODELS\GTA3.IMG` and starts the CdStream thread.
+- It passes the DirectX/DirectSound probes and calls `RegisterClassA` and `CreateWindowExA`.
+  GetDXVersion is replaced natively by the first `native` manifest entry
+  (`manifest/native.yaml`), so the D3D8/dpnhpast/D3D9 probe loads no longer happen.
+  WM_NCCREATE/WM_CREATE run through the guest WndProc.
+- It stops at the delay-loaded `DirectInput8Create`, which is M5 input work. M2 needs at least a
+  DirectInput shell to reach `Direct3DCreate9`.
+
+How root discovery works:
+- Sources: Ghidra functions, the entry point, aligned data pointers into code, and code
+  immediates (`push imm32`, `mov r32, imm32`, `mov r/m32, imm32`) in every executable section.
+- Jump-table targets are roots too. This Remill version never calls `ForEachDevirtualizedTarget`,
+  so `jmp [table]` is always a runtime dispatch, and each case block is its own trace.
+- Ghidra resolved 1,046 tables. A `jmp [4*reg+table]` scan recovers 7 more, including two-level
+  switches that the protection spliced through `.text`.
+- The remaining 195 computed jumps are `jmp reg` or `jmp [reg+N]` tail calls through function
+  pointers. `sa-recomp` lists them in `out/unresolved_jumps.txt`.
+- `tools/recomp/interp_triage.py` turns `[INTERP]` log lines into entries in
+  `analysis/sa-1.0us/extra_roots.txt`, which `sa-recomp` reads as roots.
+- The only `[INTERP]` seen during boot was the WndProc at `0x00747eb0`. Its address is passed with
+  `mov [esp+x], imm32`, which the scan now covers. The final boot has zero `[INTERP]` hits.
+
+Findings:
+- **The protection region produces one runaway trace.** `sub_012cc7d0` in the second `.text`
+  section lifts to 6.9M instructions, and GVN never finishes on it. Traces over 200k
+  instructions are compiled `optnone`. The new pass manager honors `optnone` only when
+  `StandardInstrumentations` is registered.
+- **`.HOODLUM` uses `push addr; ret` as a jump**, sometimes into an import thunk, and Remill lifts
+  every `ret` as a return. Every guest call therefore ends in `finish_call`: while `eip` is not
+  the expected return address, it keeps dispatching at `eip`. Without this, callee-saved
+  registers were corrupted and WinMain skipped `GTA3.IMG` and DirectInput.
+- **Direct guest calls are routed through `__remill_function_call`** by an IR pass, not emitted
+  as direct LLVM calls. This is what makes these work:
+  - SEH frame matching.
+  - Native `func_replace`.
+  - Interpreter handoff in both directions.
+  - The `ret`-as-jump repair above.
+
+  Trace lookup is an open-addressing table. Tail jumps between traces stay direct.
+- Lifted objects carry unwind tables. A non-local SEH transfer throws a host C++ `GuestUnwind`,
+  and the `__remill_function_call` frame whose guest return address and stack slot match catches
+  it. The cost on the normal path is zero.
+- The game reads `Shell Folders\Personal` for its user-files folder. The in-memory virtual
+  registry maps it to `C:\Users\Player\Documents`, which is
+  `~/Library/Application Support/MacAndreas/Documents` on the host.
+
+Deviations from the plan:
+- `analysis/` is local-only (gitignored). Building from source therefore needs a local Ghidra
+  12.2 export, and `extra_roots.txt` is per-developer. The hybrid plan assumed committed analysis
+  data. Open question: commit address-only data after a licensing check, or keep it local.
+- File I/O, sync objects and threads (CreateThread on pthreads with 64 MB host stacks) were
+  pulled forward from M2, because WinMain needs them before the window path. So were a minimal
+  virtual registry, the ddraw/dsound COM shells, and ole32 stubs.
+- Win32 code lives in `host/src/win32` rather than `/runtime/win32`, and the manifest engine
+  lives in `runtime/manifest`.
+- The function table is a hash table exported from the dylib (`ma_functable`), not a separate
+  `functable.bin`.
+
+Not done in M1, carried forward:
+- The debug shadow stack and community symbol map in the crash reporter.
+- Consuming `tso` markers in the lifter.
+- Lowering `call_redirect` and `mid_hook` (M7). Both are parsed and checked, but rejected at lift
+  time.
+- Honoring x87 precision control.
+- Most `ApiDef`s still decode arguments by hand. New code should use `native_export`.
 
 Work:
 - Guest region, section mapping, protections, TEB/PEB and the guest-VA allocator (§3.1).

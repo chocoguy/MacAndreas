@@ -32,6 +32,7 @@ find_package(Python3 3.9 REQUIRED COMPONENTS Interpreter)
 enable_testing()
 
 add_subdirectory(runtime/loader)
+add_subdirectory(runtime/manifest)
 add_subdirectory(tools/pe-inspect)
 add_subdirectory(tools/repo-guard)
 
@@ -40,10 +41,26 @@ find_package(LLVM CONFIG QUIET
 if(LLVM_FOUND AND NOT LLVM_VERSION_MAJOR EQUAL MACANDREAS_LLVM_MAJOR)
     message(FATAL_ERROR "LLVM at ${MACANDREAS_LLVM_PREFIX} is ${LLVM_PACKAGE_VERSION}, expected major ${MACANDREAS_LLVM_MAJOR}")
 endif()
+set(MACANDREAS_REMILL_PREFIX "${CMAKE_SOURCE_DIR}/.cache/remill"
+    CACHE PATH "Remill checkout built by tools/recomp/setup-remill.sh")
+
 if(LLVM_FOUND)
     message(STATUS "LLVM ${LLVM_PACKAGE_VERSION} found; building recompiler tools")
     add_subdirectory(tools/recomp/state-layout)
+    list(APPEND CMAKE_PREFIX_PATH
+        "${MACANDREAS_REMILL_PREFIX}/install"
+        "${MACANDREAS_REMILL_PREFIX}/dependencies/install"
+        "${MACANDREAS_LLVM_PREFIX}")
+    find_package(remill CONFIG QUIET)
+    if(remill_FOUND)
+        message(STATUS "Remill found; building sa-recomp")
+        add_subdirectory(runtime/recomp)
+        add_subdirectory(tools/recomp/sa-recomp)
+    else()
+        message(STATUS "Remill not found under ${MACANDREAS_REMILL_PREFIX}; run tools/recomp/setup-remill.sh")
+    endif()
 else()
     message(STATUS "LLVM ${MACANDREAS_LLVM_MAJOR} not found at ${MACANDREAS_LLVM_PREFIX}; recompiler tools skipped")
 endif()
+add_subdirectory(host)
 add_subdirectory(tests)

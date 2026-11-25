@@ -43,6 +43,36 @@ Tests labelled `game` need your own executable. By default they look in
 `gamefiles/Grand Theft Auto San Andreas/`, which is git-ignored. Set `MACANDREAS_GAME_DIR` at
 configure time to point elsewhere. Without the game they are skipped.
 
+### Recompile and boot
+
+`analysis/` is local-only, so export it first with `tools/recomp/ghidra/export.sh`. Then lift,
+compile and link the executable into `build/dev/native/libgta_sa_native.dylib`. This takes
+about 11 minutes:
+
+```bash
+build/dev/tools/recomp/sa-recomp/sa-recomp build --exe "gamefiles/Grand Theft Auto San Andreas/gta_sa.exe" --analysis analysis/sa-1.0us --manifest manifest --runtime build/dev/runtime/recomp/guest_intrinsics.bc --out build/dev/native
+```
+
+After a compiler-only change, rebuild the objects from the existing shards without lifting
+again:
+
+```bash
+build/dev/tools/recomp/sa-recomp/sa-recomp recompile --runtime build/dev/runtime/recomp/guest_intrinsics.bc --out build/dev/native
+```
+
+Boot it. `--trace-imports` logs every API call:
+
+```bash
+build/dev/host/sa-host --game "gamefiles/Grand Theft Auto San Andreas" --native build/dev/native/libgta_sa_native.dylib --manifest manifest
+```
+
+Code the recompiler missed runs in the interpreter and is logged as `[INTERP] 0xADDR`. To turn
+those addresses into lift roots for the next build:
+
+```bash
+tools/recomp/interp_triage.py --apply boot.log
+```
+
 ### Tools
 
 - `sa-verify <gta_sa.exe | game dir>` checks that the executable is the supported 1.0 US build.

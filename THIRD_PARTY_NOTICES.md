@@ -22,7 +22,8 @@ Pinned commits are the upstream revisions the inventory and port are based on (M
 
 | Component | Upstream | License | Used for |
 |---|---|---|---|
-| Zydis | https://github.com/zyantific/zydis | MIT | x86 decoder for the fallback interpreter |
+| Zydis | https://github.com/zyantific/zydis (pinned v4.1.1, `a2278f1d254e492f6a6b39f6cb5d1f5d515659dc`) | MIT | x86 decoder for the fallback interpreter |
+| Zycore | https://github.com/zyantific/zycore-c (Zydis submodule) | MIT | Support library required by Zydis |
 | libvorbis / libogg | https://xiph.org/vorbis/ | BSD-3-Clause | Native replacement for `vorbisfile.dll` |
 | pl_mpeg | https://github.com/phoboslab/pl_mpeg | MIT | Intro movie decoding |
 | Remill | https://github.com/lifting-bits/remill (pinned `66c488c9911fd9b368e4d0c9647d74239f8bba8b`) | Apache-2.0 | x86 → LLVM IR lifting inside `sa-recomp` |
@@ -45,7 +46,7 @@ never distributed.
 
 Copyright (c) 2024 Adrian Zdanowicz (Silent)
 
-### MIT License (Zydis)
+### MIT License (Zydis, Zycore)
 
 Copyright (c) 2014-2024 Florian Bernd
 Copyright (c) 2014-2024 Joel Höner

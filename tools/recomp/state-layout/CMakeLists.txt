@@ -1,8 +1,14 @@
-add_executable(state-layout-check state_layout_check.cpp)
-target_include_directories(state-layout-check SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
 separate_arguments(MA_LLVM_DEFINITIONS NATIVE_COMMAND "${LLVM_DEFINITIONS}")
-target_compile_definitions(state-layout-check PRIVATE ${MA_LLVM_DEFINITIONS})
+
+add_library(ma_state_layout STATIC layout_check.cpp)
+target_include_directories(ma_state_layout PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(ma_state_layout SYSTEM PUBLIC ${LLVM_INCLUDE_DIRS})
+target_compile_definitions(ma_state_layout PUBLIC ${MA_LLVM_DEFINITIONS})
+target_compile_options(ma_state_layout PRIVATE -fno-rtti)
+
+add_executable(state-layout-check state_layout_check.cpp)
 target_compile_options(state-layout-check PRIVATE -fno-rtti)
+target_link_libraries(state-layout-check PRIVATE ma_state_layout)
 if(LLVM_LINK_LLVM_DYLIB)
     target_link_libraries(state-layout-check PRIVATE LLVM)
 else()

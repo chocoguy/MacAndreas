@@ -1,0 +1,6 @@
+- addr: 0x00745650
+  kind: func_replace
+  source: native
+  group: platform-probe
+  target: ma_get_dx_version
+  notes: "GetDXVersion probes ddraw, d3d8, dpnhpast and d3d9 DLLs; the native layer always provides Direct3D 9"

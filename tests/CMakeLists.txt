@@ -3,6 +3,11 @@ target_include_directories(test_pe_synthetic PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 target_link_libraries(test_pe_synthetic PRIVATE MacAndreas::loader)
 add_test(NAME loader.pe_synthetic COMMAND test_pe_synthetic)
 
+add_executable(test_manifest manifest/test_manifest.cpp)
+target_include_directories(test_manifest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_manifest PRIVATE MacAndreas::manifest)
+add_test(NAME manifest.parse_and_check COMMAND test_manifest)
+
 add_executable(test_game_exe loader/test_game_exe.cpp)
 target_include_directories(test_game_exe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(test_game_exe PRIVATE MacAndreas::loader)
@@ -30,4 +35,11 @@ add_test(NAME game.sa_verify_accepts COMMAND sa-verify "${MACANDREAS_GAME_DIR}/g
 set_tests_properties(game.sa_verify_accepts PROPERTIES LABELS game)
 if(NOT EXISTS "${MACANDREAS_GAME_DIR}/gta_sa.exe")
     set_tests_properties(game.sa_verify_accepts PROPERTIES DISABLED TRUE)
+endif()
+
+if(TARGET sa-host-core)
+    add_executable(test_host_runtime host/test_host_runtime.cpp)
+    target_include_directories(test_host_runtime PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(test_host_runtime PRIVATE sa-host-core)
+    add_test(NAME host.runtime COMMAND test_host_runtime)
 endif()

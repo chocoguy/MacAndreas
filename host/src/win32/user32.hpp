@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../input/keys.hpp"
+
 #include <cstdint>
 #include <map>
 #include <string>
@@ -27,7 +29,10 @@ struct Window {
 };
 
 std::pair<uint32_t, uint32_t> screen_size();
+void post_message(uint32_t hwnd, uint32_t msg, uint32_t wparam, uint32_t lparam);
+void set_client_size(uint32_t hwnd, uint32_t width, uint32_t height);
 std::vector<Window> windows_snapshot();
 uint32_t map_virtual_key(uint32_t code, uint32_t type);
+void key_event(uint32_t hwnd, const input::Key& key, bool down, bool repeat);
 
 }

@@ -7,6 +7,7 @@
 #include <sys/statvfs.h>
 #include <unistd.h>
 
+#include <atomic>
 #include <cerrno>
 #include <cstdio>
 #include <ctime>
@@ -367,6 +368,7 @@ constexpr ApiDef kFiles[] = {
          } else {
              n = ::read(file->fd, mem::ptr(c.arg(1)), c.arg(2));
          }
+         std::atomic_thread_fence(std::memory_order_seq_cst);
          if (n < 0) {
              set_last_error(win_error(errno));
              c.ret(0);
@@ -429,6 +431,7 @@ constexpr ApiDef kFiles[] = {
      }},
     {"KERNEL32.dll", "GetOverlappedResult", 0, 4, Conv::stdcall,
      [](ApiCall& c) {
+         std::atomic_thread_fence(std::memory_order_seq_cst);
          uint32_t overlapped = c.arg(1);
          if (c.arg(2) != 0) {
              mem::write<uint32_t>(c.arg(2), mem::read<uint32_t>(overlapped + 4));

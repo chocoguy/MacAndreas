@@ -189,6 +189,31 @@ void interpret(GuestState& s, uint32_t target) {
 
 void set_trace_interp(bool enabled) { g_interp_trace = enabled; }
 
+bool emulate_segment_instruction(GuestState& s) {
+    constexpr uint32_t kCodeSelector = 0x1b;
+    constexpr uint32_t kDataSelector = 0x23;
+    uint8_t op = mem::read<uint8_t>(eip(s));
+    switch (op) {
+    case 0x06:
+    case 0x16:
+    case 0x1e:
+        esp(s) -= 4;
+        mem::write<uint32_t>(esp(s), kDataSelector);
+        return true;
+    case 0x0e:
+        esp(s) -= 4;
+        mem::write<uint32_t>(esp(s), kCodeSelector);
+        return true;
+    case 0x07:
+    case 0x17:
+    case 0x1f:
+        esp(s) += 4;
+        return true;
+    default:
+        return false;
+    }
+}
+
 void finish_call(GuestState& s, uint32_t expected) {
     static std::mutex reported_mutex;
     static std::unordered_set<uint64_t> reported;
@@ -205,18 +230,36 @@ void finish_call(GuestState& s, uint32_t expected) {
     }
 }
 
-void dispatch(GuestState& s, uint32_t target) {
-    if (is_thunk(target)) {
-        invoke_thunk(s, target);
-        return;
-    }
-    if (TraceFn fn = lookup_trace(target)) {
-        eip(s) = target;
-        fn(s, target, nullptr);
-        return;
-    }
-    interpret(s, target);
+namespace {
+
+thread_local bool t_pending_jump = false;
+
 }
+
+void dispatch(GuestState& s, uint32_t target) {
+    for (;;) {
+        if (is_thunk(target)) {
+            invoke_thunk(s, target);
+        } else if (TraceFn fn = lookup_trace(target)) {
+            eip(s) = target;
+            fn(s, target, nullptr);
+        } else {
+            interpret(s, target);
+        }
+        if (!t_pending_jump) {
+            return;
+        }
+        t_pending_jump = false;
+        target = eip(s);
+    }
+}
+
+void request_jump(GuestState& s, uint32_t target) {
+    eip(s) = target;
+    t_pending_jump = true;
+}
+
+void interpret_missing(GuestState& s, uint32_t target) { interpret(s, target); }
 
 uint32_t call_guest(GuestState& s, uint32_t target, std::span<const uint32_t> args, bool callee_pops) {
     uint32_t saved_esp = esp(s);
@@ -274,17 +317,18 @@ __attribute__((visibility("default"))) Memory* __remill_function_call(GuestState
 }
 
 __attribute__((visibility("default"))) Memory* __remill_jump(GuestState& s, uint32_t pc, Memory* m) {
-    ma::host::dispatch(s, pc);
+    ma::host::request_jump(s, pc);
     return m;
 }
 
 __attribute__((visibility("default"))) Memory* __remill_missing_block(GuestState& s, uint32_t pc, Memory* m) {
-    ma::host::dispatch(s, pc);
+    ma::host::interpret_missing(s, pc);
     return m;
 }
 
-__attribute__((visibility("default"))) Memory* __remill_error(GuestState& s, uint32_t pc, Memory*) {
-    ma::host::guest_fatal(s, "DECODE", pc);
+__attribute__((visibility("default"))) Memory* __remill_error(GuestState& s, uint32_t pc, Memory* m) {
+    ma::host::interpret_missing(s, pc);
+    return m;
 }
 
 __attribute__((visibility("default"))) Memory* __remill_async_hyper_call(GuestState& s, uint32_t pc, Memory*) {
@@ -308,6 +352,13 @@ __attribute__((visibility("default"))) Memory* __remill_sync_hyper_call(GuestSta
         case SyncHyperCall::kX86SetSegmentDS:
         case SyncHyperCall::kX86SetSegmentFS:
         case SyncHyperCall::kX86SetSegmentGS:
+            break;
+        case SyncHyperCall::kX86EmulateInstruction:
+            if (!ma::host::emulate_segment_instruction(s)) {
+                std::fprintf(stderr, "[HYPERCALL] cannot emulate instruction %02x at 0x%08x\n",
+                             ma::host::mem::read<uint8_t>(ma::host::eip(s)), ma::host::eip(s));
+                ma::host::guest_fatal(s, "HYPERCALL", ma::host::eip(s));
+            }
             break;
         default:
             std::fprintf(stderr, "[HYPERCALL] unsupported sync hyper call %u\n", static_cast<unsigned>(call));

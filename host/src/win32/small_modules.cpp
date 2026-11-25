@@ -1,3 +1,4 @@
+#include "dshow.hpp"
 #include "paths.hpp"
 #include "process.hpp"
 
@@ -227,6 +228,10 @@ constexpr ApiDef kOle32[] = {
     {"ole32.dll", "CoUninitialize", 0, 0, Conv::stdcall, [](ApiCall& c) { c.ret(0); }},
     {"ole32.dll", "CoCreateInstance", 0, 5, Conv::stdcall,
      [](ApiCall& c) {
+         if (is_filter_graph(c.arg(0))) {
+             c.ret(create_filter_graph(c.arg(3), c.arg(4)));
+             return;
+         }
          std::fprintf(stderr, "[COM] CoCreateInstance(clsid=%s, iid=%s) not available\n", guid_text(c.arg(0)).c_str(),
                       guid_text(c.arg(3)).c_str());
          if (c.arg(4) != 0) {

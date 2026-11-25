@@ -4,6 +4,7 @@
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
+#include <deque>
 #include <format>
 #include <mutex>
 #include <unordered_map>
@@ -22,7 +23,7 @@ struct Thunk {
 std::mutex g_mutex;
 std::vector<const ApiDef*> g_defs;
 std::unordered_map<std::string, const ApiDef*> g_by_key;
-std::vector<Thunk> g_thunks;
+std::deque<Thunk> g_thunks;
 std::unordered_map<std::string, uint32_t> g_thunk_by_key;
 bool g_trace = false;
 
@@ -99,7 +100,7 @@ void invoke_thunk(GuestState& s, uint32_t addr) {
     if (g_trace) {
         std::fprintf(stderr, "[API] %s!%s from 0x%08x\n", thunk->dll.c_str(), thunk->name.c_str(), return_address);
     }
-    ApiCall call{s};
+    ApiCall call{s, thunk->def};
     thunk->def->fn(call);
     esp(s) += 4 + (thunk->def->conv != Conv::cdecl_ ? 4u * thunk->def->args : 0u);
     eip(s) = return_address;

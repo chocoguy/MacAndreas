@@ -502,6 +502,136 @@ Exit criteria:
 
 Goal: splash and loading screens rendered by lifted RW through the native D3D9 layer.
 
+Status: **exit criteria met** (details below). `sa-host` boots to the
+main menu through lifted RenderWare and the native D3D9 layer. The EAX and nVidia splashes, the
+legal/title screen and the main menu render at the configured 1280x720 and match the original's
+layout and colors. Scripted key presses then take the menu through Start Game → New Game to the
+splash-art loading screen. A 1,350-frame run of that path under `MTL_DEBUG_LAYER=1` reports no
+Metal validation errors, no unimplemented COM methods and no skipped shader draws.
+
+What is in place:
+- **Window**: an AppKit `NSWindow` whose view is a `CAMetalLayer` sized in pixels (Retina-aware).
+  The guest main thread is the host main thread, so `PeekMessageA` and `Present` pump AppKit
+  events. A real message queue backs `PeekMessageA`/`PostQuitMessage`. Key-window changes post
+  `WM_ACTIVATEAPP`, `WM_ACTIVATE`, `WM_SETFOCUS`/`WM_KILLFOCUS`; the close button posts `WM_CLOSE`.
+- **D3D9 subset v0** (`host/src/gfx`): `IDirect3D9`, the device, 2D and cube textures, surfaces,
+  vertex/index buffers, vertex declarations, shaders (stored only), queries and the swap chain.
+  Every interface has a complete vtable. Methods without an implementation log once with the
+  guest caller and return a per-method default.
+- **Fixed-function pipeline**: device state compiles to a `PipelineKey`. MSL is generated per
+  shader key and cached. It covers pretransformed and transformed vertices with the D3D9
+  half-pixel offset, 8 lights with material sources, texture coordinate generation and transforms,
+  every texture stage op and argument modifier, specular, vertex and table fog, and alpha test.
+  Blend, depth/stencil and sampler state map to cached Metal objects.
+- Vertex and index data are copied per draw into a staging ring, so `Lock` never waits on the GPU.
+  Textures keep a guest-memory copy. Non-BGRA8 formats are converted on unlock, and DXT1/3/5
+  upload as BC1/2/3.
+- `--resolution WxH` sets the one mode the adapter reports. `--capture-dir` with
+  `--capture-frames N,M,…|all` writes PNGs of presented frames, and `--exit-after-frames N` ends a
+  run.
+- **Keyboard**: AppKit key and modifier events map to Win32 virtual keys and set-1 scan codes
+  (`host/src/input/keys.cpp`), post `WM_KEYDOWN`/`WM_KEYUP` (`WM_SYSKEY*` with Alt and for F10) with
+  the repeat, extended and transition bits, and update `GetKeyState` (including left/right
+  modifiers and toggles) and the DirectInput keyboard state. Cmd shortcuts stay with macOS. SA reads
+  the keyboard only through `WM_KEY*` and `GetKeyState(VK_LSHIFT/VK_RSHIFT)`.
+- `--keys FRAME[m]:KEY[+|-],…` scripts key presses for unattended runs: a tap at a presented game
+  frame (or movie frame with `m`), or a press (`+`)/release (`-`). A tap is released after the game
+  has run one frame with the key down, counted by empty `PeekMessageA` calls.
+- A DirectInput8 shell (mouse and keyboard devices), a silent DirectSound8 (buffers with
+  `Lock`/`Unlock`, play cursors that advance in real time, 3D buffer and listener facets) and a
+  fake DirectShow filter graph that plays the intro movies.
+
+Findings:
+- On first run, psSelectDevice insists on an 800x600x32 mode (`defaultFullscreenRes`,
+  `0x008d6218`), and `GcurSelVM` (`0x008d6220`) starts at -1. Two `native` data pokes clear the flag
+  and start at RW mode 1, the first exclusive mode, so the game takes the configured mode.
+- **Thunk table race.** `invoke_thunk` kept a pointer into a `std::vector` of thunks after
+  releasing its lock. COM interfaces register thunks lazily on the main thread, so a reallocation
+  during sound initialization could pull the table out from under the CdStream thread (an
+  intermittent crash at host address `0x23`). The table is now a `std::deque`.
+- Movie skip: the logo and intro states advance on a just-pressed Enter, Space, Escape or Tab, or
+  when any pad-0 button is down. Pad-0 controller state is computed from the previous keyboard
+  snapshot, and Return/Space are bound to pad buttons, so one Return press during `Logo.mpg` also
+  skips `GTAtitles.mpg`; Escape skips one movie at a time. This follows from the original's logic,
+  not the host.
+- **Indirect jumps recursed on the host stack.** `__remill_jump` called `dispatch`, so the game
+  loop, which never returns, overflowed the 8 MB main stack after about 600 frames. `__remill_jump`
+  now records a thread-local pending target, and `dispatch` loops on it.
+- SecuROM anti-debug code in `.text`(2) (`push ss; pop ss; pushfd`, a trap-flag check) lifts to
+  emulate-instruction hypercalls and decode-error traces. The hypercall now emulates segment
+  push/pop. `__remill_error` falls back to the interpreter instead of aborting, and the interpreter
+  handles segment registers.
+- `CreateDevice` passes behavior `0x50` (pure device, hardware vertex processing) without
+  `D3DCREATE_FPU_PRESERVE`. The original therefore runs x87 in single precision from device
+  creation on (§3.4, M4).
+- SA needs a DirectSound device: when `DirectSoundCreate8` fails, it crashes in the audio engine.
+  `LoadLibraryA` and `GetModuleHandleA` now fail for modules without a native implementation
+  (`wmvcore.dll`, `QuickTime.qts`, `mscoree.dll`). That disables WMA/QuickTime user tracks, as on a
+  machine without them.
+- The game creates 6 pixel shaders at startup but draws the boot and menu screens with fixed
+  function only. No shader draws happen up to the main menu.
+
+Movie path decision: the movie code drives DirectShow (`CLSID_FilterGraph`: `IGraphBuilder::RenderFile`,
+`IMediaControl`, `IMediaEventEx` notifying with `WM_GRAPHNOTIFY` `0x40d`, `IMediaSeeking`,
+`IVideoWindow`). It waits for `EC_COMPLETE` or a key press, and it doesn't call `Present` while a
+movie plays. MacAndreas answers with a fake filter graph instead of replacing the movie routine
+with `func_replace`. The graph decodes the MPEG-1 file with pl_mpeg (vendored in
+`third_party/pl_mpeg`). `PeekMessageA` advances it by wall-clock time, and each new frame is
+presented letterboxed through the Metal layer. At the end of the stream the graph posts
+`EC_COMPLETE`. `Logo.mpg` (15.3 s) and `GTAtitles.mpg` (88.7 s) play to the end at 30 fps. Movie
+audio is decoded later, with the CoreAudio output in M5. `--skip-intro` completes the graph at
+once. Movie frames are captured as `movie_NNNNN.png` with the same `--capture-frames` numbers,
+counted separately from game frames.
+
+CdStream TSO audit (first pass):
+- The request queue (ring at `0x008e3fec`, head `0x008e3ff0`, tail `0x008e3ff4`) is ordered by the
+  semaphore at `0x008e4004`. The native semaphores are full barriers, so the queue is safe.
+- Channel handshake: CdStreamThread (`0x00406560`) does `ReadFile; status = …; nSectorsToRead = 0;
+  if (bLocked) ReleaseSemaphore`. CdStreamSync (`0x0156cd80`, in `.HOODLUM`) does
+  `if (nSectorsToRead) { bLocked = 1; WaitForSingleObject }`. This store→load handshake can
+  already lose a wakeup under x86 TSO. On ARM, the plain lifted stores of `status`,
+  `nSectorsToRead` and `bLocked` can also reorder with each other and with the buffer data.
+- CdStreamGetStatus (`0x01563850`) and the streaming code poll channel status without locks.
+- Mitigation now: native `ReadFile` and `GetOverlappedResult` issue a `seq_cst` fence, so buffer
+  data is published before the thread's flag stores. Planned for M4: `tso: true` on CdStreamThread,
+  CdStreamSync and CdStreamGetStatus once the lifter consumes markers, or a native CdStreamSync
+  with a proper wait (SilentPatch also replaces it, M9).
+
+D3D9 coverage up to the main menu: 59 entry points are called, and all are implemented:
+`Direct3DCreate9`; `IDirect3D9` adapter count/identifier/modes/display mode, `CheckDeviceType`,
+`CheckDeviceFormat`, `CheckDeviceMultiSampleType`, `CheckDepthStencilMatch`, `GetDeviceCaps`,
+`CreateDevice`; the device's `Reset`, `TestCooperativeLevel`, `EvictManagedResources`, scene,
+`Clear`, `Present`, gamma ramp, render target and depth surface get/set, viewport, transform,
+render/texture-stage/sampler state, textures, streams, indices, declarations, shaders,
+`DrawPrimitive`, `DrawIndexedPrimitive`, and texture, buffer and declaration creation; texture
+level desc/count/surface; surface and buffer lock/unlock. Planned defaults:
+- `SetGammaRamp` is accepted and ignored (brightness is M3).
+- State blocks, `ProcessVertices`, patches, `CreateAdditionalSwapChain` and `GetPaletteEntries` return
+  `D3DERR_INVALIDCALL`/`NOTAVAILABLE`, and volume textures are refused.
+- User clip planes and stream frequency are stored and logged but not applied.
+
+Deviations from the plan:
+- Graphics, platform and input code live in `host/src/gfx`, `host/src/platform` and `host/src/input`
+  rather than `/runtime/gfx`, for the same reason as `host/src/win32` in M1.
+- The silent DirectSound and the DirectInput shell were pulled forward from M5/M3, because
+  initialization needs them.
+- The splash-art loading screen appears only after Start Game → New Game. At boot, SA shows the
+  legal/title screen while it loads. Keyboard input was pulled forward from M3 to reach it.
+- Screenshots were compared against the original by eye. The M7 reference harness doesn't exist
+  yet.
+
+Not done in M2, carried forward:
+- Movie audio (M5). The MP2 track is skipped while decoding.
+- The shader translator (M4). Draws with a vertex or pixel shader set are skipped and counted.
+- Mouse `WM_*` messages, cursor capture and menu mouse use (M3). Mouse deltas and buttons are
+  recorded for DirectInput and `GetKeyState`.
+- New game crashes after `data\script\main.scm` loads: a loop at `0x004aa130` calls through a null
+  entry of an object array (`0x004aa148`), right after new `[INTERP]` hits in `0x0047xxxx` and
+  `.HOODLUM`. This is the first M3 item ("Start new game begins loading").
+- Pause on focus loss: the activation messages are delivered, but the behavior is not verified (M3).
+- MSAA, multiple render targets, volume textures and fixed-function vertex blending.
+- TSO markers (M4).
+
 Work:
 - Window: NSWindow + CAMetalLayer. `RegisterClassA`/`CreateWindowExA`, guest WndProc dispatch,
   message queue (`PeekMessageA`/`DispatchMessageA`), activation and focus messages.
@@ -524,7 +654,8 @@ Exit criteria:
 Goal: the main menu is fully usable and settings persist.
 
 Work:
-- Keyboard and mouse input (§3.8): WM_* synthesis, `GetKeyState`, DInput8 mouse, cursor capture.
+- Keyboard and mouse input (§3.8): mouse WM_* synthesis, DInput8 mouse, cursor capture. Keyboard
+  `WM_KEY*`, `GetKeyState` and the DInput8 keyboard state landed in M2.
 - Virtual registry and the user-dir mapping. `gta_sa.set` read/write.
 - Display settings are constrained to the launcher-provided mode list.
 - Pause on focus loss, matching original behavior.

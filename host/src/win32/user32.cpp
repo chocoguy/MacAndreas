@@ -1,15 +1,21 @@
+#include "dshow.hpp"
 #include "process.hpp"
 #include "user32.hpp"
 #include "wsprintf.hpp"
 
 #include "../dispatch.hpp"
+#include "../input/input_state.hpp"
+#include "../input/keys.hpp"
+#include "../platform/window.hpp"
 
 #include <CoreGraphics/CoreGraphics.h>
 
 #include <cstdio>
+#include <deque>
 #include <format>
 #include <map>
 #include <mutex>
+#include <chrono>
 #include <string>
 
 namespace ma::host::win32 {
@@ -22,6 +28,12 @@ constexpr uint32_t kWmSetText = 0x000c;
 constexpr uint32_t kWmShowWindow = 0x0018;
 constexpr uint32_t kWmNcCreate = 0x0081;
 constexpr uint32_t kWmNcDestroy = 0x0082;
+constexpr uint32_t kWmQuit = 0x0012;
+constexpr uint32_t kWmKeyDown = 0x0100;
+constexpr uint32_t kWmKeyUp = 0x0101;
+constexpr uint32_t kWmSysKeyDown = 0x0104;
+constexpr uint32_t kWmSysKeyUp = 0x0105;
+constexpr uint32_t kPmRemove = 0x0001;
 
 constexpr int32_t kGwlWndProc = -4;
 constexpr int32_t kGwlHInstance = -6;
@@ -52,6 +64,51 @@ struct WindowClass {
     uint32_t cursor = 0;
     uint32_t background = 0;
 };
+
+struct QueuedMessage {
+    uint32_t hwnd;
+    uint32_t msg;
+    uint32_t wparam;
+    uint32_t lparam;
+    uint32_t time;
+};
+
+std::mutex g_queue_mutex;
+std::deque<QueuedMessage> g_queue;
+
+uint32_t message_time() {
+    static const auto start = std::chrono::steady_clock::now();
+    return static_cast<uint32_t>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count());
+}
+
+bool peek_message(uint32_t out, uint32_t hwnd, uint32_t first, uint32_t last, bool remove) {
+    platform::pump_events();
+    tick_movies();
+    input::poll_key_script();
+    std::lock_guard lock(g_queue_mutex);
+    for (auto it = g_queue.begin(); it != g_queue.end(); ++it) {
+        if (hwnd != 0 && it->hwnd != hwnd) {
+            continue;
+        }
+        if ((first != 0 || last != 0) && (it->msg < first || it->msg > last)) {
+            continue;
+        }
+        mem::write<uint32_t>(out, it->hwnd);
+        mem::write<uint32_t>(out + 4, it->msg);
+        mem::write<uint32_t>(out + 8, it->wparam);
+        mem::write<uint32_t>(out + 12, it->lparam);
+        mem::write<uint32_t>(out + 16, it->time);
+        mem::write<uint32_t>(out + 20, 0);
+        mem::write<uint32_t>(out + 24, 0);
+        if (remove) {
+            g_queue.erase(it);
+        }
+        return true;
+    }
+    input::note_idle_peek();
+    return false;
+}
 
 struct Registry {
     std::recursive_mutex mutex;
@@ -183,6 +240,10 @@ uint32_t create_window(GuestState& s, uint32_t ex_style, uint32_t class_arg, uin
         std::lock_guard lock(r.mutex);
         r.windows.erase(w.hwnd);
         return 0;
+    }
+    if (parent == 0 && platform::has_window_server()) {
+        platform::create_window(w.hwnd, w.title, static_cast<uint32_t>(std::max(w.width, 1)),
+                                static_cast<uint32_t>(std::max(w.height, 1)));
     }
     return w.hwnd;
 }
@@ -356,6 +417,7 @@ constexpr ApiDef kUser32[] = {
          }
          send_to(c.s, hwnd, kWmDestroy, 0, 0);
          send_to(c.s, hwnd, kWmNcDestroy, 0, 0);
+         platform::destroy_window(hwnd);
          std::lock_guard lock(registry().mutex);
          registry().windows.erase(hwnd);
          c.ret(1);
@@ -381,6 +443,7 @@ constexpr ApiDef kUser32[] = {
          }
          if (was_visible != show) {
              send_to(c.s, hwnd, kWmShowWindow, show ? 1 : 0, 0);
+             platform::show_window(hwnd, show);
          }
          c.ret(was_visible ? 1 : 0);
      }},
@@ -480,6 +543,7 @@ constexpr ApiDef kUser32[] = {
              return;
          }
          w->title = c.arg(1) ? mem::read_cstr(c.arg(1)) : "";
+         platform::set_title(w->hwnd, w->title);
          c.ret(1);
      }},
     {"USER32.dll", "IsIconic", 0, 1, Conv::stdcall, [](ApiCall& c) { c.ret(0); }},
@@ -512,7 +576,8 @@ constexpr ApiDef kUser32[] = {
          registry().capture = 0;
          c.ret(1);
      }},
-    {"USER32.dll", "GetKeyState", 0, 1, Conv::stdcall, [](ApiCall& c) { c.ret(0); }},
+    {"USER32.dll", "GetKeyState", 0, 1, Conv::stdcall,
+     [](ApiCall& c) { c.ret(input::key_state(static_cast<uint8_t>(c.arg(0)))); }},
     {"USER32.dll", "MapVirtualKeyA", 0, 2, Conv::stdcall, [](ApiCall& c) { c.ret(map_virtual_key(c.arg(0), c.arg(1))); }},
     {"USER32.dll", "SetTimer", 0, 4, Conv::stdcall,
      [](ApiCall& c) {
@@ -521,7 +586,10 @@ constexpr ApiDef kUser32[] = {
          std::lock_guard lock(registry().mutex);
          c.ret(c.arg(1) ? c.arg(1) : registry().next_timer++);
      }},
-    {"USER32.dll", "PeekMessageA", 0, 5, Conv::stdcall, [](ApiCall& c) { c.ret(0); }},
+    {"USER32.dll", "PeekMessageA", 0, 5, Conv::stdcall,
+     [](ApiCall& c) {
+         c.ret(peek_message(c.arg(0), c.arg(1), c.arg(2), c.arg(3), (c.arg(4) & kPmRemove) != 0) ? 1 : 0);
+     }},
     {"USER32.dll", "TranslateMessage", 0, 1, Conv::stdcall, [](ApiCall& c) { c.ret(0); }},
     {"USER32.dll", "DispatchMessageA", 0, 1, Conv::stdcall,
      [](ApiCall& c) {
@@ -532,6 +600,7 @@ constexpr ApiDef kUser32[] = {
     {"USER32.dll", "PostQuitMessage", 0, 1, Conv::stdcall,
      [](ApiCall& c) {
          std::fprintf(stderr, "[USER32] PostQuitMessage(%d)\n", static_cast<int32_t>(c.arg(0)));
+         post_message(0, kWmQuit, c.arg(0), 0);
          c.ret(0);
      }},
     {"USER32.dll", "MessageBoxA", 0, 4, Conv::stdcall,
@@ -568,6 +637,64 @@ std::pair<uint32_t, uint32_t> screen_size() {
         return {1920, 1080};
     }
     return {width, height};
+}
+
+void post_message(uint32_t hwnd, uint32_t msg, uint32_t wparam, uint32_t lparam) {
+    std::lock_guard lock(g_queue_mutex);
+    g_queue.push_back(QueuedMessage{hwnd, msg, wparam, lparam, message_time()});
+}
+
+static uint32_t input_window() {
+    std::lock_guard lock(registry().mutex);
+    Registry& r = registry();
+    for (uint32_t hwnd : {r.focus, r.foreground}) {
+        if (hwnd != 0 && find_window(hwnd)) {
+            return hwnd;
+        }
+    }
+    for (auto& [hwnd, w] : r.windows) {
+        if (w.visible && w.parent == 0) {
+            return hwnd;
+        }
+    }
+    return r.windows.empty() ? 0 : r.windows.begin()->first;
+}
+
+void key_event(uint32_t hwnd, const input::Key& key, bool down, bool repeat) {
+    if (hwnd == 0) {
+        hwnd = input_window();
+    }
+    uint8_t state_vk = key.side_vk ? key.side_vk : key.vk;
+    bool was_down = input::vk_down(state_vk);
+    bool alt = input::vk_down(input::kVkMenu) || (key.vk == input::kVkMenu && down);
+    input::set_key(input::dik(key), down);
+    input::set_vk(state_vk, down);
+    if (key.side_vk) {
+        input::set_vk(key.vk, down || input::vk_down(input::other_side(key.side_vk)));
+    }
+    bool sys = key.vk == input::kVkF10 || (alt && !input::vk_down(input::kVkControl));
+    uint32_t lparam = 1u | (static_cast<uint32_t>(key.scan) << 16) | (key.extended ? 1u << 24 : 0u);
+    if (sys && alt) {
+        lparam |= 1u << 29;
+    }
+    if (!down) {
+        lparam |= 3u << 30;
+    } else if (was_down || repeat) {
+        lparam |= 1u << 30;
+    }
+    uint32_t msg = down ? (sys ? kWmSysKeyDown : kWmKeyDown) : (sys ? kWmSysKeyUp : kWmKeyUp);
+    post_message(hwnd, msg, key.vk, lparam);
+}
+
+void set_client_size(uint32_t hwnd, uint32_t width, uint32_t height) {
+    {
+        std::lock_guard lock(registry().mutex);
+        if (Window* w = find_window(hwnd)) {
+            w->width = static_cast<int32_t>(width);
+            w->height = static_cast<int32_t>(height);
+        }
+    }
+    platform::set_client_pixels(hwnd, width, height);
 }
 
 std::vector<Window> windows_snapshot() {

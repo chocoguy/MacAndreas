@@ -49,6 +49,7 @@ std::shared_ptr<T> handle_get(uint32_t handle) {
 void set_last_error(uint32_t code);
 uint32_t last_error();
 
+bool is_native_module(std::string_view dll);
 uint32_t module_handle_for(std::string_view dll);
 std::string module_name_for(uint32_t handle);
 
@@ -65,5 +66,6 @@ std::span<const ApiDef> file_apis();
 std::span<const ApiDef> ddraw_apis();
 std::span<const ApiDef> ole32_apis();
 std::span<const ApiDef> dsound_apis();
+std::span<const ApiDef> dinput8_apis();
 
 }

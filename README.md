@@ -6,7 +6,10 @@ MacAndreas converts your own copy of GTA: San Andreas (PC, `gta_sa.exe` 1.0 US) 
 Apple Silicon program. SilentPatch, the Widescreen Fix and Project2DFX are built in. This
 repository contains no game code or assets; see [ROADMAP.md](ROADMAP.md) for the plan.
 
-Status: **M0 (foundations) complete**; M1 (lift & boot) is next. Nothing is playable yet.
+Status: **M2 (first frame) complete**: the game boots through its splash and legal screens to the
+main menu, rendered by lifted RenderWare on Metal, and plays the intro movies (video only). The
+keyboard drives the menu as far as the New Game loading screen; starting a game still crashes, and
+mouse and audio are not there yet. M3 (menu) is next.
 
 ### Requirements
 
@@ -64,6 +67,29 @@ Boot it. `--trace-imports` logs every API call:
 
 ```bash
 build/dev/host/sa-host --game "gamefiles/Grand Theft Auto San Andreas" --native build/dev/native/libgta_sa_native.dylib --manifest manifest
+```
+
+Display and debugging options:
+- `--resolution WxH` sets the only display mode the game sees (default 1280x720, in pixels).
+- `--skip-intro` skips the intro movies.
+- `--capture-dir DIR --capture-frames N,M,…` (or `all`) writes presented frames as PNG. Movie
+  frames are numbered separately and saved as `movie_NNNNN.png`.
+- `--exit-after-frames N` quits after N presented frames.
+- `--keys FRAME:KEY,…` presses keys at presented frames, for unattended runs. `FRAMEm` counts movie
+  frames instead, and `KEY+`/`KEY-` hold and release instead of tapping. Key names are lower case:
+  `return`, `escape`, `space`, `up`, `a`, `f1`, `lshift`, `num5` and so on.
+- Set `MTL_DEBUG_LAYER=1` to run with Metal API validation.
+
+For example, to capture the title screen and the main menu:
+
+```bash
+build/dev/host/sa-host --game "gamefiles/Grand Theft Auto San Andreas" --native build/dev/native/libgta_sa_native.dylib --manifest manifest --skip-intro --capture-dir out/frames --capture-frames 700,1000 --exit-after-frames 1000
+```
+
+To choose Start Game → New Game and capture the loading screen:
+
+```bash
+build/dev/host/sa-host --game "gamefiles/Grand Theft Auto San Andreas" --native build/dev/native/libgta_sa_native.dylib --manifest manifest --skip-intro --keys 1000:return,1100:return --capture-dir out/frames --capture-frames 1050,1350 --exit-after-frames 1350
 ```
 
 Code the recompiler missed runs in the interpreter and is logged as `[INTERP] 0xADDR`. To turn

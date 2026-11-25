@@ -1,6 +1,9 @@
 #include "process.hpp"
 
+#include "../gfx/d3d9.hpp"
+#include "../platform/window.hpp"
 #include "../thread.hpp"
+#include "user32.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -70,11 +73,24 @@ uint32_t last_error() {
     return t ? mem::read<uint32_t>(t->teb + 0x34) : 0;
 }
 
+bool is_native_module(std::string_view dll) {
+    static constexpr std::string_view kModules[] = {
+        "kernel32.dll", "user32.dll",  "gdi32.dll", "advapi32.dll", "winmm.dll",  "ole32.dll",
+        "ws2_32.dll",   "wsock32.dll", "eax.dll",   "vorbisfile.dll", "d3d9.dll", "dinput8.dll",
+        "ddraw.dll",    "dsound.dll",
+    };
+    auto name = lower_dll(dll);
+    return std::ranges::find(kModules, name) != std::end(kModules);
+}
+
 uint32_t module_handle_for(std::string_view dll) {
     std::lock_guard lock(g_modules_mutex);
     auto name = lower_dll(dll);
     if (auto it = g_modules.find(name); it != g_modules.end()) {
         return it->second;
+    }
+    if (!is_native_module(dll)) {
+        return 0;
     }
     uint32_t h = 0x7c000000 + static_cast<uint32_t>(g_modules.size()) * 0x100000;
     g_modules[name] = h;
@@ -117,6 +133,11 @@ void register_all() {
     register_apis(ddraw_apis());
     register_apis(ole32_apis());
     register_apis(dsound_apis());
+    register_apis(dinput8_apis());
+    register_apis(d3d9::apis());
+    platform::set_post_callback(post_message);
+    platform::set_key_callback(key_event);
+    input::set_key_sink([](const input::Key& key, bool down) { key_event(0, key, down, false); });
 }
 
 }

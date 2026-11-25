@@ -1,7 +1,9 @@
 #include "crash.hpp"
 #include "dispatch.hpp"
 #include "guest_memory.hpp"
+#include "input/keys.hpp"
 #include "manifest_runtime.hpp"
+#include "settings.hpp"
 #include "thread.hpp"
 #include "thunks.hpp"
 #include "win32/process.hpp"
@@ -45,6 +47,34 @@ bool parse(int argc, char** argv, Options& o) {
             o.trace_imports = true;
         } else if (a == "--trace-interp") {
             o.trace_interp = true;
+        } else if (a == "--resolution" && i + 1 < argc) {
+            unsigned w = 0;
+            unsigned h = 0;
+            if (std::sscanf(argv[++i], "%ux%u", &w, &h) != 2 || w < 320 || h < 240) {
+                return false;
+            }
+            settings().width = w;
+            settings().height = h;
+        } else if (a == "--skip-intro") {
+            settings().skip_intro = true;
+        } else if (a == "--capture-dir" && i + 1 < argc) {
+            settings().capture_dir = argv[++i];
+        } else if (a == "--capture-frames" && i + 1 < argc) {
+            std::string_view list = argv[++i];
+            if (list == "all") {
+                settings().capture_all = true;
+                continue;
+            }
+            while (!list.empty()) {
+                auto comma = list.find(',');
+                auto item = list.substr(0, comma);
+                settings().capture_frames.push_back(static_cast<uint32_t>(std::stoul(std::string(item))));
+                list = comma == std::string_view::npos ? std::string_view{} : list.substr(comma + 1);
+            }
+        } else if (a == "--exit-after-frames" && i + 1 < argc) {
+            settings().exit_after_frames = static_cast<uint32_t>(std::stoul(argv[++i]));
+        } else if (a == "--keys" && i + 1 < argc) {
+            settings().keys = argv[++i];
         } else {
             return false;
         }
@@ -70,8 +100,18 @@ int main(int argc, char** argv) {
     Options options;
     if (!parse(argc, argv, options)) {
         std::println(stderr, "usage: sa-host --game <game dir> --native <libgta_sa_native.dylib> [--manifest <dir>] "
-                     "[--trace-imports] [--trace-interp]");
+                     "[--trace-imports] [--trace-interp] [--resolution WxH] [--skip-intro] [--capture-dir DIR] "
+                     "[--capture-frames N,M,...|all] [--exit-after-frames N] [--keys FRAME[m]:KEY[+|-],...]");
         return 64;
+    }
+    if (!settings().keys.empty()) {
+        std::string error;
+        auto steps = ma::host::input::parse_key_script(settings().keys, error);
+        if (steps.empty()) {
+            std::println(stderr, "sa-host: --keys: {}", error);
+            return 64;
+        }
+        ma::host::input::set_key_script(std::move(steps));
     }
     auto exe_path = ma::exe::locate_exe(options.game_dir / "gta_sa.exe");
     if (!exe_path) {

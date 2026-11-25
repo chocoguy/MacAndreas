@@ -103,8 +103,12 @@ constexpr ApiDef kApis[] = {
              return;
          }
          auto n = mem::read_cstr(name);
-         std::fprintf(stderr, "[MODULE] GetModuleHandleA(\"%s\")\n", n.c_str());
-         c.ret(module_handle_for(n));
+         uint32_t h = module_handle_for(n);
+         std::fprintf(stderr, "[MODULE] GetModuleHandleA(\"%s\")%s\n", n.c_str(), h ? "" : " -> not available");
+         if (h == 0) {
+             set_last_error(kErrorModNotFound);
+         }
+         c.ret(h);
      }},
     {"KERNEL32.dll", "GetModuleFileNameA", 0, 3, Conv::stdcall,
      [](ApiCall& c) {
@@ -119,8 +123,12 @@ constexpr ApiDef kApis[] = {
     {"KERNEL32.dll", "LoadLibraryA", 0, 1, Conv::stdcall,
      [](ApiCall& c) {
          auto name = mem::read_cstr(c.arg(0));
-         std::fprintf(stderr, "[MODULE] LoadLibraryA(\"%s\")\n", name.c_str());
-         c.ret(module_handle_for(name));
+         uint32_t h = module_handle_for(name);
+         std::fprintf(stderr, "[MODULE] LoadLibraryA(\"%s\")%s\n", name.c_str(), h ? "" : " -> not available");
+         if (h == 0) {
+             set_last_error(kErrorModNotFound);
+         }
+         c.ret(h);
      }},
     {"KERNEL32.dll", "FreeLibrary", 0, 1, Conv::stdcall, [](ApiCall& c) { c.ret(1); }},
     {"KERNEL32.dll", "GetProcAddress", 0, 2, Conv::stdcall,

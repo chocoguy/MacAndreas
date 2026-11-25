@@ -6,6 +6,8 @@ endif()
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/interp" "${CMAKE_BINARY_DIR}/interp")
 
+enable_language(OBJCXX)
+
 add_library(sa-host-core OBJECT
     src/guest_memory.cpp
     src/thread.cpp
@@ -26,12 +28,28 @@ add_library(sa-host-core OBJECT
     src/win32/com.cpp
     src/win32/ddraw.cpp
     src/win32/dsound.cpp
+    src/win32/dinput8.cpp
+    src/win32/dshow.cpp
+    src/input/input_state.cpp
+    src/input/keys.cpp
     src/native/natives.cpp
     src/manifest_runtime.cpp
+    src/settings.cpp
+    src/gfx/ff.cpp
+    src/gfx/formats.cpp
+    src/gfx/d3d9.cpp
+    src/gfx/renderer_metal.mm
+    src/platform/window.mm
+    src/media/movie.cpp
+    src/media/pl_mpeg_impl.c
 )
+set_source_files_properties(src/media/pl_mpeg_impl.c PROPERTIES COMPILE_OPTIONS "-w")
+set_source_files_properties(src/gfx/renderer_metal.mm src/platform/window.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
 target_include_directories(sa-host-core PUBLIC src)
+target_include_directories(sa-host-core SYSTEM PRIVATE "${CMAKE_SOURCE_DIR}/third_party/pl_mpeg")
 target_include_directories(sa-host-core SYSTEM PUBLIC "${MA_REMILL_INCLUDE}")
-target_link_libraries(sa-host-core PUBLIC MacAndreas::loader MacAndreas::manifest ma_interp "-framework CoreGraphics")
+target_link_libraries(sa-host-core PUBLIC MacAndreas::loader MacAndreas::manifest ma_interp
+    "-framework CoreGraphics" "-framework AppKit" "-framework Metal" "-framework QuartzCore" "-framework ImageIO")
 target_compile_options(sa-host-core PUBLIC -Wno-unused-parameter -Wno-pedantic -Wno-gnu-anonymous-struct
     -Wno-nested-anon-types)
 

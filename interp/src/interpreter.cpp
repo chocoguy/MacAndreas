@@ -119,6 +119,15 @@ private:
         if (r >= ZYDIS_REGISTER_SPL && r <= ZYDIS_REGISTER_DIL) {
             return gpr32(r - ZYDIS_REGISTER_SPL + 4) & 0xffu;
         }
+        switch (r) {
+        case ZYDIS_REGISTER_CS: return 0x1b;
+        case ZYDIS_REGISTER_FS: return 0x3b;
+        case ZYDIS_REGISTER_DS:
+        case ZYDIS_REGISTER_ES:
+        case ZYDIS_REGISTER_SS:
+        case ZYDIS_REGISTER_GS: return 0x23;
+        default: break;
+        }
         bad_ = true;
         return 0;
     }
@@ -135,6 +144,8 @@ private:
         } else if (r >= ZYDIS_REGISTER_AH && r <= ZYDIS_REGISTER_BH) {
             uint32_t& g = gpr32(r - ZYDIS_REGISTER_AH);
             g = (g & 0xffff00ffu) | ((v & 0xffu) << 8);
+        } else if (r == ZYDIS_REGISTER_DS || r == ZYDIS_REGISTER_ES || r == ZYDIS_REGISTER_SS ||
+                   r == ZYDIS_REGISTER_GS || r == ZYDIS_REGISTER_FS) {
         } else {
             bad_ = true;
         }

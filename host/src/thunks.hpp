@@ -10,8 +10,11 @@
 
 namespace ma::host {
 
+struct ApiDef;
+
 struct ApiCall {
     GuestState& s;
+    const ApiDef* def = nullptr;
 
     uint32_t arg(unsigned i) const { return mem::read<uint32_t>(esp(s) + 4 + 4 * i); }
     void ret(uint32_t v) { eax(s) = v; }
@@ -32,6 +35,7 @@ struct ApiDef {
     uint8_t args;
     Conv conv;
     ApiFn fn;
+    uint32_t value = 0;
 };
 
 void register_apis(std::span<const ApiDef> defs);

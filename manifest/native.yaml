@@ -4,3 +4,17 @@
   group: platform-probe
   target: ma_get_dx_version
   notes: "GetDXVersion probes ddraw, d3d8, dpnhpast and d3d9 DLLs; the native layer always provides Direct3D 9"
+
+- addr: 0x008d6218
+  kind: data_poke
+  source: native
+  group: display-mode
+  bytes: "00000000"
+  notes: "defaultFullscreenRes: psSelectDevice no longer insists on an 800x600x32 mode; the native D3D9 layer lists only the configured mode"
+
+- addr: 0x008d6220
+  kind: data_poke
+  source: native
+  group: display-mode
+  bytes: "01000000"
+  notes: "GcurSelVM starts at RW video mode 1, the first exclusive mode, instead of -1; mode 0 is the windowed desktop mode"

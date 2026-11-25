@@ -3,15 +3,21 @@
 #include "abi.hpp"
 #include "dispatch.hpp"
 #include "guest_memory.hpp"
+#include "input/input_state.hpp"
+#include "input/keys.hpp"
 #include "thread.hpp"
 #include "thunks.hpp"
 #include "win32/process.hpp"
 #include "win32/seh.hpp"
+#include "win32/user32.hpp"
 #include "win32/wsprintf.hpp"
 
 #include "macandreas/interp.hpp"
 
+#include <array>
 #include <cmath>
+#include <string>
+#include <utility>
 #include <cstdio>
 #include <vector>
 
@@ -431,6 +437,131 @@ void test_wsprintf() {
     CHECK(win32::format_wsprintf("%u", args({0xffffffffu}), strings) == "4294967295");
 }
 
+
+void test_key_table() {
+    const input::Key* ret = input::key_for_mac(0x24);
+    CHECK(ret && ret->vk == 0x0d && ret->scan == 0x1c && !ret->extended && input::dik(*ret) == 0x1c);
+    const input::Key* up = input::key_for_name("UP");
+    CHECK(up && up->mac == 0x7e && up->vk == 0x26 && input::dik(*up) == 0xc8);
+    const input::Key* rctrl = input::key_for_name("rctrl");
+    CHECK(rctrl && rctrl->vk == input::kVkControl && rctrl->side_vk == input::kVkRControl && input::dik(*rctrl) == 0x9d);
+    CHECK(input::key_for_name("enter") == ret);
+    CHECK(input::key_for_name("nosuchkey") == nullptr);
+    CHECK(input::other_side(input::kVkLShift) == input::kVkRShift);
+    CHECK(input::other_side(input::kVkRMenu) == input::kVkLMenu);
+    for (uint16_t mac = 0; mac < 0x80; ++mac) {
+        const input::Key* k = input::key_for_mac(mac);
+        CHECK(!k || input::key_for_name(k->name) == k);
+    }
+}
+
+void test_key_script() {
+    std::string error;
+    auto steps = input::parse_key_script("10:return,5m:space,20:lshift+,30:lshift-", error);
+    CHECK(error.empty());
+    CHECK(steps.size() == 4);
+    CHECK(steps[0].movie && steps[0].frame == 5 && steps[0].down && steps[0].tap);
+    CHECK(!steps[1].movie && steps[1].frame == 10 && steps[1].key == input::key_for_name("return") && steps[1].tap);
+    CHECK(steps[2].frame == 20 && steps[2].down && !steps[2].tap);
+    CHECK(steps[3].frame == 30 && !steps[3].down && !steps[3].tap);
+    CHECK(input::parse_key_script("x:return", error).empty() && !error.empty());
+    CHECK(input::parse_key_script("10:bogus", error).empty() && error.find("bogus") != std::string::npos);
+    CHECK(input::parse_key_script("10return", error).empty());
+
+    std::vector<std::pair<std::string, bool>> fired;
+    input::set_key_sink([&](const input::Key& k, bool down) { fired.emplace_back(std::string(k.name), down); });
+    input::set_key_script(steps);
+    input::run_key_script(false, 9);
+    CHECK(fired.empty());
+    input::run_key_script(true, 6);
+    CHECK(fired.size() == 1 && fired[0].first == "space" && fired[0].second);
+    input::poll_key_script();
+    CHECK(fired.size() == 1);
+    input::note_idle_peek();
+    input::poll_key_script();
+    CHECK(fired.size() == 2 && fired[1].first == "space" && !fired[1].second);
+    input::run_key_script(false, 25);
+    CHECK(fired.size() == 4);
+    CHECK(fired[2].first == "return" && fired[2].second);
+    CHECK(fired[3].first == "lshift" && fired[3].second);
+    input::poll_key_script();
+    CHECK(fired.size() == 4);
+    input::note_idle_peek();
+    input::poll_key_script();
+    CHECK(fired.size() == 5 && fired[4].first == "return" && !fired[4].second);
+    input::run_key_script(false, 100);
+    CHECK(fired.size() == 6 && fired[5].first == "lshift" && !fired[5].second);
+    input::note_idle_peek();
+    input::poll_key_script();
+    input::run_key_script(false, 200);
+    CHECK(fired.size() == 6);
+    input::set_key_script({});
+    input::set_key_sink(nullptr);
+}
+
+void test_keyboard_messages(GuestState& s) {
+    input::reset();
+    uint32_t msg = allocator().reserve(0x1000);
+    uint32_t peek = thunk_for("USER32.dll", "PeekMessageA", 0);
+    uint32_t get_key_state = thunk_for("USER32.dll", "GetKeyState", 0);
+    auto next = [&] {
+        uint32_t got = guest_call<Conv::stdcall, uint32_t>(s, peek, msg, 0u, 0x100u, 0x108u, 1u);
+        return got ? std::array<uint32_t, 3>{mem::read<uint32_t>(msg + 4), mem::read<uint32_t>(msg + 8),
+                                             mem::read<uint32_t>(msg + 12)}
+                   : std::array<uint32_t, 3>{0, 0, 0};
+    };
+
+    const input::Key& up = *input::key_for_name("up");
+    win32::key_event(0x1234, up, true, false);
+    win32::key_event(0x1234, up, true, true);
+    CHECK((guest_call<Conv::stdcall, uint32_t>(s, get_key_state, 0x26u) & 0x8000) != 0);
+    win32::key_event(0x1234, up, false, false);
+    CHECK((guest_call<Conv::stdcall, uint32_t>(s, get_key_state, 0x26u) & 0x8000) == 0);
+    CHECK((next() == std::array<uint32_t, 3>{0x100, 0x26, 0x01480001}));
+    CHECK((next() == std::array<uint32_t, 3>{0x100, 0x26, 0x41480001}));
+    CHECK((next() == std::array<uint32_t, 3>{0x101, 0x26, 0xc1480001}));
+
+    const input::Key& rshift = *input::key_for_name("rshift");
+    win32::key_event(0x1234, rshift, true, false);
+    CHECK((guest_call<Conv::stdcall, uint32_t>(s, get_key_state, uint32_t{input::kVkRShift}) & 0x8000) != 0);
+    CHECK((guest_call<Conv::stdcall, uint32_t>(s, get_key_state, uint32_t{input::kVkShift}) & 0x8000) != 0);
+    CHECK((guest_call<Conv::stdcall, uint32_t>(s, get_key_state, uint32_t{input::kVkLShift}) & 0x8000) == 0);
+    CHECK((next() == std::array<uint32_t, 3>{0x100, 0x10, 0x00360001}));
+    win32::key_event(0x1234, rshift, false, false);
+    CHECK((guest_call<Conv::stdcall, uint32_t>(s, get_key_state, uint32_t{input::kVkShift}) & 0x8000) == 0);
+    CHECK((next() == std::array<uint32_t, 3>{0x101, 0x10, 0xc0360001}));
+
+    const input::Key& lalt = *input::key_for_name("lalt");
+    const input::Key& x = *input::key_for_name("x");
+    win32::key_event(0x1234, lalt, true, false);
+    win32::key_event(0x1234, x, true, false);
+    win32::key_event(0x1234, x, false, false);
+    win32::key_event(0x1234, lalt, false, false);
+    CHECK((next() == std::array<uint32_t, 3>{0x104, 0x12, 0x20380001}));
+    CHECK((next() == std::array<uint32_t, 3>{0x104, 'X', 0x202d0001}));
+    CHECK((next() == std::array<uint32_t, 3>{0x105, 'X', 0xe02d0001}));
+    CHECK((next() == std::array<uint32_t, 3>{0x105, 0x12, 0xe0380001}));
+    CHECK((next() == std::array<uint32_t, 3>{0, 0, 0}));
+
+    const input::Key& caps = *input::key_for_name("capslock");
+    uint32_t before = guest_call<Conv::stdcall, uint32_t>(s, get_key_state, uint32_t{input::kVkCapital}) & 1;
+    win32::key_event(0x1234, caps, true, false);
+    win32::key_event(0x1234, caps, false, false);
+    CHECK((guest_call<Conv::stdcall, uint32_t>(s, get_key_state, uint32_t{input::kVkCapital}) & 1) != before);
+    next();
+    next();
+
+    uint8_t dik[256] = {};
+    win32::key_event(0x1234, up, true, false);
+    input::write_keyboard_state(dik, sizeof(dik));
+    CHECK(dik[0xc8] == 0x80);
+    win32::key_event(0x1234, up, false, false);
+    input::write_keyboard_state(dik, sizeof(dik));
+    CHECK(dik[0xc8] == 0);
+    next();
+    next();
+}
+
 }
 
 int main() {
@@ -461,5 +592,8 @@ int main() {
     test_seh_nonlocal_unwind(s);
     test_interpreter(s);
     test_wsprintf();
+    test_key_table();
+    test_key_script();
+    test_keyboard_messages(s);
     return ma::test::finish("host_runtime");
 }

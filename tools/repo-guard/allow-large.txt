@@ -1,0 +1,3 @@
+# Repo-relative paths allowed to exceed the repo-guard size limit, one per line.
+LICENSE
+analysis/sa-1.0us/functions.json

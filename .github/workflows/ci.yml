@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  repo-guard:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Repo guard unit tests
+        run: python3 -I tools/repo-guard/test_repo_guard.py
+      - name: Check tracked files
+        run: python3 -I tools/repo-guard/repo_guard.py --tracked
+
+  build:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build tools
+        run: brew install ninja
+      - name: Configure
+        run: cmake --preset dev
+      - name: Build
+        run: cmake --build --preset dev
+      - name: Test
+        run: ctest --preset dev --label-exclude game

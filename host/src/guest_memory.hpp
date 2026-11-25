@@ -66,9 +66,12 @@ private:
         uint32_t size;
         uint32_t magic;
     };
-    static constexpr uint32_t kMagic = 0x4d41484cu;
+    static constexpr uint32_t kMagic = 0x4d414800u;
+    static constexpr uint32_t kMagicMask = 0xffffff00u;
     static constexpr int kClasses = 24;
+    static constexpr uint32_t kLarge = 0xffu;
     static int size_class(uint32_t size);
+    static uint32_t capacity(uint32_t tag, uint32_t size);
 
     mutable std::recursive_mutex mutex_;
     uint32_t cursor_ = kAllocStart;

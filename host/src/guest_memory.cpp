@@ -88,6 +88,10 @@ int GuestAllocator::size_class(uint32_t size) {
     return cls < 0 ? 0 : cls;
 }
 
+uint32_t GuestAllocator::capacity(uint32_t tag, uint32_t size) {
+    return tag == kLarge ? size : (16u << tag) - static_cast<uint32_t>(sizeof(Chunk));
+}
+
 uint32_t GuestAllocator::reserve(uint32_t size, uint32_t align) {
     std::lock_guard lock(mutex_);
     uint32_t start = (cursor_ + align - 1) & ~(align - 1);
@@ -107,7 +111,7 @@ uint32_t GuestAllocator::alloc(uint32_t size) {
     if (cls < kClasses && free_lists_[cls] != 0) {
         uint32_t chunk = free_lists_[cls];
         free_lists_[cls] = mem::read<uint32_t>(chunk + sizeof(Chunk));
-        mem::write(chunk, Chunk{size, kMagic});
+        mem::write(chunk, Chunk{size, kMagic | static_cast<uint32_t>(cls)});
         std::memset(mem::ptr(chunk + sizeof(Chunk)), 0, size);
         return chunk + sizeof(Chunk);
     }
@@ -116,7 +120,7 @@ uint32_t GuestAllocator::alloc(uint32_t size) {
         if (chunk == 0) {
             return 0;
         }
-        mem::write(chunk, Chunk{size, kMagic});
+        mem::write(chunk, Chunk{size, kMagic | kLarge});
         return chunk + sizeof(Chunk);
     }
     if (heap_cursor_ + block > heap_end_) {
@@ -130,7 +134,7 @@ uint32_t GuestAllocator::alloc(uint32_t size) {
     }
     uint32_t chunk = heap_cursor_;
     heap_cursor_ += block;
-    mem::write(chunk, Chunk{size, kMagic});
+    mem::write(chunk, Chunk{size, kMagic | static_cast<uint32_t>(cls)});
     return chunk + sizeof(Chunk);
 }
 
@@ -141,23 +145,23 @@ void GuestAllocator::free(uint32_t addr) {
     std::lock_guard lock(mutex_);
     uint32_t chunk = addr - sizeof(Chunk);
     auto header = mem::read<Chunk>(chunk);
-    if (header.magic != kMagic) {
+    if ((header.magic & kMagicMask) != kMagic) {
         std::fprintf(stderr, "[HEAP] free of unknown block 0x%08x\n", addr);
         return;
     }
-    int cls = size_class(header.size);
+    uint32_t tag = header.magic & ~kMagicMask;
     mem::write(chunk, Chunk{0, 0});
-    if (cls >= kClasses) {
+    if (tag == kLarge || tag >= static_cast<uint32_t>(kClasses)) {
         return;
     }
-    mem::write<uint32_t>(chunk + sizeof(Chunk), free_lists_[cls]);
-    free_lists_[cls] = chunk;
+    mem::write<uint32_t>(chunk + sizeof(Chunk), free_lists_[tag]);
+    free_lists_[tag] = chunk;
 }
 
 uint32_t GuestAllocator::size_of(uint32_t addr) const {
     std::lock_guard lock(mutex_);
     auto header = mem::read<Chunk>(addr - sizeof(Chunk));
-    return header.magic == kMagic ? header.size : 0xffffffffu;
+    return (header.magic & kMagicMask) == kMagic ? header.size : 0xffffffffu;
 }
 
 bool GuestAllocator::owns(uint32_t addr) const {
@@ -168,14 +172,22 @@ uint32_t GuestAllocator::realloc(uint32_t addr, uint32_t size) {
     if (addr == 0) {
         return alloc(size);
     }
+    {
+        std::lock_guard lock(mutex_);
+        auto header = mem::read<Chunk>(addr - sizeof(Chunk));
+        if ((header.magic & kMagicMask) != kMagic) {
+            return 0;
+        }
+        uint32_t tag = header.magic & ~kMagicMask;
+        if (size <= capacity(tag, header.size)) {
+            if (size > header.size) {
+                std::memset(mem::ptr(addr + header.size), 0, size - header.size);
+            }
+            mem::write(addr - sizeof(Chunk), Chunk{size, header.magic});
+            return addr;
+        }
+    }
     uint32_t old = size_of(addr);
-    if (old == 0xffffffffu) {
-        return 0;
-    }
-    if (size <= old && size_class(size) == size_class(old)) {
-        mem::write(addr - sizeof(Chunk), Chunk{size, kMagic});
-        return addr;
-    }
     uint32_t fresh = alloc(size);
     if (fresh == 0) {
         return 0;

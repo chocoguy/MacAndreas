@@ -11,14 +11,19 @@
 
 namespace {
 
-constexpr uint32_t kWmActivate = 0x0006;
-constexpr uint32_t kWmSetFocus = 0x0007;
-constexpr uint32_t kWmKillFocus = 0x0008;
 constexpr uint32_t kWmClose = 0x0010;
-constexpr uint32_t kWmActivateApp = 0x001c;
 
 ma::host::platform::PostFn g_post;
-ma::host::platform::KeyFn g_key;
+ma::host::platform::InputCallbacks g_input;
+bool g_cursor_hidden = false;
+
+NSCursor* blank_cursor() {
+    static NSCursor* cursor = [] {
+        NSImage* image = [[NSImage alloc] initWithSize:NSMakeSize(1, 1)];
+        return [[NSCursor alloc] initWithImage:image hotSpot:NSZeroPoint];
+    }();
+    return cursor;
+}
 
 constexpr NSEventModifierFlags kDeviceLCtrl = 0x0001;
 constexpr NSEventModifierFlags kDeviceLShift = 0x0002;
@@ -42,8 +47,8 @@ NSEventModifierFlags device_mask(uint16_t mac) {
 
 void key(uint32_t hwnd, uint16_t mac, bool down, bool repeat) {
     const ma::host::input::Key* k = ma::host::input::key_for_mac(mac);
-    if (k && g_key) {
-        g_key(hwnd, *k, down, repeat);
+    if (k && g_input.key) {
+        g_input.key(hwnd, *k, down, repeat);
     }
 }
 
@@ -57,6 +62,9 @@ void post(uint32_t hwnd, uint32_t msg, uint32_t wparam, uint32_t lparam) {
 
 @interface MAView : NSView
 @property(nonatomic) uint32_t hwnd;
+@property(nonatomic) uint32_t clientWidth;
+@property(nonatomic) uint32_t clientHeight;
+@property(nonatomic) double wheelRemainder;
 @end
 
 @implementation MAView
@@ -94,8 +102,36 @@ void post(uint32_t hwnd, uint32_t msg, uint32_t wparam, uint32_t lparam) {
     [super viewDidChangeBackingProperties];
     [self updateDrawableSize];
 }
+- (NSPoint)clientPoint:(NSEvent*)e {
+    NSPoint p = [self convertPoint:e.locationInWindow fromView:nil];
+    NSSize size = self.bounds.size;
+    if (size.width <= 0 || size.height <= 0) {
+        return NSZeroPoint;
+    }
+    return NSMakePoint(std::floor(p.x / size.width * self.clientWidth),
+                       std::floor((size.height - p.y) / size.height * self.clientHeight));
+}
+- (void)resetCursorRects {
+    if (g_cursor_hidden) {
+        [self addCursorRect:self.bounds cursor:blank_cursor()];
+    }
+}
 - (void)mouseMoved:(NSEvent*)e {
     ma::host::input::add_mouse_motion(static_cast<int32_t>(e.deltaX), static_cast<int32_t>(e.deltaY));
+    NSPoint p = [self clientPoint:e];
+    bool inside = p.x >= 0 && p.y >= 0 && p.x < self.clientWidth && p.y < self.clientHeight;
+    bool held = NSEvent.pressedMouseButtons != 0;
+    if (g_input.move && (inside || held)) {
+        g_input.move(self.hwnd, static_cast<int32_t>(p.x), static_cast<int32_t>(p.y));
+    }
+}
+- (void)button:(unsigned)button down:(bool)down event:(NSEvent*)e {
+    if (g_input.button) {
+        [self mouseMoved:e];
+        g_input.button(self.hwnd, button, down);
+    } else {
+        ma::host::input::set_mouse_button(button, down);
+    }
 }
 - (void)mouseDragged:(NSEvent*)e {
     [self mouseMoved:e];
@@ -107,25 +143,36 @@ void post(uint32_t hwnd, uint32_t msg, uint32_t wparam, uint32_t lparam) {
     [self mouseMoved:e];
 }
 - (void)mouseDown:(NSEvent*)e {
-    ma::host::input::set_mouse_button(0, true);
+    [self button:0 down:true event:e];
 }
 - (void)mouseUp:(NSEvent*)e {
-    ma::host::input::set_mouse_button(0, false);
+    [self button:0 down:false event:e];
 }
 - (void)rightMouseDown:(NSEvent*)e {
-    ma::host::input::set_mouse_button(1, true);
+    [self button:1 down:true event:e];
 }
 - (void)rightMouseUp:(NSEvent*)e {
-    ma::host::input::set_mouse_button(1, false);
+    [self button:1 down:false event:e];
 }
 - (void)otherMouseDown:(NSEvent*)e {
-    ma::host::input::set_mouse_button(static_cast<unsigned>(e.buttonNumber), true);
+    [self button:static_cast<unsigned>(e.buttonNumber) down:true event:e];
 }
 - (void)otherMouseUp:(NSEvent*)e {
-    ma::host::input::set_mouse_button(static_cast<unsigned>(e.buttonNumber), false);
+    [self button:static_cast<unsigned>(e.buttonNumber) down:false event:e];
 }
 - (void)scrollWheel:(NSEvent*)e {
-    ma::host::input::add_mouse_wheel(static_cast<int32_t>(e.scrollingDeltaY * 40));
+    double notches = e.hasPreciseScrollingDeltas ? e.scrollingDeltaY / 10.0 : e.scrollingDeltaY;
+    double total = notches * 120.0 + self.wheelRemainder;
+    int32_t delta = static_cast<int32_t>(std::trunc(total));
+    self.wheelRemainder = total - delta;
+    if (delta == 0) {
+        return;
+    }
+    if (g_input.wheel) {
+        g_input.wheel(self.hwnd, delta);
+    } else {
+        ma::host::input::add_mouse_wheel(delta);
+    }
 }
 - (void)keyDown:(NSEvent*)e {
     if (e.modifierFlags & NSEventModifierFlagCommand) {
@@ -159,15 +206,14 @@ void post(uint32_t hwnd, uint32_t msg, uint32_t wparam, uint32_t lparam) {
     return NO;
 }
 - (void)windowDidBecomeKey:(NSNotification*)n {
-    post(self.hwnd, kWmActivateApp, 1, 0);
-    post(self.hwnd, kWmActivate, 1, 0);
-    post(self.hwnd, kWmSetFocus, 0, 0);
+    if (g_input.focus) {
+        g_input.focus(self.hwnd, true);
+    }
 }
 - (void)windowDidResignKey:(NSNotification*)n {
-    ma::host::input::reset();
-    post(self.hwnd, kWmKillFocus, 0, 0);
-    post(self.hwnd, kWmActivate, 0, 0);
-    post(self.hwnd, kWmActivateApp, 0, 0);
+    if (g_input.focus) {
+        g_input.focus(self.hwnd, false);
+    }
 }
 @end
 
@@ -220,7 +266,37 @@ NSSize points_for_pixels(uint32_t width, uint32_t height) {
 
 void set_post_callback(PostFn fn) { g_post = std::move(fn); }
 
-void set_key_callback(KeyFn fn) { g_key = std::move(fn); }
+void set_input_callbacks(InputCallbacks callbacks) { g_input = std::move(callbacks); }
+
+void set_cursor_hidden(bool hidden) {
+    if (g_cursor_hidden == hidden) {
+        return;
+    }
+    g_cursor_hidden = hidden;
+    for (auto& [hwnd, entry] : windows()) {
+        [entry.window invalidateCursorRectsForView:entry.view];
+    }
+}
+
+void warp_cursor(uint32_t hwnd, int32_t x, int32_t y) {
+    auto it = windows().find(hwnd);
+    if (it == windows().end() || !NSApp.active || !it->second.window.keyWindow) {
+        return;
+    }
+    MAView* view = it->second.view;
+    NSWindow* window = it->second.window;
+    NSPoint inside = [view convertPoint:window.mouseLocationOutsideOfEventStream fromView:nil];
+    if (!NSPointInRect(inside, view.bounds) || view.clientWidth == 0 || view.clientHeight == 0) {
+        return;
+    }
+    NSSize size = view.bounds.size;
+    NSPoint local = NSMakePoint((x + 0.5) * size.width / view.clientWidth,
+                                size.height - (y + 0.5) * size.height / view.clientHeight);
+    NSPoint screen = [window convertPointToScreen:[view convertPoint:local toView:nil]];
+    CGFloat top = NSScreen.screens.firstObject.frame.size.height;
+    CGWarpMouseCursorPosition(CGPointMake(screen.x, top - screen.y));
+    CGAssociateMouseAndMouseCursorPosition(true);
+}
 
 bool has_window_server() {
     static const bool ok = [] {
@@ -250,6 +326,8 @@ void create_window(uint32_t hwnd, const std::string& title, uint32_t width, uint
         w.collectionBehavior = NSWindowCollectionBehaviorFullScreenPrimary;
         MAView* view = [[MAView alloc] initWithFrame:NSMakeRect(0, 0, size.width, size.height)];
         view.hwnd = hwnd;
+        view.clientWidth = width;
+        view.clientHeight = height;
         w.contentView = view;
         [view updateDrawableSize];
         MAWindowDelegate* delegate = [[MAWindowDelegate alloc] init];
@@ -296,6 +374,8 @@ void set_client_pixels(uint32_t hwnd, uint32_t width, uint32_t height) {
         return;
     }
     NSSize size = points_for_pixels(width, height);
+    it->second.view.clientWidth = width;
+    it->second.view.clientHeight = height;
     [it->second.window setContentSize:size];
     [it->second.window center];
     [it->second.view updateDrawableSize];

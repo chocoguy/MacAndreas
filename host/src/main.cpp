@@ -48,13 +48,23 @@ bool parse(int argc, char** argv, Options& o) {
         } else if (a == "--trace-interp") {
             o.trace_interp = true;
         } else if (a == "--resolution" && i + 1 < argc) {
-            unsigned w = 0;
-            unsigned h = 0;
-            if (std::sscanf(argv[++i], "%ux%u", &w, &h) != 2 || w < 320 || h < 240) {
+            DisplayMode mode;
+            if (!parse_mode(argv[++i], mode)) {
                 return false;
             }
-            settings().width = w;
-            settings().height = h;
+            settings().width = mode.width;
+            settings().height = mode.height;
+        } else if (a == "--modes" && i + 1 < argc) {
+            std::string_view list = argv[++i];
+            while (!list.empty()) {
+                auto comma = list.find(',');
+                DisplayMode mode;
+                if (!parse_mode(list.substr(0, comma), mode)) {
+                    return false;
+                }
+                settings().modes.push_back(mode);
+                list = comma == std::string_view::npos ? std::string_view{} : list.substr(comma + 1);
+            }
         } else if (a == "--skip-intro") {
             settings().skip_intro = true;
         } else if (a == "--capture-dir" && i + 1 < argc) {
@@ -100,7 +110,7 @@ int main(int argc, char** argv) {
     Options options;
     if (!parse(argc, argv, options)) {
         std::println(stderr, "usage: sa-host --game <game dir> --native <libgta_sa_native.dylib> [--manifest <dir>] "
-                     "[--trace-imports] [--trace-interp] [--resolution WxH] [--skip-intro] [--capture-dir DIR] "
+                     "[--trace-imports] [--trace-interp] [--resolution WxH] [--modes WxH,...] [--skip-intro] [--capture-dir DIR] "
                      "[--capture-frames N,M,...|all] [--exit-after-frames N] [--keys FRAME[m]:KEY[+|-],...]");
         return 64;
     }

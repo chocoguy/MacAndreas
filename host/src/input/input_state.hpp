@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <cstddef>
+#include <utility>
 
 namespace ma::host::input {
 
@@ -12,6 +13,9 @@ void set_key(uint8_t dik, bool down);
 void set_vk(uint8_t vk, bool down);
 bool vk_down(uint8_t vk);
 uint32_t key_state(uint8_t vk);
+void set_cursor(int32_t x, int32_t y);
+std::pair<int32_t, int32_t> cursor();
+bool mouse_button(unsigned button);
 void reset();
 
 void write_mouse_state(uint8_t* out, size_t size);

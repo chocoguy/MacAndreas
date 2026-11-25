@@ -33,6 +33,13 @@ constexpr uint32_t kWmKeyDown = 0x0100;
 constexpr uint32_t kWmKeyUp = 0x0101;
 constexpr uint32_t kWmSysKeyDown = 0x0104;
 constexpr uint32_t kWmSysKeyUp = 0x0105;
+constexpr uint32_t kWmMouseMove = 0x0200;
+constexpr uint32_t kWmMouseWheel = 0x020a;
+constexpr uint32_t kButtonDown[] = {0x0201, 0x0204, 0x0207};
+constexpr uint32_t kButtonUp[] = {0x0202, 0x0205, 0x0208};
+constexpr uint32_t kButtonMk[] = {0x0001, 0x0002, 0x0010};
+constexpr uint32_t kMkShift = 0x0004;
+constexpr uint32_t kMkControl = 0x0008;
 constexpr uint32_t kPmRemove = 0x0001;
 
 constexpr int32_t kGwlWndProc = -4;
@@ -552,6 +559,7 @@ constexpr ApiDef kUser32[] = {
      [](ApiCall& c) {
          std::lock_guard lock(registry().mutex);
          registry().cursor_count += c.arg(0) ? 1 : -1;
+         platform::set_cursor_hidden(registry().cursor_count < 0);
          c.ret(static_cast<uint32_t>(registry().cursor_count));
      }},
     {"USER32.dll", "SetCursor", 0, 1, Conv::stdcall,
@@ -561,7 +569,24 @@ constexpr ApiDef kUser32[] = {
          registry().cursor = c.arg(0);
          c.ret(old);
      }},
-    {"USER32.dll", "SetCursorPos", 0, 2, Conv::stdcall, [](ApiCall& c) { c.ret(1); }},
+    {"USER32.dll", "SetCursorPos", 0, 2, Conv::stdcall,
+     [](ApiCall& c) {
+         uint32_t hwnd = input_window();
+         int32_t x = static_cast<int32_t>(c.arg(0));
+         int32_t y = static_cast<int32_t>(c.arg(1));
+         {
+             std::lock_guard lock(registry().mutex);
+             if (Window* w = find_window(hwnd)) {
+                 x -= w->x;
+                 y -= w->y;
+             }
+         }
+         if (input::cursor() != std::pair{x, y}) {
+             platform::warp_cursor(hwnd, x, y);
+             mouse_move(hwnd, x, y);
+         }
+         c.ret(1);
+     }},
     {"USER32.dll", "ClipCursor", 0, 1, Conv::stdcall, [](ApiCall& c) { c.ret(1); }},
     {"USER32.dll", "SetCapture", 0, 1, Conv::stdcall,
      [](ApiCall& c) {
@@ -641,10 +666,14 @@ std::pair<uint32_t, uint32_t> screen_size() {
 
 void post_message(uint32_t hwnd, uint32_t msg, uint32_t wparam, uint32_t lparam) {
     std::lock_guard lock(g_queue_mutex);
+    if (msg == kWmMouseMove && !g_queue.empty() && g_queue.back().msg == kWmMouseMove && g_queue.back().hwnd == hwnd) {
+        g_queue.back() = QueuedMessage{hwnd, msg, wparam, lparam, message_time()};
+        return;
+    }
     g_queue.push_back(QueuedMessage{hwnd, msg, wparam, lparam, message_time()});
 }
 
-static uint32_t input_window() {
+uint32_t input_window() {
     std::lock_guard lock(registry().mutex);
     Registry& r = registry();
     for (uint32_t hwnd : {r.focus, r.foreground}) {
@@ -684,6 +713,85 @@ void key_event(uint32_t hwnd, const input::Key& key, bool down, bool repeat) {
     }
     uint32_t msg = down ? (sys ? kWmSysKeyDown : kWmKeyDown) : (sys ? kWmSysKeyUp : kWmKeyUp);
     post_message(hwnd, msg, key.vk, lparam);
+}
+
+static uint32_t mouse_keys() {
+    uint32_t keys = 0;
+    for (unsigned b = 0; b < 3; ++b) {
+        if (input::mouse_button(b)) {
+            keys |= kButtonMk[b];
+        }
+    }
+    if (input::vk_down(input::kVkShift)) {
+        keys |= kMkShift;
+    }
+    if (input::vk_down(input::kVkControl)) {
+        keys |= kMkControl;
+    }
+    return keys;
+}
+
+static uint32_t point_lparam(int32_t x, int32_t y) {
+    return static_cast<uint16_t>(x) | (static_cast<uint32_t>(static_cast<uint16_t>(y)) << 16);
+}
+
+void mouse_move(uint32_t hwnd, int32_t x, int32_t y) {
+    if (hwnd == 0) {
+        hwnd = input_window();
+    }
+    input::set_cursor(x, y);
+    post_message(hwnd, kWmMouseMove, mouse_keys(), point_lparam(x, y));
+}
+
+void mouse_button(uint32_t hwnd, unsigned button, bool down) {
+    if (hwnd == 0) {
+        hwnd = input_window();
+    }
+    input::set_mouse_button(button, down);
+    if (button >= std::size(kButtonDown)) {
+        return;
+    }
+    auto [x, y] = input::cursor();
+    post_message(hwnd, down ? kButtonDown[button] : kButtonUp[button], mouse_keys(), point_lparam(x, y));
+}
+
+void mouse_wheel(uint32_t hwnd, int32_t delta) {
+    if (hwnd == 0) {
+        hwnd = input_window();
+    }
+    input::add_mouse_wheel(delta);
+    auto [x, y] = input::cursor();
+    int32_t sx = x;
+    int32_t sy = y;
+    {
+        std::lock_guard lock(registry().mutex);
+        if (Window* w = find_window(hwnd)) {
+            sx += w->x;
+            sy += w->y;
+        }
+    }
+    post_message(hwnd, kWmMouseWheel, mouse_keys() | (static_cast<uint32_t>(static_cast<uint16_t>(delta)) << 16),
+                 point_lparam(sx, sy));
+}
+
+void focus_event(uint32_t hwnd, bool active) {
+    constexpr uint32_t kWmActivate = 0x0006;
+    constexpr uint32_t kWmSetFocus = 0x0007;
+    constexpr uint32_t kWmKillFocus = 0x0008;
+    constexpr uint32_t kWmActivateApp = 0x001c;
+    if (hwnd == 0) {
+        hwnd = input_window();
+    }
+    if (active) {
+        post_message(hwnd, kWmActivateApp, 1, 0);
+        post_message(hwnd, kWmActivate, 1, 0);
+        post_message(hwnd, kWmSetFocus, 0, 0);
+        return;
+    }
+    input::reset();
+    post_message(hwnd, kWmKillFocus, 0, 0);
+    post_message(hwnd, kWmActivate, 0, 0);
+    post_message(hwnd, kWmActivateApp, 0, 0);
 }
 
 void set_client_size(uint32_t hwnd, uint32_t width, uint32_t height) {

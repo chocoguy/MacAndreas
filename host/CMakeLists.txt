@@ -30,6 +30,7 @@ add_library(sa-host-core OBJECT
     src/win32/dsound.cpp
     src/win32/dinput8.cpp
     src/win32/dshow.cpp
+    src/win32/vorbisfile.cpp
     src/input/input_state.cpp
     src/input/keys.cpp
     src/native/natives.cpp
@@ -47,6 +48,13 @@ set_source_files_properties(src/media/pl_mpeg_impl.c PROPERTIES COMPILE_OPTIONS 
 set_source_files_properties(src/gfx/renderer_metal.mm src/platform/window.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
 target_include_directories(sa-host-core PUBLIC src)
 target_include_directories(sa-host-core SYSTEM PRIVATE "${CMAKE_SOURCE_DIR}/third_party/pl_mpeg")
+find_path(MA_VORBIS_INCLUDE vorbis/vorbisfile.h HINTS /opt/homebrew/opt/libvorbis/include REQUIRED)
+find_path(MA_OGG_INCLUDE ogg/ogg.h HINTS /opt/homebrew/opt/libogg/include REQUIRED)
+find_library(MA_VORBISFILE_LIB NAMES libvorbisfile.a HINTS /opt/homebrew/opt/libvorbis/lib REQUIRED)
+find_library(MA_VORBIS_LIB NAMES libvorbis.a HINTS /opt/homebrew/opt/libvorbis/lib REQUIRED)
+find_library(MA_OGG_LIB NAMES libogg.a HINTS /opt/homebrew/opt/libogg/lib REQUIRED)
+target_include_directories(sa-host-core SYSTEM PRIVATE "${MA_VORBIS_INCLUDE}" "${MA_OGG_INCLUDE}")
+target_link_libraries(sa-host-core PRIVATE "${MA_VORBISFILE_LIB}" "${MA_VORBIS_LIB}" "${MA_OGG_LIB}")
 target_include_directories(sa-host-core SYSTEM PUBLIC "${MA_REMILL_INCLUDE}")
 target_link_libraries(sa-host-core PUBLIC MacAndreas::loader MacAndreas::manifest ma_interp
     "-framework CoreGraphics" "-framework AppKit" "-framework Metal" "-framework QuartzCore" "-framework ImageIO")

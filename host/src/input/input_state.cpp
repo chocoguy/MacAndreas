@@ -18,6 +18,8 @@ struct State {
     std::array<bool, 256> keys{};
     std::array<bool, 256> vks{};
     std::array<bool, 256> toggles{};
+    int32_t cursor_x = 0;
+    int32_t cursor_y = 0;
 };
 
 constexpr uint8_t kMouseVks[] = {0x01, 0x02, 0x04, 0x05, 0x06};
@@ -76,6 +78,22 @@ uint32_t key_state(uint8_t vk) {
         value |= 0xffffff80;
     }
     return value;
+}
+
+void set_cursor(int32_t x, int32_t y) {
+    std::lock_guard lock(state().mutex);
+    state().cursor_x = x;
+    state().cursor_y = y;
+}
+
+std::pair<int32_t, int32_t> cursor() {
+    std::lock_guard lock(state().mutex);
+    return {state().cursor_x, state().cursor_y};
+}
+
+bool mouse_button(unsigned button) {
+    std::lock_guard lock(state().mutex);
+    return button < state().buttons.size() && state().buttons[button];
 }
 
 void reset() {

@@ -2393,14 +2393,17 @@ uint32_t d3d_get_adapter_identifier(uint32_t self, uint32_t adapter, uint32_t fl
 }
 
 uint32_t d3d_get_adapter_mode_count(uint32_t self, uint32_t adapter, uint32_t format) {
-    return adapter == 0 && format == D::fmt::x8r8g8b8 ? 1 : 0;
+    return adapter == 0 && format == D::fmt::x8r8g8b8 ? static_cast<uint32_t>(display_modes().size()) : 0;
 }
 
 uint32_t d3d_enum_adapter_modes(uint32_t self, uint32_t adapter, uint32_t format, uint32_t mode, uint32_t out) {
-    if (adapter != 0 || format != D::fmt::x8r8g8b8 || mode != 0 || out == 0) {
+    if (adapter != 0 || format != D::fmt::x8r8g8b8 || mode >= display_modes().size() || out == 0) {
         return D::kInvalidCall;
     }
-    write_mode(out);
+    mem::write<uint32_t>(out, display_modes()[mode].width);
+    mem::write<uint32_t>(out + 4, display_modes()[mode].height);
+    mem::write<uint32_t>(out + 8, settings().refresh);
+    mem::write<uint32_t>(out + 12, D::fmt::x8r8g8b8);
     return D::kOk;
 }
 
@@ -2527,8 +2530,8 @@ ComInterface g_d3d_iface("d3d9.dll", "IDirect3D9",
                          });
 
 uint32_t direct3d_create9(uint32_t version) {
-    std::fprintf(stderr, "[D3D9] Direct3DCreate9(sdk=%u), mode %ux%u@%u\n", version, settings().width,
-                 settings().height, settings().refresh);
+    std::fprintf(stderr, "[D3D9] Direct3DCreate9(sdk=%u), mode %ux%u@%u, %zu modes\n", version, settings().width,
+                 settings().height, settings().refresh, display_modes().size());
     return com_objects().wrap(g_d3d_iface, std::make_unique<Direct3D>());
 }
 

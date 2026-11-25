@@ -34,5 +34,10 @@ void set_client_size(uint32_t hwnd, uint32_t width, uint32_t height);
 std::vector<Window> windows_snapshot();
 uint32_t map_virtual_key(uint32_t code, uint32_t type);
 void key_event(uint32_t hwnd, const input::Key& key, bool down, bool repeat);
+void mouse_move(uint32_t hwnd, int32_t x, int32_t y);
+void mouse_button(uint32_t hwnd, unsigned button, bool down);
+void mouse_wheel(uint32_t hwnd, int32_t delta);
+void focus_event(uint32_t hwnd, bool active);
+uint32_t input_window();
 
 }

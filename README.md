@@ -6,10 +6,10 @@ MacAndreas converts your own copy of GTA: San Andreas (PC, `gta_sa.exe` 1.0 US) 
 Apple Silicon program. SilentPatch, the Widescreen Fix and Project2DFX are built in. This
 repository contains no game code or assets; see [ROADMAP.md](ROADMAP.md) for the plan.
 
-Status: **M2 (first frame) complete**: the game boots through its splash and legal screens to the
-main menu, rendered by lifted RenderWare on Metal, and plays the intro movies (video only). The
-keyboard drives the menu as far as the New Game loading screen; starting a game still crashes, and
-mouse and audio are not there yet. M3 (menu) is next.
+Status: **M3 (menu) complete**: the game boots to the main menu, rendered by lifted RenderWare on
+Metal, plays the intro movies (video only), and every menu page works with keyboard and mouse.
+Settings persist in `gta_sa.set`, and New Game loads into the opening cutscene. Characters,
+sound and mouse look are not there yet. M4 (in-world) is next.
 
 ### Requirements
 
@@ -70,14 +70,18 @@ build/dev/host/sa-host --game "gamefiles/Grand Theft Auto San Andreas" --native 
 ```
 
 Display and debugging options:
-- `--resolution WxH` sets the only display mode the game sees (default 1280x720, in pixels).
+- `--resolution WxH` sets the starting display mode (default 1280x720, in pixels). The game's
+  Resolution option offers it and standard modes that fit the main display; `--modes WxH,…`
+  replaces those. A saved `gta_sa.set` takes precedence over `--resolution`.
 - `--skip-intro` skips the intro movies.
 - `--capture-dir DIR --capture-frames N,M,…` (or `all`) writes presented frames as PNG. Movie
   frames are numbered separately and saved as `movie_NNNNN.png`.
 - `--exit-after-frames N` quits after N presented frames.
-- `--keys FRAME:KEY,…` presses keys at presented frames, for unattended runs. `FRAMEm` counts movie
-  frames instead, and `KEY+`/`KEY-` hold and release instead of tapping. Key names are lower case:
-  `return`, `escape`, `space`, `up`, `a`, `f1`, `lshift`, `num5` and so on.
+- `--keys FRAME:ACTION,…` scripts input for unattended runs. `FRAME` is a presented game frame;
+  `FRAMEm` counts movie frames and `Ns` counts seconds since start. Actions are key names in lower
+  case (`return`, `escape`, `space`, `up`, `a`, `f1`, `lshift`, `num5` …), `lbutton`, `rbutton`,
+  `mbutton`, `wheelup`, `wheeldown`, `move` and `focus`/`blur`. Keys and buttons tap by default;
+  `+`/`-` hold and release. `@X:Y` first moves the pointer to client pixel X,Y.
 - Set `MTL_DEBUG_LAYER=1` to run with Metal API validation.
 
 For example, to capture the title screen and the main menu:
@@ -86,10 +90,20 @@ For example, to capture the title screen and the main menu:
 build/dev/host/sa-host --game "gamefiles/Grand Theft Auto San Andreas" --native build/dev/native/libgta_sa_native.dylib --manifest manifest --skip-intro --capture-dir out/frames --capture-frames 700,1000 --exit-after-frames 1000
 ```
 
+Settings and saves live in `~/Library/Application Support/MacAndreas/Documents/GTA San Andreas
+User Files`. A `gta_sa.set` written by an M2 build may hold the windowed desktop mode; delete it
+once if the game switches to windowed mode after the splash screens.
+
 To choose Start Game → New Game and capture the loading screen:
 
 ```bash
 build/dev/host/sa-host --game "gamefiles/Grand Theft Auto San Andreas" --native build/dev/native/libgta_sa_native.dylib --manifest manifest --skip-intro --keys 1000:return,1100:return --capture-dir out/frames --capture-frames 1050,1350 --exit-after-frames 1350
+```
+
+To open Options with the mouse and capture the page:
+
+```bash
+build/dev/host/sa-host --game "gamefiles/Grand Theft Auto San Andreas" --native build/dev/native/libgta_sa_native.dylib --manifest manifest --skip-intro --keys 1000:lbutton@640:338 --capture-dir out/frames --capture-frames 1060 --exit-after-frames 1060
 ```
 
 Code the recompiler missed runs in the interpreter and is logged as `[INTERP] 0xADDR`. To turn

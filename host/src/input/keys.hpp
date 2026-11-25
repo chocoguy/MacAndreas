@@ -34,20 +34,35 @@ const Key* key_for_name(std::string_view name);
 uint8_t dik(const Key& key);
 uint8_t other_side(uint8_t side_vk);
 
+enum class StepKind : uint8_t { key, button, move, wheel, focus };
+
 struct KeyStep {
     bool movie = false;
+    bool timed = false;
     uint64_t frame = 0;
+    StepKind kind = StepKind::key;
     const Key* key = nullptr;
+    unsigned button = 0;
+    int32_t wheel = 0;
+    bool has_pos = false;
+    int32_t x = 0;
+    int32_t y = 0;
     bool down = false;
     bool tap = false;
 };
 
 std::vector<KeyStep> parse_key_script(std::string_view text, std::string& error);
 
-using KeySink = std::function<void(const Key& key, bool down)>;
+struct ScriptSink {
+    std::function<void(const Key& key, bool down)> key;
+    std::function<void(int32_t x, int32_t y)> move;
+    std::function<void(unsigned button, bool down)> button;
+    std::function<void(int32_t delta)> wheel;
+    std::function<void(bool active)> focus;
+};
 
 void set_key_script(std::vector<KeyStep> steps);
-void set_key_sink(KeySink sink);
+void set_script_sink(ScriptSink sink);
 void run_key_script(bool movie, uint64_t frame);
 void poll_key_script();
 void note_idle_peek();

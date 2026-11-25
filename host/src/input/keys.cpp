@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <charconv>
+#include <chrono>
+#include <cstdio>
 #include <mutex>
 
 namespace ma::host::input {
@@ -119,7 +121,7 @@ bool same_name(std::string_view a, std::string_view b) {
 }
 
 struct Release {
-    const Key* key;
+    KeyStep step;
     uint64_t idle;
 };
 
@@ -128,9 +130,12 @@ struct Script {
     std::vector<KeyStep> steps;
     size_t next_game = 0;
     size_t next_movie = 0;
+    size_t next_timed = 0;
+    std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+    uint64_t last_frame = 0;
     uint64_t idle = 0;
     std::vector<Release> releases;
-    KeySink sink;
+    ScriptSink sink;
 };
 
 Script& script() {
@@ -172,6 +177,40 @@ uint8_t other_side(uint8_t side_vk) {
     return static_cast<uint8_t>(side_vk ^ 1);
 }
 
+namespace {
+
+bool parse_int(std::string_view text, int32_t& out) {
+    auto [end, ec] = std::from_chars(text.data(), text.data() + text.size(), out);
+    return ec == std::errc{} && end == text.data() + text.size();
+}
+
+bool parse_action(std::string_view name, KeyStep& step) {
+    if (same_name(name, "lbutton") || same_name(name, "rbutton") || same_name(name, "mbutton")) {
+        step.kind = StepKind::button;
+        step.button = same_name(name, "lbutton") ? 0u : same_name(name, "rbutton") ? 1u : 2u;
+        return true;
+    }
+    if (same_name(name, "wheelup") || same_name(name, "wheeldown")) {
+        step.kind = StepKind::wheel;
+        step.wheel = same_name(name, "wheelup") ? 120 : -120;
+        return true;
+    }
+    if (same_name(name, "move")) {
+        step.kind = StepKind::move;
+        return true;
+    }
+    if (same_name(name, "focus") || same_name(name, "blur")) {
+        step.kind = StepKind::focus;
+        step.down = same_name(name, "focus");
+        return true;
+    }
+    step.kind = StepKind::key;
+    step.key = key_for_name(name);
+    return step.key != nullptr;
+}
+
+}
+
 std::vector<KeyStep> parse_key_script(std::string_view text, std::string& error) {
     std::vector<KeyStep> steps;
     while (!text.empty()) {
@@ -189,24 +228,51 @@ std::vector<KeyStep> parse_key_script(std::string_view text, std::string& error)
         if (when.back() == 'm') {
             step.movie = true;
             when.remove_suffix(1);
+        } else if (when.back() == 's') {
+            step.timed = true;
+            when.remove_suffix(1);
         }
         auto [end, ec] = std::from_chars(when.data(), when.data() + when.size(), step.frame);
-        if (ec != std::errc{} || end != when.data() + when.size()) {
+        if (when.empty() || ec != std::errc{} || end != when.data() + when.size()) {
             error = "bad frame number in \"" + std::string(item) + "\"";
             return {};
+        }
+        if (step.timed) {
+            step.frame *= 1000;
+        }
+        if (auto at = name.find('@'); at != std::string_view::npos) {
+            std::string_view pos = name.substr(at + 1);
+            name = name.substr(0, at);
+            auto sep = pos.find(':');
+            if (sep == std::string_view::npos || !parse_int(pos.substr(0, sep), step.x) ||
+                !parse_int(pos.substr(sep + 1), step.y)) {
+                error = "expected @X:Y in \"" + std::string(item) + "\"";
+                return {};
+            }
+            step.has_pos = true;
         }
         int mode = 0;
         if (!name.empty() && (name.back() == '+' || name.back() == '-')) {
             mode = name.back() == '+' ? 1 : -1;
             name.remove_suffix(1);
         }
-        step.key = key_for_name(name);
-        if (!step.key) {
+        if (!parse_action(name, step)) {
             error = "unknown key \"" + std::string(name) + "\"";
             return {};
         }
-        step.down = mode >= 0;
-        step.tap = mode == 0;
+        if (step.kind == StepKind::move && !step.has_pos) {
+            error = "move needs @X:Y in \"" + std::string(item) + "\"";
+            return {};
+        }
+        bool pressable = step.kind == StepKind::key || step.kind == StepKind::button;
+        if (mode != 0 && !pressable) {
+            error = "+ and - apply to keys and buttons only, in \"" + std::string(item) + "\"";
+            return {};
+        }
+        if (step.kind != StepKind::focus) {
+            step.down = mode >= 0;
+        }
+        step.tap = pressable && mode == 0;
         steps.push_back(step);
     }
     std::ranges::stable_sort(steps, [](const KeyStep& a, const KeyStep& b) { return a.frame < b.frame; });
@@ -218,6 +284,8 @@ void set_key_script(std::vector<KeyStep> steps) {
     script().steps = std::move(steps);
     script().next_game = 0;
     script().next_movie = 0;
+    script().next_timed = 0;
+    script().start = std::chrono::steady_clock::now();
     script().releases.clear();
 }
 
@@ -226,64 +294,124 @@ void note_idle_peek() {
     ++script().idle;
 }
 
-void set_key_sink(KeySink sink) {
+void set_script_sink(ScriptSink sink) {
     std::lock_guard lock(script().mutex);
     script().sink = std::move(sink);
 }
 
+namespace {
+
+void deliver(const ScriptSink& sink, const KeyStep& step) {
+    if (step.has_pos && step.down && sink.move) {
+        sink.move(step.x, step.y);
+    }
+    switch (step.kind) {
+    case StepKind::key:
+        if (sink.key) {
+            sink.key(*step.key, step.down);
+        }
+        break;
+    case StepKind::button:
+        if (sink.button) {
+            sink.button(step.button, step.down);
+        }
+        break;
+    case StepKind::wheel:
+        if (sink.wheel) {
+            sink.wheel(step.wheel);
+        }
+        break;
+    case StepKind::move:
+        break;
+    case StepKind::focus:
+        if (sink.focus) {
+            sink.focus(step.down);
+        }
+        break;
+    }
+}
+
+bool due_now(Script& s, size_t& next, bool movie, bool timed, uint64_t now, std::vector<KeyStep>& due) {
+    bool any = false;
+    while (next < s.steps.size()) {
+        const KeyStep& step = s.steps[next];
+        if (step.movie != movie || step.timed != timed) {
+            ++next;
+            continue;
+        }
+        if (step.frame > now) {
+            break;
+        }
+        due.push_back(step);
+        if (step.tap) {
+            s.releases.push_back(Release{step, s.idle});
+        }
+        any = true;
+        ++next;
+    }
+    return any;
+}
+
+void log_focus(const std::vector<KeyStep>& steps, uint64_t frame) {
+    for (const KeyStep& step : steps) {
+        if (step.kind == StepKind::focus) {
+            std::fprintf(stderr, "[INPUT] %s at game frame %llu\n", step.down ? "focus" : "blur",
+                         static_cast<unsigned long long>(frame));
+        }
+    }
+}
+
+}
+
 void poll_key_script() {
-    std::vector<const Key*> up;
-    KeySink sink;
+    std::vector<KeyStep> up;
+    std::vector<KeyStep> timed;
+    ScriptSink sink;
+    uint64_t frame = 0;
     {
         std::lock_guard lock(script().mutex);
         Script& s = script();
-        if (s.releases.empty()) {
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - s.start);
+        due_now(s, s.next_timed, false, true, static_cast<uint64_t>(ms.count()), timed);
+        frame = s.last_frame;
+        if (s.releases.empty() && timed.empty()) {
             return;
         }
         std::erase_if(s.releases, [&](const Release& r) {
             if (s.idle <= r.idle) {
                 return false;
             }
-            up.push_back(r.key);
+            KeyStep step = r.step;
+            step.down = false;
+            up.push_back(step);
             return true;
         });
         sink = s.sink;
     }
-    if (sink) {
-        for (const Key* k : up) {
-            sink(*k, false);
-        }
+    for (const KeyStep& step : up) {
+        deliver(sink, step);
+    }
+    log_focus(timed, frame);
+    for (const KeyStep& step : timed) {
+        deliver(sink, step);
     }
 }
 
 void run_key_script(bool movie, uint64_t frame) {
     std::vector<KeyStep> due;
-    KeySink sink;
+    ScriptSink sink;
     {
         std::lock_guard lock(script().mutex);
         Script& s = script();
-        size_t& next = movie ? s.next_movie : s.next_game;
-        while (next < s.steps.size()) {
-            const KeyStep& step = s.steps[next];
-            if (step.movie != movie) {
-                ++next;
-                continue;
-            }
-            if (step.frame > frame) {
-                break;
-            }
-            due.push_back(step);
-            if (step.tap) {
-                s.releases.push_back(Release{step.key, s.idle});
-            }
-            ++next;
+        if (!movie) {
+            s.last_frame = frame;
         }
+        due_now(s, movie ? s.next_movie : s.next_game, movie, false, frame, due);
         sink = s.sink;
     }
-    if (sink) {
-        for (const KeyStep& step : due) {
-            sink(*step.key, step.down);
-        }
+    log_focus(due, frame);
+    for (const KeyStep& step : due) {
+        deliver(sink, step);
     }
 }
 

@@ -6,6 +6,7 @@
 #include "input/input_state.hpp"
 #include "input/keys.hpp"
 #include "thread.hpp"
+#include "settings.hpp"
 #include "thunks.hpp"
 #include "win32/process.hpp"
 #include "win32/seh.hpp"
@@ -14,6 +15,7 @@
 
 #include "macandreas/interp.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <string>
@@ -438,6 +440,47 @@ void test_wsprintf() {
 }
 
 
+void test_allocator_realloc() {
+    GuestAllocator& a = allocator();
+    uint32_t big = a.alloc(1 << 20);
+    CHECK(big != 0 && a.size_of(big) == (1u << 20));
+    mem::write<uint32_t>(big + 0x1000, 0xfeedface);
+    uint32_t shrunk = a.realloc(big, 154524);
+    CHECK(shrunk == big);
+    CHECK(a.size_of(big) == 154524);
+    CHECK(mem::read<uint32_t>(big + 0x1000) == 0xfeedface);
+    uint32_t regrown = a.realloc(big, 200000);
+    CHECK(regrown == big && a.size_of(big) == 200000);
+    CHECK(mem::read<uint32_t>(big + 154524) == 0);
+    uint32_t moved = a.realloc(big, 4 << 20);
+    CHECK(moved != big && mem::read<uint32_t>(moved + 0x1000) == 0xfeedface);
+    CHECK(!a.owns(big));
+    uint32_t other = a.alloc(1 << 20);
+    CHECK(other == big);
+    a.free(other);
+    a.free(moved);
+    uint32_t small = a.alloc(24);
+    uint32_t grown = a.realloc(small, 40);
+    CHECK(grown != small && a.size_of(grown) == 40);
+    a.free(grown);
+}
+
+void test_mode_list() {
+    DisplayMode m;
+    CHECK(parse_mode("1920x1080", m) && m == (DisplayMode{1920, 1080}));
+    CHECK(!parse_mode("1920x1080x32", m));
+    CHECK(!parse_mode("320x200", m));
+    CHECK(!parse_mode("wide", m));
+    auto list = build_mode_list({1600, 900}, {}, {1920, 1200});
+    CHECK(list.front() == (DisplayMode{1600, 900}));
+    CHECK(std::ranges::count(list, DisplayMode{1600, 900}) == 1);
+    CHECK(std::ranges::find(list, DisplayMode{1920, 1200}) != list.end());
+    CHECK(std::ranges::find(list, DisplayMode{2560, 1440}) == list.end());
+    CHECK(list[1] == (DisplayMode{1280, 720}));
+    auto chosen = build_mode_list({1280, 720}, {{1920, 1080}, {1280, 720}, {1024, 768}}, {1920, 1200});
+    CHECK((chosen == std::vector<DisplayMode>{{1280, 720}, {1024, 768}, {1920, 1080}}));
+}
+
 void test_key_table() {
     const input::Key* ret = input::key_for_mac(0x24);
     CHECK(ret && ret->vk == 0x0d && ret->scan == 0x1c && !ret->extended && input::dik(*ret) == 0x1c);
@@ -469,7 +512,7 @@ void test_key_script() {
     CHECK(input::parse_key_script("10return", error).empty());
 
     std::vector<std::pair<std::string, bool>> fired;
-    input::set_key_sink([&](const input::Key& k, bool down) { fired.emplace_back(std::string(k.name), down); });
+    input::set_script_sink({.key = [&](const input::Key& k, bool down) { fired.emplace_back(std::string(k.name), down); }});
     input::set_key_script(steps);
     input::run_key_script(false, 9);
     CHECK(fired.empty());
@@ -496,7 +539,50 @@ void test_key_script() {
     input::run_key_script(false, 200);
     CHECK(fired.size() == 6);
     input::set_key_script({});
-    input::set_key_sink(nullptr);
+    input::set_script_sink({});
+
+    auto mouse = input::parse_key_script("5:lbutton@100:200,6:move@-3:4,7:wheeldown,8:rbutton+,9:rbutton-", error);
+    CHECK(mouse.size() == 5);
+    CHECK(mouse[0].kind == input::StepKind::button && mouse[0].button == 0 && mouse[0].has_pos && mouse[0].x == 100 &&
+          mouse[0].y == 200 && mouse[0].tap);
+    CHECK(mouse[1].kind == input::StepKind::move && mouse[1].x == -3 && mouse[1].y == 4 && !mouse[1].tap);
+    CHECK(mouse[2].kind == input::StepKind::wheel && mouse[2].wheel == -120);
+    CHECK(mouse[3].button == 1 && mouse[3].down && !mouse[3].tap);
+    CHECK(input::parse_key_script("5:move", error).empty());
+    CHECK(input::parse_key_script("5:lbutton@1", error).empty());
+    CHECK(input::parse_key_script("5:wheelup+", error).empty());
+
+    std::vector<std::string> events;
+    input::set_script_sink({
+        [&](const input::Key& k, bool down) { events.push_back(std::string(k.name) + (down ? "+" : "-")); },
+        [&](int32_t x, int32_t y) { events.push_back("move" + std::to_string(x) + ":" + std::to_string(y)); },
+        [&](unsigned b, bool down) { events.push_back("button" + std::to_string(b) + (down ? "+" : "-")); },
+        [&](int32_t d) { events.push_back("wheel" + std::to_string(d)); },
+        [&](bool active) { events.push_back(active ? "focus" : "blur"); },
+    });
+    input::set_key_script(mouse);
+    input::run_key_script(false, 7);
+    CHECK((events == std::vector<std::string>{"move100:200", "button0+", "move-3:4", "wheel-120"}));
+    input::note_idle_peek();
+    input::poll_key_script();
+    CHECK(events.size() == 5 && events[4] == "button0-");
+    input::run_key_script(false, 9);
+    CHECK(events.size() == 7 && events[5] == "button1+" && events[6] == "button1-");
+    auto timed = input::parse_key_script("0s:blur,3:focus,1s:return", error);
+    CHECK(timed.size() == 3);
+    CHECK(timed[0].timed && timed[0].frame == 0 && timed[0].kind == input::StepKind::focus && !timed[0].down);
+    CHECK(!timed[1].timed && timed[1].frame == 3 && timed[1].down);
+    CHECK(timed[2].timed && timed[2].frame == 1000 && timed[2].tap);
+    CHECK(input::parse_key_script("s:blur", error).empty());
+    CHECK(input::parse_key_script("1:blur+", error).empty());
+    events.clear();
+    input::set_key_script(timed);
+    input::poll_key_script();
+    CHECK((events == std::vector<std::string>{"blur"}));
+    input::run_key_script(false, 3);
+    CHECK(events.size() == 2 && events[1] == "focus");
+    input::set_key_script({});
+    input::set_script_sink({});
 }
 
 void test_keyboard_messages(GuestState& s) {
@@ -560,6 +646,29 @@ void test_keyboard_messages(GuestState& s) {
     CHECK(dik[0xc8] == 0);
     next();
     next();
+
+    auto next_mouse = [&] {
+        uint32_t got = guest_call<Conv::stdcall, uint32_t>(s, peek, msg, 0u, 0x200u, 0x20au, 1u);
+        return got ? std::array<uint32_t, 3>{mem::read<uint32_t>(msg + 4), mem::read<uint32_t>(msg + 8),
+                                             mem::read<uint32_t>(msg + 12)}
+                   : std::array<uint32_t, 3>{0, 0, 0};
+    };
+    win32::mouse_move(0x1234, 10, 20);
+    win32::mouse_move(0x1234, 30, 40);
+    win32::mouse_button(0x1234, 0, true);
+    win32::mouse_move(0x1234, -5, 50);
+    win32::mouse_button(0x1234, 0, false);
+    win32::mouse_wheel(0x1234, -120);
+    CHECK((next_mouse() == std::array<uint32_t, 3>{0x200, 0, (40u << 16) | 30u}));
+    CHECK((next_mouse() == std::array<uint32_t, 3>{0x201, 1, (40u << 16) | 30u}));
+    CHECK((next_mouse() == std::array<uint32_t, 3>{0x200, 1, (50u << 16) | 0xfffbu}));
+    CHECK((next_mouse() == std::array<uint32_t, 3>{0x202, 0, (50u << 16) | 0xfffbu}));
+    CHECK((next_mouse() == std::array<uint32_t, 3>{0x20a, 0xff880000u, (50u << 16) | 0xfffbu}));
+    CHECK((next_mouse() == std::array<uint32_t, 3>{0, 0, 0}));
+    uint8_t dims[16] = {};
+    input::write_mouse_state(dims, sizeof(dims));
+    CHECK(static_cast<int32_t>(dims[8] | dims[9] << 8 | dims[10] << 16 | dims[11] << 24) == -120);
+    CHECK(dims[12] == 0);
 }
 
 }
@@ -592,6 +701,8 @@ int main() {
     test_seh_nonlocal_unwind(s);
     test_interpreter(s);
     test_wsprintf();
+    test_allocator_realloc();
+    test_mode_list();
     test_key_table();
     test_key_script();
     test_keyboard_messages(s);

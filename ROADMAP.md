@@ -625,9 +625,8 @@ Not done in M2, carried forward:
 - The shader translator (M4). Draws with a vertex or pixel shader set are skipped and counted.
 - Mouse `WM_*` messages, cursor capture and menu mouse use (M3). Mouse deltas and buttons are
   recorded for DirectInput and `GetKeyState`.
-- New game crashes after `data\script\main.scm` loads: a loop at `0x004aa130` calls through a null
-  entry of an object array (`0x004aa148`), right after new `[INTERP]` hits in `0x0047xxxx` and
-  `.HOODLUM`. This is the first M3 item ("Start new game begins loading").
+- New game crashed after `data\script\main.scm` loaded (`0x004aa148`). Fixed in M3: the guest heap
+  moved a shrinking `realloc` (see M3 findings).
 - Pause on focus loss: the activation messages are delivered, but the behavior is not verified (M3).
 - MSAA, multiple render targets, volume textures and fixed-function vertex blending.
 - TSO markers (M4).
@@ -652,6 +651,70 @@ Exit criteria:
 ### M3 — Menu
 
 Goal: the main menu is fully usable and settings persist.
+
+Status: **exit criteria met** (details below). Every page of the main menu was reached with
+scripted keyboard and mouse input and captured at 1280x720 or 1280x800. Display, audio and
+control settings changed in the menu are read back after a restart. Start Game → New Game loads
+into the opening cutscene (Los Santos airport, then the Grove Street drive) and keeps running.
+
+What is in place:
+- **Mouse**: AppKit pointer events become `WM_MOUSEMOVE` and button messages in client pixels of
+  the game's resolution, however the window is scaled. `WM_MOUSEWHEEL` comes in 120-unit notches,
+  with trackpad deltas accumulated. Mouse moves are coalesced in the queue as Windows does.
+  `ShowCursor` hides the macOS cursor inside the window while the game draws its own. `SetCursorPos`
+  warps the real cursor when the window is key and the pointer is inside it, and posts the move.
+  The menu reads its pointer from `WM_MOUSEMOVE` (`0xba6828`/`0xba682c`) and clicks from
+  DirectInput.
+- `--keys` scripts mouse steps too: `lbutton`/`rbutton`/`mbutton` (with `@X:Y`, `+`/`-`), `move@X:Y`,
+  `wheelup`/`wheeldown`. `focus` and `blur` post the window's activation messages, and `Ns` runs a
+  step N seconds after start, for a paused game that presents no frames.
+- **Mode list**: the adapter lists the configured resolution first, then standard modes that fit the
+  main display (`--modes WxH,…` overrides them). `GetVideoModeList` (`0x745af0`) is replaced natively:
+  every exclusive mode of at least 640x480 gets a label, and the menu's Resolution option cycles
+  through exactly that list. Changing it resets the device and resizes the window.
+- **Settings**: SA keeps every setting in `gta_sa.set`. It reads the registry only for the
+  "My Documents" path, so the virtual registry needs no persistence. The user files live in
+  `~/Library/Application Support/MacAndreas/Documents/GTA San Andreas User Files`.
+- **`vorbisfile.dll`**: native libvorbisfile behind the game's read/seek/close/tell callbacks, which
+  run as guest calls on the calling thread. Decoded PCM is written straight into the guest buffer;
+  `ov_info` returns a guest copy of `vorbis_info`.
+- Pause on focus loss is the original's: `WM_KILLFOCUS` clears `ForegroundApp` (`0x8d621c`) and the
+  main loop then sleeps 100 ms per pass without running a frame, in the menu and in game.
+  `WM_ACTIVATE` also pauses and resumes the audio engine.
+
+Findings:
+- **The guest heap moved shrinking reallocs.** The effects pool (`FxMemoryPool_c`, 1 MB) is shrunk
+  with `realloc` after `effects.fxp` loads, and the effect blueprints keep pointers into it. Windows
+  shrinks in place; `GuestAllocator::realloc` moved the block to a smaller size class and freed the
+  old one, so a later 1.2 MB audio allocation zeroed the blueprints and `FxManager_c::Update`
+  crashed on the first game frame. Shrinks, and growth within a block's capacity, now stay in place,
+  and each chunk records its size class.
+- Vanilla `GetVideoModeList` labels only 4:3, 5:4, 5:3 and 16:10 modes, never 16:9, and only those
+  leaving 45 MB of video memory. Unlabeled modes are NULL, and Display → Advanced crashed copying
+  the NULL label of the selected 1280x720 mode.
+- Clearing `defaultFullscreenRes` (M2) also skipped the first-run copy of `GcurSelVM` into the menu's
+  `m_nPrefsVideoMode`/`m_nDisplayVideoMode` (`0x748c65`), which stayed at mode 0, the windowed
+  desktop mode. A third `display-mode` poke starts both at mode 1. A `gta_sa.set` saved before
+  this fix holds mode 0 and makes the game reset into windowed mode 0; delete it once.
+- `LoadSettings` reads the saved mode into `m_nDisplayVideoMode` (`+0xd8`), while `SaveSettings`
+  writes `m_nPrefsVideoMode` (`+0xd4`), at byte 2870 after the 2,832-byte controls block.
+- The Audio page's radio station is not read from `gta_sa.set`; the audio engine picks it at boot.
+- WinMain leaves its loop through the menu's quit flag (`0xba67a5`), not `WM_QUIT`, and returns
+  `msg.wParam` of the last message peeked. Quitting with Return exits with code 13, as on Windows.
+- The audio thread procedure (`0x4eee90`) ends with `ret`, not `ret 4`, so the host logs a 4-byte
+  stack mismatch when it exits. The thread ends there, so it is harmless.
+
+Deviations from the plan:
+- libvorbis and libogg are linked statically from Homebrew rather than a pinned submodule. Vendoring
+  them is release work (M12).
+- `GetVideoModeList` is replaced in M3 rather than left to the Widescreen Fix (M8), because the
+  menu must offer the host's 16:9 modes without crashing. The FOV and HUD fixes remain M8.
+
+Not done in M3, carried forward:
+- `ClipCursor` and relative mouse capture for in-game mouse look (M4/M5).
+- Character skinning and other shader draws are skipped until the shader translator (M4), so the
+  cutscene renders without people.
+- `IDirectSoundBuffer8::SetFX` returns `E_NOTIMPL` (audio, M5).
 
 Work:
 - Keyboard and mouse input (§3.8): mouse WM_* synthesis, DInput8 mouse, cursor capture. Keyboard

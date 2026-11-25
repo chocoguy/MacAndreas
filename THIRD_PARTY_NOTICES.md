@@ -24,7 +24,7 @@ Pinned commits are the upstream revisions the inventory and port are based on (M
 |---|---|---|---|
 | Zydis | https://github.com/zyantific/zydis (pinned v4.1.1, `a2278f1d254e492f6a6b39f6cb5d1f5d515659dc`) | MIT | x86 decoder for the fallback interpreter |
 | Zycore | https://github.com/zyantific/zycore-c (Zydis submodule) | MIT | Support library required by Zydis |
-| libvorbis / libogg | https://xiph.org/vorbis/ | BSD-3-Clause | Native replacement for `vorbisfile.dll` |
+| libvorbis / libogg | https://xiph.org/vorbis/ (libvorbis 1.3.7, libogg 1.3.6, statically linked from Homebrew for now) | BSD-3-Clause | Native replacement for `vorbisfile.dll` |
 | pl_mpeg | https://github.com/phoboslab/pl_mpeg (vendored in `third_party/pl_mpeg`, pinned `c871f2be022ece7ef4f64230b4fb8e1fb9eb6023`) | MIT | Intro movie decoding |
 | Remill | https://github.com/lifting-bits/remill (pinned `66c488c9911fd9b368e4d0c9647d74239f8bba8b`) | Apache-2.0 | x86 → LLVM IR lifting inside `sa-recomp` |
 | LLVM (incl. lld) | https://llvm.org | Apache-2.0 WITH LLVM-exception | IR optimization, code generation and linking inside `sa-recomp` |

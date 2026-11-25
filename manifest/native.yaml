@@ -10,7 +10,7 @@
   source: native
   group: display-mode
   bytes: "00000000"
-  notes: "defaultFullscreenRes: psSelectDevice no longer insists on an 800x600x32 mode; the native D3D9 layer lists only the configured mode"
+  notes: "defaultFullscreenRes: psSelectDevice no longer insists on an 800x600x32 mode; the native D3D9 layer lists the host mode list"
 
 - addr: 0x008d6220
   kind: data_poke
@@ -18,3 +18,17 @@
   group: display-mode
   bytes: "01000000"
   notes: "GcurSelVM starts at RW video mode 1, the first exclusive mode, instead of -1; mode 0 is the windowed desktop mode"
+
+- addr: 0x00745af0
+  kind: func_replace
+  source: native
+  group: display-mode
+  target: ma_get_video_mode_list
+  notes: "GetVideoModeList labels only 4:3, 5:4, 5:3 and 16:10 modes that leave 45 MB of video memory; the native list labels every exclusive mode of at least 640x480 from the host mode list, so the menu offers exactly those modes"
+
+- addr: 0x00ba681c
+  kind: data_poke
+  source: native
+  group: display-mode
+  bytes: "0100000001000000"
+  notes: "FrontEndMenuManager m_nPrefsVideoMode and m_nDisplayVideoMode start at RW video mode 1; with defaultFullscreenRes cleared the first-run sync from GcurSelVM never runs"

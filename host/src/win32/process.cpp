@@ -1,6 +1,7 @@
 #include "process.hpp"
 
 #include "../gfx/d3d9.hpp"
+#include "../input/input_state.hpp"
 #include "../platform/window.hpp"
 #include "../thread.hpp"
 #include "user32.hpp"
@@ -134,10 +135,21 @@ void register_all() {
     register_apis(ole32_apis());
     register_apis(dsound_apis());
     register_apis(dinput8_apis());
+    register_apis(vorbisfile_apis());
     register_apis(d3d9::apis());
     platform::set_post_callback(post_message);
-    platform::set_key_callback(key_event);
-    input::set_key_sink([](const input::Key& key, bool down) { key_event(0, key, down, false); });
+    platform::set_input_callbacks({key_event, mouse_move, mouse_button, mouse_wheel, focus_event});
+    input::set_script_sink({
+        [](const input::Key& key, bool down) { key_event(0, key, down, false); },
+        [](int32_t x, int32_t y) {
+            auto [ox, oy] = input::cursor();
+            input::add_mouse_motion(x - ox, y - oy);
+            mouse_move(0, x, y);
+        },
+        [](unsigned button, bool down) { mouse_button(0, button, down); },
+        [](int32_t delta) { mouse_wheel(0, delta); },
+        [](bool active) { focus_event(0, active); },
+    });
 }
 
 }

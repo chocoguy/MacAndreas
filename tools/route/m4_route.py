@@ -108,7 +108,7 @@ def main():
         print(route.keys())
         return 0
     cmd = [args.host, "--game", args.game, "--native", args.native, "--manifest", "manifest", "--skip-intro",
-           "--ignore-focus-loss", "--keys", route.keys(), "--capture-dir", args.capture_dir,
+           "--ignore-focus-loss", "--ignore-user-input", "--keys", route.keys(), "--capture-dir", args.capture_dir,
            "--capture-frames", ",".join(str(f) for f in captures), "--exit-after-frames", str(end)]
     Path(args.capture_dir).mkdir(parents=True, exist_ok=True)
     with open(args.log, "w") as log:

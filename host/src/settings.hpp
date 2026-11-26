@@ -28,6 +28,9 @@ struct Settings {
     std::string keys;
     std::filesystem::path shader_dump_dir;
     std::vector<DisplayMode> modes;
+    bool silent_audio = false;
+    bool audio_clockless = false;
+    std::filesystem::path audio_capture;
 };
 
 Settings& settings();

@@ -8,6 +8,10 @@
 
 struct plm_t;
 
+namespace ma::host::audio {
+class Stream;
+}
+
 namespace ma::host::media {
 
 class Movie {
@@ -26,6 +30,8 @@ public:
     double duration() const { return duration_; }
     uint64_t frames() const { return frames_; }
     void store_frame(void* frame);
+    void store_samples(void* samples);
+    bool has_audio() const { return audio_ != nullptr; }
 
 private:
     using Clock = std::chrono::steady_clock;
@@ -40,6 +46,7 @@ private:
     bool playing_ = false;
     bool ended_ = false;
     Clock::time_point last_;
+    std::shared_ptr<audio::Stream> audio_;
 };
 
 }

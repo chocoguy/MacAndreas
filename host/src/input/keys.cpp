@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <charconv>
 #include <chrono>
+#include <cstdlib>
+#include <string>
 #include <cstdio>
 #include <mutex>
 
@@ -206,6 +208,24 @@ bool parse_action(std::string_view name, KeyStep& step) {
         step.kind = StepKind::look;
         return true;
     }
+    if (same_name(name, "lstick") || same_name(name, "rstick")) {
+        step.kind = StepKind::pad_stick;
+        step.button = same_name(name, "lstick") ? 0u : 1u;
+        return true;
+    }
+    if (name.size() > 4 && same_name(name.substr(0, 4), "pad.")) {
+        std::string lower(name.substr(4));
+        for (char& c : lower) {
+            c = c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c;
+        }
+        auto b = pad_button_for_name(lower);
+        if (!b) {
+            return false;
+        }
+        step.kind = StepKind::pad_button;
+        step.pad_button = static_cast<uint8_t>(*b);
+        return true;
+    }
     if (same_name(name, "focus") || same_name(name, "blur")) {
         step.kind = StepKind::focus;
         step.down = same_name(name, "focus");
@@ -267,11 +287,20 @@ std::vector<KeyStep> parse_key_script(std::string_view text, std::string& error)
             error = "unknown key \"" + std::string(name) + "\"";
             return {};
         }
-        if ((step.kind == StepKind::move || step.kind == StepKind::look) && !step.has_pos) {
-            error = std::string(step.kind == StepKind::move ? "move" : "look") + " needs @X:Y in \"" + std::string(item) + "\"";
+        bool positional = step.kind == StepKind::move || step.kind == StepKind::look || step.kind == StepKind::pad_stick;
+        if (positional && !step.has_pos) {
+            error = std::string(name) + " needs @X:Y in \"" + std::string(item) + "\"";
             return {};
         }
-        bool pressable = step.kind == StepKind::key || step.kind == StepKind::button;
+        if (step.kind == StepKind::pad_stick && (std::abs(step.x) > 100 || std::abs(step.y) > 100)) {
+            error = "stick values are percentages from -100 to 100 in \"" + std::string(item) + "\"";
+            return {};
+        }
+        if (step.has_pos && step.kind == StepKind::pad_button) {
+            error = "pad buttons take no @X:Y in \"" + std::string(item) + "\"";
+            return {};
+        }
+        bool pressable = step.kind == StepKind::key || step.kind == StepKind::button || step.kind == StepKind::pad_button;
         if (mode != 0 && !pressable) {
             error = "+ and - apply to keys and buttons only, in \"" + std::string(item) + "\"";
             return {};
@@ -313,6 +342,14 @@ void deliver(const ScriptSink& sink, const KeyStep& step) {
         add_mouse_motion(step.x, step.y);
         return;
     }
+    if (step.kind == StepKind::pad_button) {
+        set_script_pad_button(static_cast<PadButton>(step.pad_button), step.down);
+        return;
+    }
+    if (step.kind == StepKind::pad_stick) {
+        set_script_pad_stick(step.button, step.x / 100.0f, step.y / 100.0f);
+        return;
+    }
     if (step.has_pos && step.down && sink.move) {
         sink.move(step.x, step.y);
     }
@@ -334,6 +371,8 @@ void deliver(const ScriptSink& sink, const KeyStep& step) {
         break;
     case StepKind::move:
     case StepKind::look:
+    case StepKind::pad_button:
+    case StepKind::pad_stick:
         break;
     case StepKind::focus:
         if (sink.focus) {

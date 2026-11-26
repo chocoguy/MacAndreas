@@ -43,6 +43,10 @@ if(TARGET sa-host-core)
     target_link_libraries(test_host_runtime PRIVATE sa-host-core)
     add_test(NAME host.runtime COMMAND test_host_runtime)
 
+    add_executable(test_audio_exit audio/test_audio_exit.cpp)
+    target_link_libraries(test_audio_exit PRIVATE sa-host-core)
+    add_test(NAME host.audio_exit COMMAND test_audio_exit "${CMAKE_CURRENT_BINARY_DIR}/audio_exit.wav")
+
     add_executable(test_gfx gfx/test_gfx.cpp)
     target_include_directories(test_gfx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
     target_link_libraries(test_gfx PRIVATE sa-host-core)

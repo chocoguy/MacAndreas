@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstring>
 #include <mutex>
 
@@ -20,6 +21,8 @@ struct State {
     std::array<bool, 256> toggles{};
     int32_t cursor_x = 0;
     int32_t cursor_y = 0;
+    PadState device_pad;
+    PadState script_pad;
 };
 
 constexpr uint8_t kMouseVks[] = {0x01, 0x02, 0x04, 0x05, 0x06};
@@ -103,6 +106,7 @@ void reset() {
     s.buttons.fill(false);
     s.keys.fill(false);
     s.vks.fill(false);
+    s.script_pad = {};
 }
 
 void write_mouse_state(uint8_t* out, size_t size) {
@@ -120,6 +124,95 @@ void write_keyboard_state(uint8_t* out, size_t size) {
     std::lock_guard lock(state().mutex);
     for (size_t i = 0; i < std::min<size_t>(size, 256); ++i) {
         out[i] = state().keys[i] ? 0x80 : 0;
+    }
+}
+
+namespace {
+
+struct PadName {
+    std::string_view name;
+    PadButton button;
+};
+
+constexpr PadName kPadNames[] = {
+    {"a", PadButton::south},     {"b", PadButton::east},       {"x", PadButton::west},       {"y", PadButton::north},
+    {"lb", PadButton::lb},       {"rb", PadButton::rb},        {"lt", PadButton::lt},        {"rt", PadButton::rt},
+    {"back", PadButton::back},   {"start", PadButton::start},  {"ls", PadButton::ls},        {"rs", PadButton::rs},
+    {"up", PadButton::up},       {"down", PadButton::down},    {"left", PadButton::left},    {"right", PadButton::right},
+};
+
+constexpr PadButton kJoyButtons[kJoystickButtons] = {
+    PadButton::east, PadButton::south, PadButton::west, PadButton::north, PadButton::lt,    PadButton::rt,
+    PadButton::lb,   PadButton::rb,    PadButton::back, PadButton::ls,    PadButton::rs,    PadButton::start,
+    PadButton::up,   PadButton::right, PadButton::down, PadButton::left,
+};
+
+int32_t scale_axis(float v, const AxisRange& r) {
+    v = std::clamp(v, -1.0f, 1.0f);
+    double span = static_cast<double>(r.max) - r.min;
+    return static_cast<int32_t>(std::lround(r.min + (v + 1.0) * 0.5 * span));
+}
+
+void put32(uint8_t* out, size_t size, size_t offset, uint32_t v) {
+    if (offset + 4 <= size) {
+        std::memcpy(out + offset, &v, 4);
+    }
+}
+
+}
+
+std::optional<PadButton> pad_button_for_name(std::string_view name) {
+    for (const PadName& p : kPadNames) {
+        if (p.name == name) {
+            return p.button;
+        }
+    }
+    return std::nullopt;
+}
+
+void set_device_pad(const PadState& pad) {
+    std::lock_guard lock(state().mutex);
+    state().device_pad = pad;
+}
+
+void set_script_pad_button(PadButton button, bool down) {
+    std::lock_guard lock(state().mutex);
+    state().script_pad.set(button, down);
+}
+
+void set_script_pad_stick(unsigned stick, float x, float y) {
+    std::lock_guard lock(state().mutex);
+    PadState& p = state().script_pad;
+    (stick == 0 ? p.lx : p.rx) = std::clamp(x, -1.0f, 1.0f);
+    (stick == 0 ? p.ly : p.ry) = std::clamp(y, -1.0f, 1.0f);
+}
+
+PadState pad_state() {
+    std::lock_guard lock(state().mutex);
+    const PadState& d = state().device_pad;
+    const PadState& s = state().script_pad;
+    PadState out = d.connected ? d : PadState{};
+    out.connected = d.connected;
+    out.buttons |= s.buttons;
+    auto pick = [](float device, float script) { return script != 0 ? script : device; };
+    out.lx = pick(out.lx, s.lx);
+    out.ly = pick(out.ly, s.ly);
+    out.rx = pick(out.rx, s.rx);
+    out.ry = pick(out.ry, s.ry);
+    return out;
+}
+
+void write_joystick_state(uint8_t* out, size_t size, const PadState& pad, const AxisRange (&ranges)[kJoystickAxes]) {
+    std::memset(out, 0, size);
+    float axes[kJoystickAxes] = {pad.lx, -pad.ly, pad.rx, 0, 0, -pad.ry};
+    for (size_t i = 0; i < kJoystickAxes; ++i) {
+        put32(out, size, 4 * i, static_cast<uint32_t>(scale_axis(axes[i], ranges[i])));
+    }
+    for (size_t i = 0; i < 4; ++i) {
+        put32(out, size, 32 + 4 * i, 0xffffffffu);
+    }
+    for (size_t i = 0; i < kJoystickButtons && 48 + i < size; ++i) {
+        out[48 + i] = pad.pressed(kJoyButtons[i]) ? 0x80 : 0;
     }
 }
 

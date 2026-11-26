@@ -66,6 +66,7 @@ std::span<const ApiDef> file_apis();
 std::span<const ApiDef> ddraw_apis();
 std::span<const ApiDef> ole32_apis();
 std::span<const ApiDef> dsound_apis();
+void dsound_render(float* out, uint32_t frames, uint32_t rate);
 std::span<const ApiDef> dinput8_apis();
 std::span<const ApiDef> vorbisfile_apis();
 

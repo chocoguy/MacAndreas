@@ -337,7 +337,7 @@ graph LR
   M1 --> M2[M2 First frame]
   M2 --> M3[M3 Menu]
   M3 --> M4[M4 In-world]
-  M4 --> M5[M5 Audio & input]
+  M4 --> M5[M5 Audio]
   M5 --> M6[M6 Playable vanilla]
   M0 -.inventory can start.-> M7
   M6 --> M7[M7 Mod infrastructure]
@@ -621,7 +621,7 @@ Deviations from the plan:
   yet.
 
 Not done in M2, carried forward:
-- Movie audio (M5). The MP2 track is skipped while decoding.
+- Movie audio (done in M5).
 - The shader translator (M4). Draws with a vertex or pixel shader set are skipped and counted.
 - Mouse `WM_*` messages, cursor capture and menu mouse use (M3). Mouse deltas and buttons are
   recorded for DirectInput and `GetKeyState`.
@@ -711,10 +711,10 @@ Deviations from the plan:
   menu must offer the host's 16:9 modes without crashing. The FOV and HUD fixes remain M8.
 
 Not done in M3, carried forward:
-- `ClipCursor` and relative mouse capture for in-game mouse look (M4/M5).
+- `ClipCursor` and relative mouse capture for in-game mouse look (M6).
 - Character skinning and other shader draws are skipped until the shader translator (M4), so the
   cutscene renders without people.
-- `IDirectSoundBuffer8::SetFX` returns `E_NOTIMPL` (audio, M5).
+- `IDirectSoundBuffer8::SetFX` returns `E_NOTIMPL` (done in M5).
 
 Work:
 - Keyboard and mouse input (§3.8): mouse WM_* synthesis, DInput8 mouse, cursor capture. Keyboard
@@ -833,22 +833,86 @@ Exit criteria:
 - Mouse camera works. Vehicle handling matches the reference by feel and on recorded checkpoints.
 - No crash and zero `[INTERP]` hits on the route.
 
-### M5 — Audio & input complete
+### M5 — Audio
 
-Goal: full audio and controller support.
+Goal: full audio support. Controller support moved to M11.
+
+Status: **audio exit criteria met except two checks that need a person or the reference**: 3D
+positioning against the reference (M7 harness) and lip-sync by eye. `tools/route/m5_route.py`
+cycles every radio station in Options → Audio Setup, starts a new game, plays the intro cutscene
+and rides the opening mission's BMX. It captures the mix to a WAV, checks that all eleven station
+streams and the cutscene stream open, and fails on silence, a crash or an `[INTERP]` hit. The
+11,868-frame run passes with sound from the first menu retune to the end.
+
+What is in place:
+- **Mixer** (`host/src/audio/mix.cpp`): every playing secondary buffer is resampled (linear) from
+  its frequency to 48 kHz stereo float. 8- and 16-bit PCM, mono and stereo. Volume and pan follow
+  DirectSound's hundredths of a decibel, pan attenuating the far side only. The sum is clamped.
+- **Play cursors follow the mixer.** A buffer's position advances only as the mixer consumes it,
+  so streaming, `GetCurrentPosition` and cutscene timing all run on the audio clock instead of
+  wall time. Non-looping buffers stop and rewind at the end. The write cursor leads by 10 ms.
+- **DS3D**: buffer and listener parameters, deferred (`DS3D_DEFERRED`) and immediate, with
+  `CommitDeferredSettings`. Mono 3D buffers are panned by the source's direction in the listener's
+  basis (right = top × front); rolloff uses the DS3D inverse-distance law between min and max
+  distance. SA puts the listener at the origin facing +Y with top −Z, sets rolloff and doppler to
+  0, attenuates by distance itself through `SetVolume`, and Doppler-shifts with `SetFrequency`.
+  DS3D therefore only pans. Velocities and Doppler are stored, not applied.
+- **Output** (`host/src/audio/output.mm`): the default-output AudioUnit at 48 kHz.
+  - A change of default device reopens the unit. System sleep stops it and wake restarts it.
+  - With no device, or with `--no-audio`, a 10 ms system-clock thread drives the same mixer
+    silently, so the game's audio clock never stalls.
+  - `--audio-capture FILE.wav` records the mix as 16-bit stereo. The WAV is finalized on every
+    exit path: `ExitProcess`, `--exit-after-frames`, and `exit()` from Cmd-Q, window close or
+    WinMain returning.
+- `--ignore-user-input` drops real keyboard and mouse events (not Cmd-Q) so scripted runs cannot
+  be disturbed by someone using the Mac.
+- **Movie audio**: pl_mpeg decodes the intro movies' MP2 track 0.2 s ahead of the video into a
+  FIFO stream (`host/src/audio/stream.cpp`). The output mixes it after DirectSound and resamples
+  it to 48 kHz. Pausing the movie detaches the stream. The logo (15.3 s) and title (88.7 s)
+  movies play their full soundtracks with no gaps.
+- `IDirectSoundBuffer8::SetFX` returns `DSERR_CONTROLUNAVAIL`, as for a buffer created without
+  `DSBCAPS_CTRLFX`. SA never calls it.
+- `vorbisfile.dll` (M3) and the audio stream thread (a real guest thread) are unchanged.
+
+Findings:
+- SA's PC traffic per frame is about 8 `GetCurrentPosition`, 8 `SetVolume`, 7 `GetStatus` and 2
+  DS3D `SetPosition` calls, plus one `CommitDeferredSettings`. Each one-shot sound gets a fresh
+  3D buffer: `CreateSoundBuffer`, `Lock`, `Unlock`, `SetCurrentPosition`, QI for
+  `IDirectSound3DBuffer`, `SetVolume`, `Play`.
+- SA asks a buffer for `IKsPropertySet` (EAX) once. It is still refused, so the game runs its
+  non-EAX path; accepting and ignoring it would sound the same. Reverb stays an open question (§9).
+- A destroyed joinable `std::thread` (the silent-clock thread) aborted the process with a bare
+  `libc++abi: terminating` when `exit()` ran static destructors. The output state is now never
+  destroyed, and an `atexit` hook stops the thread. `tests/audio/test_audio_exit.cpp` covers it.
+- Real mouse movement over the window changes the hovered menu item, which made scripted menu
+  runs pick the wrong entry. Routes now pass `--ignore-user-input`.
+- The intro mission's Ballas drive-by kills a player who lingers by the street, which made
+  gameplay-based radio tests unreliable. The Audio Setup page plays each station as it is
+  selected, which gives a deterministic test.
+
+Deviations from the plan:
+- Controller support is deferred to M11 (owner's decision). The DInput8 joystick and the
+  GameController bridge are implemented and unit-tested, and work with scripted input, but have
+  not been tested with real Xbox or DualSense controllers or real hot-plug. See M11.
+
+Not done in M5, carried forward:
+- 3D positioning compared with the reference at fixed scenes (M7 harness).
+- Lip-sync and station pitch checked by a person. Both follow from the mixer-driven play cursor
+  and the resampler, but nobody has watched or listened yet.
+- EAX reverb approximation (§9).
+- `DuplicateSoundBuffer` copies the samples instead of sharing them. SA never calls it.
+- `ClipCursor` and relative mouse capture, so mouse look keeps working when the pointer would
+  leave a window (M6, with the window modes).
 
 Work:
 - Fake DirectSound8 + EAX on CoreAudio (§3.7). Native libvorbisfile with guest callbacks.
   Audio stream thread.
-- GameController.framework → DInput8 joystick, with hot-plug.
 - Audio device change and sleep/wake handling.
 
 Exit criteria:
 - SFX, all radio stations, mission dialogue and cutscene audio play, and cutscene lip-sync
   stays in sync.
 - 3D positioning matches the reference at fixed scenes.
-- Xbox and DualSense controllers drive, walk, aim and navigate menus. Unplugging and
-  replugging mid-game works.
 
 ### M6 — Playable vanilla (+ launcher MVP)
 
@@ -859,6 +923,7 @@ Work:
 - Launcher MVP: locate the game folder, `sa-verify`, run `sa-recomp` with progress, write the
   stamp, choose resolution/aspect/display, launch `sa-host`.
 - Window modes: windowed, borderless fullscreen, native fullscreen. Retina, multiple displays.
+- `ClipCursor` and relative mouse capture (from M3/M5).
 - Baseline performance capture (frame-time histogram on fixed routes) for M11.
 
 Exit criteria:
@@ -951,11 +1016,34 @@ Work:
   where it shows up in profiles.
 - Audit high-frame-rate gameplay issues that remain after the SilentPatch fixes, and gate them
   behind the frame-limiter setting.
+- **Controller support (moved from M5).** What exists, from M5 work:
+  - DInput8 always enumerates one game controller (`GetObjectInfo`, `DIPROP_RANGE`, `Poll`,
+    `DIJOYSTATE2`). SA then applies its default joypad layout at boot.
+  - SA's generic default layout is PS2-ordered: 1 Circle, 2 Cross, 3 Square, 4 Triangle,
+    5 L2, 6 R2, 7 L1, 8 R1, 9 Select, 10 L3, 11 R3, 13–16 d-pad up/right/down/left. A vendor
+    0x3427 / product 0x1190 pad gets a second layout (1 Triangle … 4 Square). Buttons are reported
+    in the generic order by position, so A/Cross is Cross on both pads.
+  - X/Y are the left stick, Z/Rz the right stick (SA reads the right stick only when both
+    exist). The POV hat is reported centred, because SA treats it as a second left stick.
+  - SA never maps Start; the pause menu opens only on Escape. The Menu/Options button sends Escape.
+  - GameController.framework snapshots the extended gamepad on its own queue and follows connect
+    and disconnect (`[INPUT] controller connected`). Disconnected means a neutral pad.
+  - `--keys` drives a virtual pad: `pad.a` … `pad.right`, `lstick@X:Y`, `rstick@X:Y` (percent).
+    Scripted runs started New Game, paused and navigated menus, walked, rode, got on and off the
+    BMX and turned the camera.
+  - A `gta_sa.set` saved while no joystick existed stores an empty joypad table, which overrides
+    the defaults (as on Windows). Controller Setup → Restore Defaults or deleting the file fixes it.
+
+  Still to do: test with real Xbox and DualSense controllers (drive, walk, aim, menus),
+  unplug/replug mid-game, decide whether the controller should be enumerated when none is
+  connected, and rumble.
 
 Exit criteria:
 - 1080p at 60 fps with 99th-percentile frame time under 20 ms on base M1, across the fixed
   benchmark routes (city, countryside, night with 2DFX).
 - No `[INTERP]` hits in normal gameplay.
+- Xbox and DualSense controllers drive, walk, aim and navigate menus. Unplugging and
+  replugging mid-game works.
 
 ### M12 — Release
 

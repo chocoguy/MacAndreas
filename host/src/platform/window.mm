@@ -16,6 +16,7 @@ constexpr uint32_t kWmClose = 0x0010;
 ma::host::platform::PostFn g_post;
 ma::host::platform::InputCallbacks g_input;
 bool g_cursor_hidden = false;
+bool g_user_input = true;
 
 NSCursor* blank_cursor() {
     static NSCursor* cursor = [] {
@@ -46,6 +47,9 @@ NSEventModifierFlags device_mask(uint16_t mac) {
 }
 
 void key(uint32_t hwnd, uint16_t mac, bool down, bool repeat) {
+    if (!g_user_input) {
+        return;
+    }
     const ma::host::input::Key* k = ma::host::input::key_for_mac(mac);
     if (k && g_input.key) {
         g_input.key(hwnd, *k, down, repeat);
@@ -117,6 +121,9 @@ void post(uint32_t hwnd, uint32_t msg, uint32_t wparam, uint32_t lparam) {
     }
 }
 - (void)mouseMoved:(NSEvent*)e {
+    if (!g_user_input) {
+        return;
+    }
     ma::host::input::add_mouse_motion(static_cast<int32_t>(e.deltaX), static_cast<int32_t>(e.deltaY));
     NSPoint p = [self clientPoint:e];
     bool inside = p.x >= 0 && p.y >= 0 && p.x < self.clientWidth && p.y < self.clientHeight;
@@ -126,6 +133,9 @@ void post(uint32_t hwnd, uint32_t msg, uint32_t wparam, uint32_t lparam) {
     }
 }
 - (void)button:(unsigned)button down:(bool)down event:(NSEvent*)e {
+    if (!g_user_input) {
+        return;
+    }
     if (g_input.button) {
         [self mouseMoved:e];
         g_input.button(self.hwnd, button, down);
@@ -161,6 +171,9 @@ void post(uint32_t hwnd, uint32_t msg, uint32_t wparam, uint32_t lparam) {
     [self button:static_cast<unsigned>(e.buttonNumber) down:false event:e];
 }
 - (void)scrollWheel:(NSEvent*)e {
+    if (!g_user_input) {
+        return;
+    }
     double notches = e.hasPreciseScrollingDeltas ? e.scrollingDeltaY / 10.0 : e.scrollingDeltaY;
     double total = notches * 120.0 + self.wheelRemainder;
     int32_t delta = static_cast<int32_t>(std::trunc(total));
@@ -267,6 +280,8 @@ NSSize points_for_pixels(uint32_t width, uint32_t height) {
 void set_post_callback(PostFn fn) { g_post = std::move(fn); }
 
 void set_input_callbacks(InputCallbacks callbacks) { g_input = std::move(callbacks); }
+
+void set_user_input(bool enabled) { g_user_input = enabled; }
 
 void set_cursor_hidden(bool hidden) {
     if (g_cursor_hidden == hidden) {

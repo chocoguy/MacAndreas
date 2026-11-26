@@ -4,6 +4,7 @@
 #include "guest_memory.hpp"
 #include "input/keys.hpp"
 #include "manifest_runtime.hpp"
+#include "platform/window.hpp"
 #include "settings.hpp"
 #include "thread.hpp"
 #include "thunks.hpp"
@@ -129,6 +130,12 @@ bool parse(int argc, char** argv, Options& o) {
             settings().exit_after_frames = static_cast<uint32_t>(std::stoul(argv[++i]));
         } else if (a == "--dump-shaders" && i + 1 < argc) {
             settings().shader_dump_dir = argv[++i];
+        } else if (a == "--ignore-user-input") {
+            ma::host::platform::set_user_input(false);
+        } else if (a == "--no-audio") {
+            settings().silent_audio = true;
+        } else if (a == "--audio-capture" && i + 1 < argc) {
+            settings().audio_capture = argv[++i];
         } else if (a == "--keys" && i + 1 < argc) {
             settings().keys = argv[++i];
         } else {
@@ -157,7 +164,7 @@ int main(int argc, char** argv) {
     if (!parse(argc, argv, options)) {
         std::println(stderr, "usage: sa-host --game <game dir> --native <libgta_sa_native.dylib> [--manifest <dir>] "
                      "[--trace-imports] [--trace-interp] [--interpret ADDR,...] [--interpret-range LO-HI,...] [--trace-pc ADDR,...] [--trap-nan] [--watch ADDR,...] [--diff-test LIST [--diff-iterations N] [--diff-seed N] [--diff-x87-args N] [--diff-deep] [--diff-verbose]] [--resolution WxH] [--modes WxH,...] [--skip-intro] [--ignore-focus-loss] [--capture-dir DIR] "
-                     "[--capture-frames N,M,...|all] [--exit-after-frames N] [--keys FRAME[m]:KEY[+|-],...] [--dump-shaders DIR]");
+                     "[--capture-frames N,M,...|all] [--exit-after-frames N] [--keys FRAME[m]:KEY[+|-],...] [--dump-shaders DIR] [--ignore-user-input] [--no-audio] [--audio-capture FILE.wav]");
         return 64;
     }
     if (!settings().keys.empty()) {

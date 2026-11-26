@@ -6,6 +6,7 @@
 #include "renderer.hpp"
 #include "sm.hpp"
 
+#include "../audio/output.hpp"
 #include "../input/keys.hpp"
 #include "../platform/window.hpp"
 #include "../settings.hpp"
@@ -1291,6 +1292,7 @@ uint32_t dev_present(uint32_t self, uint32_t src, uint32_t dst, uint32_t hwnd, u
         std::fprintf(stderr, "[D3D9] exiting after %llu frames as requested\n", static_cast<unsigned long long>(frame));
         std::fflush(stderr);
         d->renderer.reset();
+        audio::finish_output();
         std::_Exit(0);
     }
     return D::kOk;

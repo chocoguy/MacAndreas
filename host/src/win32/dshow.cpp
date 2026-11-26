@@ -125,8 +125,8 @@ uint32_t gb_render_file(uint32_t self, uint32_t file, uint32_t playlist) {
         std::fprintf(stderr, "[DSHOW] RenderFile(\"%s\"): cannot open as MPEG-1, skipping it\n", name.c_str());
         return kSOk;
     }
-    std::fprintf(stderr, "[DSHOW] RenderFile(\"%s\"): %ux%u, %.1f s (video only until audio output lands)\n",
-                 name.c_str(), g->movie->width(), g->movie->height(), g->movie->duration());
+    std::fprintf(stderr, "[DSHOW] RenderFile(\"%s\"): %ux%u, %.1f s, %s\n", name.c_str(), g->movie->width(),
+                 g->movie->height(), g->movie->duration(), g->movie->has_audio() ? "with audio" : "no audio track");
     return kSOk;
 }
 

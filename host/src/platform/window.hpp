@@ -20,6 +20,7 @@ struct InputCallbacks {
 
 void set_post_callback(PostFn post);
 void set_input_callbacks(InputCallbacks callbacks);
+void set_user_input(bool enabled);
 void set_cursor_hidden(bool hidden);
 void warp_cursor(uint32_t hwnd, int32_t x, int32_t y);
 void create_window(uint32_t hwnd, const std::string& title, uint32_t width, uint32_t height);

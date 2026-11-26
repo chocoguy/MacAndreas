@@ -32,6 +32,10 @@ add_library(sa-host-core OBJECT
     src/win32/dinput8.cpp
     src/win32/dshow.cpp
     src/win32/vorbisfile.cpp
+    src/audio/mix.cpp
+    src/audio/stream.cpp
+    src/audio/output.mm
+    src/input/gamepad.mm
     src/input/input_state.cpp
     src/input/keys.cpp
     src/native/natives.cpp
@@ -48,7 +52,8 @@ add_library(sa-host-core OBJECT
     src/media/pl_mpeg_impl.c
 )
 set_source_files_properties(src/media/pl_mpeg_impl.c PROPERTIES COMPILE_OPTIONS "-w")
-set_source_files_properties(src/gfx/renderer_metal.mm src/platform/window.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+set_source_files_properties(src/gfx/renderer_metal.mm src/platform/window.mm src/audio/output.mm src/input/gamepad.mm
+    PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
 target_include_directories(sa-host-core PUBLIC src)
 target_include_directories(sa-host-core SYSTEM PRIVATE "${CMAKE_SOURCE_DIR}/third_party/pl_mpeg")
 find_path(MA_VORBIS_INCLUDE vorbis/vorbisfile.h HINTS /opt/homebrew/opt/libvorbis/include REQUIRED)
@@ -60,7 +65,8 @@ target_include_directories(sa-host-core SYSTEM PRIVATE "${MA_VORBIS_INCLUDE}" "$
 target_link_libraries(sa-host-core PRIVATE "${MA_VORBISFILE_LIB}" "${MA_VORBIS_LIB}" "${MA_OGG_LIB}")
 target_include_directories(sa-host-core SYSTEM PUBLIC "${MA_REMILL_INCLUDE}")
 target_link_libraries(sa-host-core PUBLIC MacAndreas::loader MacAndreas::manifest ma_interp
-    "-framework CoreGraphics" "-framework AppKit" "-framework Metal" "-framework QuartzCore" "-framework ImageIO")
+    "-framework CoreGraphics" "-framework AppKit" "-framework Metal" "-framework QuartzCore" "-framework ImageIO"
+    "-framework AudioToolbox" "-framework CoreAudio" "-framework GameController")
 target_compile_options(sa-host-core PUBLIC -Wno-unused-parameter -Wno-pedantic -Wno-gnu-anonymous-struct
     -Wno-nested-anon-types)
 

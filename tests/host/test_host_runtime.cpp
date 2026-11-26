@@ -1,6 +1,8 @@
 #include "check.hpp"
 
 #include "abi.hpp"
+#include "audio/mix.hpp"
+#include "audio/stream.hpp"
 #include "dispatch.hpp"
 #include "guest_memory.hpp"
 #include "input/input_state.hpp"
@@ -21,6 +23,7 @@
 #include <string>
 #include <utility>
 #include <cstdio>
+#include <cstring>
 #include <vector>
 
 using namespace ma::host;
@@ -77,6 +80,20 @@ constexpr uint32_t kFReturn = 0x00402150;
 constexpr uint32_t kGReturn = 0x00402250;
 constexpr uint32_t kHReturn = 0x00403250;
 
+struct EnumSeen {
+    uint32_t devtype = 0;
+    std::array<uint8_t, 16> guid{};
+};
+std::vector<EnumSeen> g_enumerated;
+
+uint32_t enum_cb(uint32_t inst, uint32_t ref) {
+    EnumSeen e;
+    e.devtype = mem::read<uint32_t>(inst + 36);
+    std::memcpy(e.guid.data(), mem::ptr(inst + 4), 16);
+    g_enumerated.push_back(e);
+    return 1;
+}
+
 constexpr ApiDef kTestApis[] = {
     native_export<Conv::stdcall, add3>("TEST.dll", "add3"),
     native_export<Conv::cdecl_, mul64>("TEST.dll", "mul64"),
@@ -84,6 +101,7 @@ constexpr ApiDef kTestApis[] = {
     native_export<Conv::stdcall, scale>("TEST.dll", "scale"),
     native_export<Conv::cdecl_, average>("TEST.dll", "average"),
     native_export<Conv::stdcall, note_call>("TEST.dll", "note_call"),
+    native_export<Conv::stdcall, enum_cb>("TEST.dll", "enum_cb"),
 };
 
 uint32_t api(std::string_view name) { return thunk_for("TEST.dll", name, 0); }
@@ -633,6 +651,297 @@ void test_key_script() {
     input::set_script_sink({});
 }
 
+template <GuestScalar... Args>
+uint32_t vcall(GuestState& s, uint32_t obj, unsigned index, Args... args) {
+    uint32_t target = mem::read<uint32_t>(mem::read<uint32_t>(obj) + 4 * index);
+    return guest_call<Conv::stdcall, uint32_t>(s, target, obj, args...);
+}
+
+void put_guid(uint32_t at, uint32_t d1, uint16_t d2, uint16_t d3, std::array<uint8_t, 8> d4) {
+    mem::write<uint32_t>(at, d1);
+    mem::write<uint16_t>(at + 4, d2);
+    mem::write<uint16_t>(at + 6, d3);
+    std::memcpy(mem::ptr(at + 8), d4.data(), 8);
+}
+
+bool near(float a, float b, float eps = 1e-3f) { return std::fabs(a - b) < eps; }
+
+void test_audio_mix() {
+    CHECK(audio::db_gain(0) == 1);
+    CHECK(audio::db_gain(-10000) == 0);
+    CHECK(near(audio::db_gain(-2000), 0.1f));
+    CHECK(near(audio::pan_gains(10000).left, 0) && audio::pan_gains(10000).right == 1);
+    CHECK(audio::pan_gains(-600).left == 1 && near(audio::pan_gains(-600).right, audio::db_gain(-600)));
+
+    audio::Listener l;
+    l.front = {0, 1, 0};
+    l.top = {0, 0, -1};
+    l.rolloff = 0;
+    audio::Spatial src;
+    src.position = {10, 0, 0};
+    auto g = audio::spatial_gains(l, src);
+    CHECK(near(g.left, 0) && near(g.right, 1));
+    src.position = {-10, 0, 0};
+    g = audio::spatial_gains(l, src);
+    CHECK(near(g.left, 1) && near(g.right, 0));
+    src.position = {0, 10, 0};
+    g = audio::spatial_gains(l, src);
+    CHECK(near(g.left, 1) && near(g.right, 1));
+    src.position = {5, 5, 0};
+    g = audio::spatial_gains(l, src);
+    CHECK(g.right == 1 && g.left > 0.4f && g.left < 0.7f);
+    l.rolloff = 1;
+    src.position = {0, 4, 0};
+    g = audio::spatial_gains(l, src);
+    CHECK(near(g.left, 0.25f) && near(g.right, 0.25f));
+    src.mode = audio::kMode3dDisable;
+    g = audio::spatial_gains(l, src);
+    CHECK(g.left == 1 && g.right == 1);
+
+    int16_t pcm[4] = {0, 16384, 0, -16384};
+    audio::Voice v;
+    v.data = reinterpret_cast<const uint8_t*>(pcm);
+    v.bytes = sizeof(pcm);
+    v.format = {1, 16, 2, 24000};
+    std::array<float, 32> out{};
+    double pos = 0;
+    CHECK(!audio::mix_voice(out.data(), 16, 48000, v, pos));
+    CHECK(near(out[0], 0) && near(out[2], 0.25f) && near(out[4], 0.5f) && near(out[5], 0.5f) && near(out[6], 0.25f));
+    CHECK(near(out[12], -0.5f) && out[16] == 0);
+    out.fill(0);
+    pos = 0;
+    v.looping = true;
+    CHECK(audio::mix_voice(out.data(), 16, 48000, v, pos));
+    CHECK(near(out[16], 0) && near(out[20], 0.5f) && near(pos, 0));
+    out.fill(0);
+    pos = 0;
+    v.frequency = 48000;
+    v.gains = {0.5f, 0};
+    CHECK(audio::mix_voice(out.data(), 2, 48000, v, pos));
+    CHECK(near(out[2], 0.25f) && out[3] == 0 && near(pos, 2));
+}
+
+void test_audio_stream() {
+    auto stream = std::make_shared<audio::Stream>(24000);
+    float in[8] = {0, 0, 0.5f, -0.5f, 1, -1, 0.5f, -0.5f};
+    stream->push(in, 4);
+    CHECK(stream->queued() == 4);
+    std::array<float, 16> out{};
+    audio::add_stream(stream);
+    audio::mix_streams(out.data(), 8, 48000);
+    CHECK(near(out[0], 0) && near(out[2], 0.25f) && near(out[3], -0.25f) && near(out[4], 0.5f));
+    CHECK(near(out[8], 1) && near(out[10], 0.75f) && out[12] == 0 && out[14] == 0);
+    CHECK(stream->queued() == 1);
+    stream->push(in, 4);
+    out.fill(0);
+    audio::mix_streams(out.data(), 2, 48000);
+    CHECK(near(out[0], 0.5f) && near(out[2], 0.25f));
+    audio::remove_stream(stream.get());
+    out.fill(0);
+    audio::mix_streams(out.data(), 8, 48000);
+    CHECK(out[0] == 0);
+    stream->clear();
+    CHECK(stream->queued() == 0);
+}
+
+void test_dsound(GuestState& s) {
+    settings().audio_clockless = true;
+    uint32_t mem_base = allocator().reserve(0x10000);
+    uint32_t out = mem_base;
+    uint32_t desc = mem_base + 0x100;
+    uint32_t wfx = mem_base + 0x200;
+    uint32_t iid = mem_base + 0x300;
+    uint32_t p1 = mem_base + 0x400;
+    uint32_t b1 = mem_base + 0x404;
+    uint32_t play = mem_base + 0x410;
+    uint32_t write = mem_base + 0x414;
+    uint32_t created = guest_call<Conv::stdcall, uint32_t>(s, thunk_for("dsound.dll", "DirectSoundCreate8", 0), 0u, out, 0u);
+    CHECK(created == 0);
+    uint32_t ds = mem::read<uint32_t>(out);
+
+    std::memset(mem::ptr(desc), 0, 36);
+    mem::write<uint32_t>(desc, 36);
+    mem::write<uint32_t>(desc + 4, 0x1 | 0x10);
+    CHECK(vcall(s, ds, 3, desc, out, 0u) == 0);
+    uint32_t primary = mem::read<uint32_t>(out);
+    put_guid(iid, 0x279afa84, 0x4981, 0x11ce, {0xa5, 0x21, 0x00, 0x20, 0xaf, 0x0b, 0xe5, 0x60});
+    CHECK(vcall(s, primary, 0, iid, out) == 0);
+    uint32_t listener = mem::read<uint32_t>(out);
+    CHECK(vcall(s, listener, 13, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1u) == 0);
+    CHECK(vcall(s, listener, 15, 0.0f, 1u) == 0);
+    CHECK(vcall(s, listener, 17) == 0);
+
+    mem::write<uint16_t>(wfx, 1);
+    mem::write<uint16_t>(wfx + 2, 1);
+    mem::write<uint32_t>(wfx + 4, 24000);
+    mem::write<uint32_t>(wfx + 8, 48000);
+    mem::write<uint16_t>(wfx + 12, 2);
+    mem::write<uint16_t>(wfx + 14, 16);
+    mem::write<uint32_t>(desc + 4, 0x10 | 0x80 | 0x20);
+    mem::write<uint32_t>(desc + 8, 2400);
+    mem::write<uint32_t>(desc + 16, wfx);
+    CHECK(vcall(s, ds, 3, desc, out, 0u) == 0);
+    uint32_t buffer = mem::read<uint32_t>(out);
+    CHECK(vcall(s, buffer, 11, 0u, 2400u, p1, b1, 0u, 0u, 0u) == 0);
+    CHECK(mem::read<uint32_t>(b1) == 2400);
+    for (uint32_t i = 0; i < 1200; ++i) {
+        mem::write<int16_t>(mem::read<uint32_t>(p1) + 2 * i, 16384);
+    }
+    CHECK(vcall(s, buffer, 19, mem::read<uint32_t>(p1), 2400u, 0u, 0u) == 0);
+    put_guid(iid, 0x279afa86, 0x4981, 0x11ce, {0xa5, 0x21, 0x00, 0x20, 0xaf, 0x0b, 0xe5, 0x60});
+    CHECK(vcall(s, buffer, 0, iid, out) == 0);
+    uint32_t b3d = mem::read<uint32_t>(out);
+    CHECK(vcall(s, b3d, 19, 10.0f, 0.0f, 0.0f, 1u) == 0);
+
+    std::vector<float> mix(2 * 480);
+    win32::dsound_render(mix.data(), 480, 48000);
+    CHECK(mix[0] == 0 && mix[1] == 0);
+    CHECK(vcall(s, buffer, 12, 0u, 0u, 0u) == 0);
+    win32::dsound_render(mix.data(), 480, 48000);
+    CHECK(near(mix[0], 0.5f) && near(mix[1], 0.5f));
+    CHECK(vcall(s, listener, 17) == 0);
+    std::fill(mix.begin(), mix.end(), 0.0f);
+    win32::dsound_render(mix.data(), 480, 48000);
+    CHECK(near(mix[0], 0) && near(mix[1], 0.5f));
+    CHECK(vcall(s, buffer, 4, play, write) == 0);
+    CHECK(mem::read<uint32_t>(play) == 960);
+    CHECK(mem::read<uint32_t>(write) == 960 + 480);
+    CHECK(vcall(s, buffer, 15, static_cast<uint32_t>(-2000)) == 0);
+    std::fill(mix.begin(), mix.end(), 0.0f);
+    win32::dsound_render(mix.data(), 100, 48000);
+    CHECK(near(mix[1], 0.05f));
+    win32::dsound_render(mix.data(), 480, 48000);
+    CHECK(vcall(s, buffer, 9, out) == 0);
+    CHECK(mem::read<uint32_t>(out) == 1);
+    win32::dsound_render(mix.data(), 480, 48000);
+    win32::dsound_render(mix.data(), 480, 48000);
+    CHECK(vcall(s, buffer, 9, out) == 0);
+    CHECK(mem::read<uint32_t>(out) == 0);
+    CHECK(vcall(s, buffer, 4, play, write) == 0);
+    CHECK(mem::read<uint32_t>(play) == 0);
+
+    CHECK(vcall(s, buffer, 12, 0u, 0u, 1u) == 0);
+    CHECK(vcall(s, buffer, 9, out) == 0);
+    CHECK(mem::read<uint32_t>(out) == 0x5);
+    win32::dsound_render(mix.data(), 480, 48000);
+    win32::dsound_render(mix.data(), 480, 48000);
+    win32::dsound_render(mix.data(), 480, 48000);
+    CHECK(vcall(s, buffer, 9, out) == 0);
+    CHECK(mem::read<uint32_t>(out) == 0x5);
+    CHECK(vcall(s, buffer, 4, play, write) == 0);
+    CHECK(mem::read<uint32_t>(play) == 1440);
+    CHECK(vcall(s, buffer, 18) == 0);
+    std::fill(mix.begin(), mix.end(), 0.0f);
+    win32::dsound_render(mix.data(), 480, 48000);
+    CHECK(mix[1] == 0);
+    CHECK(vcall(s, buffer, 4, play, write) == 0);
+    CHECK(mem::read<uint32_t>(play) == 1440);
+    CHECK(vcall(s, b3d, 2) != 0);
+    CHECK(vcall(s, buffer, 2) == 0);
+}
+
+void test_joystick(GuestState& s) {
+    uint32_t base = allocator().reserve(0x10000);
+    uint32_t out = base;
+    uint32_t guid = base + 0x100;
+    uint32_t fmt = base + 0x200;
+    uint32_t prop = base + 0x300;
+    uint32_t info = base + 0x400;
+    uint32_t state = base + 0x1000;
+    uint32_t created =
+        guest_call<Conv::stdcall, uint32_t>(s, thunk_for("dinput8.dll", "DirectInput8Create", 0), 0u, 0x800u, 0u, out, 0u);
+    CHECK(created == 0);
+    uint32_t di = mem::read<uint32_t>(out);
+    g_enumerated.clear();
+    CHECK(vcall(s, di, 4, 4u, api("enum_cb"), 0u, 1u) == 0);
+    CHECK(g_enumerated.size() == 1 && g_enumerated[0].devtype == 0x10215);
+    g_enumerated.clear();
+    CHECK(vcall(s, di, 4, 0u, api("enum_cb"), 0u, 1u) == 0);
+    CHECK(g_enumerated.size() == 3);
+    g_enumerated.clear();
+    CHECK(vcall(s, di, 4, 4u, api("enum_cb"), 0u, 1u) == 0);
+    std::memcpy(mem::ptr(guid), g_enumerated[0].guid.data(), 16);
+    CHECK(vcall(s, di, 3, guid, out, 0u) == 0);
+    uint32_t joy = mem::read<uint32_t>(out);
+    std::memset(mem::ptr(fmt), 0, 24);
+    mem::write<uint32_t>(fmt + 12, 272);
+    CHECK(vcall(s, joy, 11, fmt) == 0);
+    mem::write<uint32_t>(prop, 24);
+    mem::write<uint32_t>(prop + 4, 16);
+    mem::write<uint32_t>(prop + 12, 1);
+    mem::write<uint32_t>(prop + 16, static_cast<uint32_t>(-2000));
+    mem::write<uint32_t>(prop + 20, 2000);
+    mem::write<uint32_t>(info, 0x13c);
+    for (uint32_t offset : {0u, 4u, 8u, 20u}) {
+        CHECK(vcall(s, joy, 14, info, offset, 1u) == 0);
+        CHECK(mem::read<uint32_t>(info + 20) == offset);
+        mem::write<uint32_t>(prop + 8, offset);
+        CHECK(vcall(s, joy, 6, 4u, prop) == 0);
+    }
+    CHECK(vcall(s, joy, 14, info, 12u, 1u) != 0);
+    mem::write<uint32_t>(prop + 8, 12);
+    CHECK(vcall(s, joy, 6, 4u, prop) != 0);
+    CHECK(vcall(s, joy, 14, info, 48u, 1u) == 0);
+    mem::write<uint32_t>(prop, 20);
+    mem::write<uint32_t>(prop + 8, 0);
+    mem::write<uint32_t>(prop + 12, 0);
+    CHECK(vcall(s, joy, 5, 24u, prop) == 0);
+    CHECK((mem::read<uint32_t>(prop + 16) & 0xffff) != 0x3427);
+    mem::write<uint32_t>(base + 0x500, 0x2c);
+    CHECK(vcall(s, joy, 3, base + 0x500) == 0);
+    CHECK(mem::read<uint32_t>(base + 0x500 + 12) == 4 && mem::read<uint32_t>(base + 0x500 + 16) == 16);
+
+    CHECK(vcall(s, joy, 25) == 0x8007000cu);
+    CHECK(vcall(s, joy, 9, 272u, state) != 0);
+    CHECK(vcall(s, joy, 7) == 0);
+    CHECK(vcall(s, joy, 25) == 0);
+
+    input::set_script_pad_stick(0, 1.0f, 1.0f);
+    input::set_script_pad_stick(1, -0.5f, 0.0f);
+    input::set_script_pad_button(input::PadButton::south, true);
+    input::set_script_pad_button(input::PadButton::start, true);
+    input::set_script_pad_button(input::PadButton::left, true);
+    CHECK(vcall(s, joy, 9, 272u, state) == 0);
+    CHECK(static_cast<int32_t>(mem::read<uint32_t>(state)) == 2000);
+    CHECK(static_cast<int32_t>(mem::read<uint32_t>(state + 4)) == -2000);
+    CHECK(static_cast<int32_t>(mem::read<uint32_t>(state + 8)) == -1000);
+    CHECK(static_cast<int32_t>(mem::read<uint32_t>(state + 20)) == 0);
+    CHECK(mem::read<uint32_t>(state + 32) == 0xffffffffu);
+    CHECK(mem::read<uint8_t>(state + 48) == 0 && mem::read<uint8_t>(state + 49) == 0x80);
+    CHECK(mem::read<uint8_t>(state + 48 + 11) == 0x80 && mem::read<uint8_t>(state + 48 + 15) == 0x80);
+    input::reset();
+    CHECK(vcall(s, joy, 9, 272u, state) == 0);
+    CHECK(mem::read<uint32_t>(state) == 0 && mem::read<uint32_t>(state + 4) == 0);
+    for (uint32_t i = 0; i < 16; ++i) {
+        CHECK(mem::read<uint8_t>(state + 48 + i) == 0);
+    }
+    CHECK(vcall(s, joy, 2) == 0);
+
+    std::string error;
+    auto steps = input::parse_key_script("5:pad.a,6:lstick@50:-100,7:pad.Start+,8:rstick@0:0", error);
+    CHECK(steps.size() == 4);
+    CHECK(steps[0].kind == input::StepKind::pad_button && steps[0].tap &&
+          steps[0].pad_button == static_cast<uint8_t>(input::PadButton::south));
+    CHECK(steps[1].kind == input::StepKind::pad_stick && steps[1].button == 0 && steps[1].x == 50 && steps[1].y == -100);
+    CHECK(steps[2].pad_button == static_cast<uint8_t>(input::PadButton::start) && steps[2].down && !steps[2].tap);
+    CHECK(steps[3].button == 1);
+    CHECK(input::parse_key_script("5:lstick", error).empty());
+    CHECK(input::parse_key_script("5:pad.bogus", error).empty());
+    CHECK(input::parse_key_script("5:lstick@200:0", error).empty());
+    CHECK(input::parse_key_script("5:pad.a@1:2", error).empty());
+    input::set_script_sink({});
+    input::set_key_script(steps);
+    input::run_key_script(false, 6);
+    CHECK(input::pad_state().pressed(input::PadButton::south));
+    CHECK(near(input::pad_state().lx, 0.5f) && near(input::pad_state().ly, -1.0f));
+    input::note_idle_peek();
+    input::run_key_script(false, 6);
+    input::poll_key_script();
+    CHECK(!input::pad_state().pressed(input::PadButton::south));
+    input::set_key_script({});
+    input::reset();
+}
+
 void test_keyboard_messages(GuestState& s) {
     input::reset();
     uint32_t msg = allocator().reserve(0x1000);
@@ -754,5 +1063,9 @@ int main() {
     test_key_table();
     test_key_script();
     test_keyboard_messages(s);
+    test_audio_mix();
+    test_audio_stream();
+    test_dsound(s);
+    test_joystick(s);
     return ma::test::finish("host_runtime");
 }

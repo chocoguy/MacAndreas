@@ -34,7 +34,7 @@ const Key* key_for_name(std::string_view name);
 uint8_t dik(const Key& key);
 uint8_t other_side(uint8_t side_vk);
 
-enum class StepKind : uint8_t { key, button, move, wheel, focus, look };
+enum class StepKind : uint8_t { key, button, move, wheel, focus, look, pad_button, pad_stick };
 
 struct KeyStep {
     bool movie = false;
@@ -43,6 +43,7 @@ struct KeyStep {
     StepKind kind = StepKind::key;
     const Key* key = nullptr;
     unsigned button = 0;
+    uint8_t pad_button = 0;
     int32_t wheel = 0;
     bool has_pos = false;
     int32_t x = 0;

@@ -1,14 +1,17 @@
 #include "com_object.hpp"
 #include "process.hpp"
 
+#include "../audio/mix.hpp"
+#include "../audio/output.hpp"
+
 #include <algorithm>
 #include <array>
-#include <chrono>
 #include <cstdio>
 #include <cstring>
 #include <memory>
 #include <mutex>
 #include <set>
+#include <vector>
 #include <string>
 
 namespace ma::host::win32 {
@@ -18,6 +21,7 @@ namespace {
 constexpr uint32_t kSpeakerStereo = 4;
 constexpr uint32_t kDsErrInvalidParam = 0x80070057u;
 constexpr uint32_t kDsErrInvalidCall = 0x88780032u;
+constexpr uint32_t kDsErrControlUnavail = 0x8878001eu;
 constexpr uint32_t kDsbPrimary = 0x1;
 constexpr uint32_t kDsbCtrl3d = 0x10;
 constexpr uint32_t kDsbStatusPlaying = 0x1;
@@ -25,8 +29,6 @@ constexpr uint32_t kDsbStatusLooping = 0x4;
 constexpr uint32_t kDsbPlayLooping = 0x1;
 
 std::recursive_mutex g_mutex;
-
-using Clock = std::chrono::steady_clock;
 
 struct WaveFormat {
     uint16_t tag = 1;
@@ -36,6 +38,17 @@ struct WaveFormat {
     uint16_t block_align = 4;
     uint16_t bits = 16;
 };
+
+struct Buffer;
+
+std::vector<Buffer*>& live_buffers() {
+    static std::vector<Buffer*> v;
+    return v;
+}
+
+audio::Listener g_listener_active;
+audio::Listener g_listener_pending;
+int32_t g_primary_volume = 0;
 
 struct Buffer {
     uint32_t refs = 1;
@@ -49,58 +62,46 @@ struct Buffer {
     int32_t pan = 0;
     bool playing = false;
     bool looping = false;
-    uint64_t base_position = 0;
-    Clock::time_point started;
+    double position = 0;
     uint32_t face_buffer = 0;
     uint32_t face_3d = 0;
     uint32_t face_listener = 0;
-    std::array<float, 3> position{};
-    std::array<float, 3> velocity{};
-    float min_distance = 1;
-    float max_distance = 1e9f;
-    uint32_t mode = 0;
+    audio::Spatial spatial;
+    audio::Spatial spatial_pending;
 
-    ~Buffer() { allocator().free(storage); }
+    Buffer() { live_buffers().push_back(this); }
+
+    ~Buffer() {
+        std::erase(live_buffers(), this);
+        allocator().free(storage);
+    }
+
+    uint32_t align() const { return std::max<uint16_t>(format.block_align, 1); }
+
+    uint32_t frames() const { return size / align(); }
 
     uint32_t bytes_per_second() const {
         uint32_t rate = frequency ? frequency : format.rate;
-        return std::max<uint32_t>(1, rate * std::max<uint16_t>(format.block_align, 1));
+        return std::max<uint32_t>(1, rate * align());
     }
 
-    uint64_t raw_position() const {
-        if (!playing) {
-            return base_position;
+    uint32_t play_cursor() const {
+        uint32_t total = frames();
+        if (total == 0) {
+            return 0;
         }
-        double seconds = std::chrono::duration<double>(Clock::now() - started).count();
-        return base_position + static_cast<uint64_t>(seconds * bytes_per_second());
+        return static_cast<uint32_t>(static_cast<uint64_t>(position) % total) * align();
     }
 
-    uint32_t play_cursor() {
+    uint32_t write_cursor() const {
         if (size == 0) {
             return 0;
         }
-        uint64_t raw = raw_position();
-        if (!looping && raw >= size) {
-            playing = false;
-            base_position = 0;
-            return 0;
-        }
-        uint32_t align = std::max<uint16_t>(format.block_align, 1);
-        return static_cast<uint32_t>(raw % size) / align * align;
+        uint32_t lead = std::min<uint32_t>(size, bytes_per_second() / 100) / align() * align();
+        return (play_cursor() + lead) % size;
     }
 
-    uint32_t write_cursor() {
-        uint32_t p = play_cursor();
-        uint32_t align = std::max<uint16_t>(format.block_align, 1);
-        uint32_t lead = std::min<uint32_t>(size, bytes_per_second() / 100) / align * align;
-        return size ? (p + lead) % size : 0;
-    }
-
-    void freeze() {
-        if (playing && size != 0) {
-            base_position = raw_position() % size;
-        }
-    }
+    bool spatialized() const { return (flags & kDsbCtrl3d) != 0 && format.channels == 1; }
 };
 
 struct Face : ComObject {
@@ -225,7 +226,6 @@ uint32_t buf_get_status(uint32_t self, uint32_t out) {
     Buffer* b = buf(self);
     uint32_t status = 0;
     if (b) {
-        b->play_cursor();
         if (b->playing) {
             status = kDsbStatusPlaying | (b->looping ? kDsbStatusLooping : 0);
         }
@@ -266,10 +266,8 @@ uint32_t buf_play(uint32_t self, uint32_t reserved, uint32_t priority, uint32_t 
     if (!b) {
         return kDsErrInvalidParam;
     }
-    b->freeze();
     b->looping = (flags & kDsbPlayLooping) != 0 || b->primary;
     b->playing = true;
-    b->started = Clock::now();
     return kSOk;
 }
 
@@ -279,8 +277,7 @@ uint32_t buf_set_current_position(uint32_t self, uint32_t position) {
     if (!b) {
         return kDsErrInvalidParam;
     }
-    b->base_position = b->size ? position % b->size : 0;
-    b->started = Clock::now();
+    b->position = b->size ? static_cast<double>((position % b->size) / b->align()) : 0;
     return kSOk;
 }
 
@@ -298,6 +295,9 @@ uint32_t buf_set_volume(uint32_t self, int32_t v) {
     std::lock_guard lock(g_mutex);
     if (Buffer* b = buf(self)) {
         b->volume = std::clamp(v, -10000, 0);
+        if (b->primary) {
+            g_primary_volume = b->volume;
+        }
     }
     return kSOk;
 }
@@ -313,8 +313,6 @@ uint32_t buf_set_pan(uint32_t self, int32_t v) {
 uint32_t buf_set_frequency(uint32_t self, uint32_t v) {
     std::lock_guard lock(g_mutex);
     if (Buffer* b = buf(self)) {
-        b->freeze();
-        b->started = Clock::now();
         b->frequency = v;
     }
     return kSOk;
@@ -323,7 +321,6 @@ uint32_t buf_set_frequency(uint32_t self, uint32_t v) {
 uint32_t buf_stop(uint32_t self) {
     std::lock_guard lock(g_mutex);
     if (Buffer* b = buf(self)) {
-        b->freeze();
         b->playing = false;
     }
     return kSOk;
@@ -332,51 +329,196 @@ uint32_t buf_stop(uint32_t self) {
 uint32_t buf_unlock(uint32_t self, uint32_t p1, uint32_t b1, uint32_t p2, uint32_t b2) { return kSOk; }
 uint32_t buf_restore(uint32_t self) { return kSOk; }
 
-uint32_t b3d_set_position(uint32_t self, float x, float y, float z, uint32_t apply) {
+audio::Vec3 vec(float x, float y, float z) { return {x, y, z}; }
+
+void write_vec(uint32_t out, const audio::Vec3& v) {
+    if (out != 0) {
+        mem::write<float>(out, v.x);
+        mem::write<float>(out + 4, v.y);
+        mem::write<float>(out + 8, v.z);
+    }
+}
+
+void write_float(uint32_t out, float v) {
+    if (out != 0) {
+        mem::write<float>(out, v);
+    }
+}
+
+constexpr uint32_t kDs3dImmediate = 0;
+
+template <typename F>
+uint32_t set_spatial(uint32_t self, uint32_t apply, F&& fn) {
     std::lock_guard lock(g_mutex);
-    if (Buffer* b = buf(self)) {
-        b->position = {x, y, z};
+    Buffer* b = buf(self);
+    if (!b) {
+        return kDsErrInvalidParam;
+    }
+    fn(b->spatial_pending);
+    if (apply == kDs3dImmediate) {
+        fn(b->spatial);
     }
     return kSOk;
+}
+
+template <typename F>
+uint32_t get_spatial(uint32_t self, F&& fn) {
+    std::lock_guard lock(g_mutex);
+    Buffer* b = buf(self);
+    if (!b) {
+        return kDsErrInvalidParam;
+    }
+    fn(b->spatial);
+    return kSOk;
+}
+
+uint32_t b3d_set_position(uint32_t self, float x, float y, float z, uint32_t apply) {
+    return set_spatial(self, apply, [&](audio::Spatial& s) { s.position = vec(x, y, z); });
 }
 
 uint32_t b3d_set_velocity(uint32_t self, float x, float y, float z, uint32_t apply) {
-    std::lock_guard lock(g_mutex);
-    if (Buffer* b = buf(self)) {
-        b->velocity = {x, y, z};
-    }
-    return kSOk;
+    return set_spatial(self, apply, [&](audio::Spatial& s) { s.velocity = vec(x, y, z); });
 }
 
 uint32_t b3d_set_min_distance(uint32_t self, float d, uint32_t apply) {
-    std::lock_guard lock(g_mutex);
-    if (Buffer* b = buf(self)) {
-        b->min_distance = d;
-    }
-    return kSOk;
+    return set_spatial(self, apply, [&](audio::Spatial& s) { s.min_distance = d; });
 }
 
 uint32_t b3d_set_max_distance(uint32_t self, float d, uint32_t apply) {
-    std::lock_guard lock(g_mutex);
-    if (Buffer* b = buf(self)) {
-        b->max_distance = d;
-    }
-    return kSOk;
+    return set_spatial(self, apply, [&](audio::Spatial& s) { s.max_distance = d; });
 }
 
 uint32_t b3d_set_mode(uint32_t self, uint32_t mode, uint32_t apply) {
+    return set_spatial(self, apply, [&](audio::Spatial& s) { s.mode = mode; });
+}
+
+uint32_t b3d_get_mode(uint32_t self, uint32_t out) {
+    return get_spatial(self, [&](const audio::Spatial& s) { com_out(out, s.mode); });
+}
+
+uint32_t b3d_get_position(uint32_t self, uint32_t out) {
+    return get_spatial(self, [&](const audio::Spatial& s) { write_vec(out, s.position); });
+}
+
+uint32_t b3d_get_velocity(uint32_t self, uint32_t out) {
+    return get_spatial(self, [&](const audio::Spatial& s) { write_vec(out, s.velocity); });
+}
+
+uint32_t b3d_get_min_distance(uint32_t self, uint32_t out) {
+    return get_spatial(self, [&](const audio::Spatial& s) { write_float(out, s.min_distance); });
+}
+
+uint32_t b3d_get_max_distance(uint32_t self, uint32_t out) {
+    return get_spatial(self, [&](const audio::Spatial& s) { write_float(out, s.max_distance); });
+}
+
+template <typename F>
+uint32_t set_listener(uint32_t apply, F&& fn) {
     std::lock_guard lock(g_mutex);
-    if (Buffer* b = buf(self)) {
-        b->mode = mode;
+    fn(g_listener_pending);
+    if (apply == kDs3dImmediate) {
+        fn(g_listener_active);
     }
     return kSOk;
 }
 
-uint32_t b3d_get_mode(uint32_t self, uint32_t out) {
+uint32_t lis_set_position(uint32_t self, float x, float y, float z, uint32_t apply) {
+    return set_listener(apply, [&](audio::Listener& l) { l.position = vec(x, y, z); });
+}
+
+uint32_t lis_set_velocity(uint32_t self, float x, float y, float z, uint32_t apply) {
+    return set_listener(apply, [&](audio::Listener& l) { l.velocity = vec(x, y, z); });
+}
+
+uint32_t lis_set_orientation(uint32_t self, float fx, float fy, float fz, float tx, float ty, float tz, uint32_t apply) {
+    return set_listener(apply, [&](audio::Listener& l) {
+        l.front = vec(fx, fy, fz);
+        l.top = vec(tx, ty, tz);
+    });
+}
+
+uint32_t lis_set_distance_factor(uint32_t self, float v, uint32_t apply) {
+    return set_listener(apply, [&](audio::Listener& l) { l.distance_factor = v; });
+}
+
+uint32_t lis_set_doppler_factor(uint32_t self, float v, uint32_t apply) {
+    return set_listener(apply, [&](audio::Listener& l) { l.doppler = v; });
+}
+
+uint32_t lis_set_rolloff_factor(uint32_t self, float v, uint32_t apply) {
+    return set_listener(apply, [&](audio::Listener& l) { l.rolloff = v; });
+}
+
+uint32_t lis_get_position(uint32_t self, uint32_t out) {
     std::lock_guard lock(g_mutex);
-    Buffer* b = buf(self);
-    com_out(out, b ? b->mode : 0);
+    write_vec(out, g_listener_active.position);
     return kSOk;
+}
+
+uint32_t lis_get_velocity(uint32_t self, uint32_t out) {
+    std::lock_guard lock(g_mutex);
+    write_vec(out, g_listener_active.velocity);
+    return kSOk;
+}
+
+uint32_t lis_get_orientation(uint32_t self, uint32_t front, uint32_t top) {
+    std::lock_guard lock(g_mutex);
+    write_vec(front, g_listener_active.front);
+    write_vec(top, g_listener_active.top);
+    return kSOk;
+}
+
+uint32_t lis_get_distance_factor(uint32_t self, uint32_t out) {
+    std::lock_guard lock(g_mutex);
+    write_float(out, g_listener_active.distance_factor);
+    return kSOk;
+}
+
+uint32_t lis_get_doppler_factor(uint32_t self, uint32_t out) {
+    std::lock_guard lock(g_mutex);
+    write_float(out, g_listener_active.doppler);
+    return kSOk;
+}
+
+uint32_t lis_get_rolloff_factor(uint32_t self, uint32_t out) {
+    std::lock_guard lock(g_mutex);
+    write_float(out, g_listener_active.rolloff);
+    return kSOk;
+}
+
+uint32_t lis_commit(uint32_t self) {
+    std::lock_guard lock(g_mutex);
+    g_listener_active = g_listener_pending;
+    for (Buffer* b : live_buffers()) {
+        b->spatial = b->spatial_pending;
+    }
+    return kSOk;
+}
+
+void render(float* out, uint32_t frames, uint32_t rate) {
+    std::lock_guard lock(g_mutex);
+    float master = audio::db_gain(g_primary_volume);
+    for (Buffer* b : live_buffers()) {
+        if (b->primary || !b->playing || b->size == 0 || b->storage == 0) {
+            continue;
+        }
+        audio::Voice v;
+        v.data = mem::ptr(b->storage);
+        v.bytes = b->size;
+        v.format = {b->format.channels, b->format.bits, b->format.block_align, b->format.rate};
+        v.frequency = b->frequency;
+        v.looping = b->looping;
+        float gain = audio::db_gain(b->volume) * master;
+        audio::Gains g = b->spatialized() ? audio::spatial_gains(g_listener_active, b->spatial) : audio::pan_gains(b->pan);
+        v.gains = {g.left * gain, g.right * gain};
+        if (!audio::mix_voice(out, frames, rate, v, b->position)) {
+            b->playing = false;
+            b->position = 0;
+        }
+    }
+    for (uint32_t i = 0; i < 2 * frames; ++i) {
+        out[i] = std::clamp(out[i], -1.0f, 1.0f);
+    }
 }
 
 #define DS_UNKNOWN(QI)                                                                                \
@@ -403,7 +545,7 @@ ComInterface g_buffer("dsound.dll", "IDirectSoundBuffer8",
                           com_method<buf_stop>("Stop"),
                           com_method<buf_unlock>("Unlock"),
                           com_method<buf_restore>("Restore"),
-                          ComMethod{"SetFX", 4, nullptr, kENotImpl},
+                          ComMethod{"SetFX", 4, nullptr, kDsErrControlUnavail},
                           ComMethod{"AcquireResources", 4, com_noop},
                           ComMethod{"GetObjectInPath", 5, nullptr, kENoInterface},
                       });
@@ -411,16 +553,16 @@ ComInterface g_buffer("dsound.dll", "IDirectSoundBuffer8",
 ComInterface g_buffer3d("dsound.dll", "IDirectSound3DBuffer",
                         {
                             DS_UNKNOWN(buf_query_interface),
-                            ComMethod{"GetAllParameters", 2, com_noop},
+                            ComMethod{"GetAllParameters", 2, nullptr, kENotImpl},
                             ComMethod{"GetConeAngles", 3, com_noop},
                             ComMethod{"GetConeOrientation", 2, com_noop},
                             ComMethod{"GetConeOutsideVolume", 2, com_noop},
-                            ComMethod{"GetMaxDistance", 2, com_noop},
-                            ComMethod{"GetMinDistance", 2, com_noop},
+                            com_method<b3d_get_max_distance>("GetMaxDistance"),
+                            com_method<b3d_get_min_distance>("GetMinDistance"),
                             com_method<b3d_get_mode>("GetMode"),
-                            ComMethod{"GetPosition", 2, com_noop},
-                            ComMethod{"GetVelocity", 2, com_noop},
-                            ComMethod{"SetAllParameters", 3, com_noop},
+                            com_method<b3d_get_position>("GetPosition"),
+                            com_method<b3d_get_velocity>("GetVelocity"),
+                            ComMethod{"SetAllParameters", 3, nullptr, kENotImpl},
                             ComMethod{"SetConeAngles", 4, com_noop},
                             ComMethod{"SetConeOrientation", 5, com_noop},
                             ComMethod{"SetConeOutsideVolume", 3, com_noop},
@@ -434,21 +576,21 @@ ComInterface g_buffer3d("dsound.dll", "IDirectSound3DBuffer",
 ComInterface g_listener("dsound.dll", "IDirectSound3DListener",
                         {
                             DS_UNKNOWN(buf_query_interface),
-                            ComMethod{"GetAllParameters", 2, com_noop},
-                            ComMethod{"GetDistanceFactor", 2, com_noop},
-                            ComMethod{"GetDopplerFactor", 2, com_noop},
-                            ComMethod{"GetOrientation", 3, com_noop},
-                            ComMethod{"GetPosition", 2, com_noop},
-                            ComMethod{"GetRolloffFactor", 2, com_noop},
-                            ComMethod{"GetVelocity", 2, com_noop},
-                            ComMethod{"SetAllParameters", 3, com_noop},
-                            ComMethod{"SetDistanceFactor", 3, com_noop},
-                            ComMethod{"SetDopplerFactor", 3, com_noop},
-                            ComMethod{"SetOrientation", 8, com_noop},
-                            ComMethod{"SetPosition", 5, com_noop},
-                            ComMethod{"SetRolloffFactor", 3, com_noop},
-                            ComMethod{"SetVelocity", 5, com_noop},
-                            ComMethod{"CommitDeferredSettings", 1, com_noop},
+                            ComMethod{"GetAllParameters", 2, nullptr, kENotImpl},
+                            com_method<lis_get_distance_factor>("GetDistanceFactor"),
+                            com_method<lis_get_doppler_factor>("GetDopplerFactor"),
+                            com_method<lis_get_orientation>("GetOrientation"),
+                            com_method<lis_get_position>("GetPosition"),
+                            com_method<lis_get_rolloff_factor>("GetRolloffFactor"),
+                            com_method<lis_get_velocity>("GetVelocity"),
+                            ComMethod{"SetAllParameters", 3, nullptr, kENotImpl},
+                            com_method<lis_set_distance_factor>("SetDistanceFactor"),
+                            com_method<lis_set_doppler_factor>("SetDopplerFactor"),
+                            com_method<lis_set_orientation>("SetOrientation"),
+                            com_method<lis_set_position>("SetPosition"),
+                            com_method<lis_set_rolloff_factor>("SetRolloffFactor"),
+                            com_method<lis_set_velocity>("SetVelocity"),
+                            com_method<lis_commit>("CommitDeferredSettings"),
                         });
 
 bool ds_iid(uint32_t riid, uint32_t d1) {
@@ -585,7 +727,7 @@ uint32_t direct_sound_create8(uint32_t guid, uint32_t out, uint32_t outer) {
     if (out == 0) {
         return kDsErrInvalidParam;
     }
-    std::fprintf(stderr, "[DSOUND] DirectSoundCreate8: silent device (CoreAudio output is M5 work)\n");
+    audio::start_output(render, audio::default_options());
     com_out(out, com_objects().wrap(g_device, std::make_unique<Device>()));
     return kSOk;
 }
@@ -599,5 +741,7 @@ constexpr ApiDef kDsound[] = {
 }
 
 std::span<const ApiDef> dsound_apis() { return kDsound; }
+
+void dsound_render(float* out, uint32_t frames, uint32_t rate) { render(out, frames, rate); }
 
 }

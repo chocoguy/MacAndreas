@@ -6,10 +6,12 @@ MacAndreas converts your own copy of GTA: San Andreas (PC, `gta_sa.exe` 1.0 US) 
 Apple Silicon program. SilentPatch, the Widescreen Fix and Project2DFX are built in. This
 repository contains no game code or assets; see [ROADMAP.md](ROADMAP.md) for the plan.
 
-Status: **M3 (menu) complete**: the game boots to the main menu, rendered by lifted RenderWare on
-Metal, plays the intro movies (video only), and every menu page works with keyboard and mouse.
-Settings persist in `gta_sa.set`, and New Game loads into the opening cutscene. Characters,
-sound and mouse look are not there yet. M4 (in-world) is next.
+Status: **M5 (audio) complete**, apart from comparing 3D positioning with the reference and
+checking lip-sync by eye. The game boots through the intro movies to the main menu, is
+playable in Los Santos with keyboard and mouse, and has sound. Sound effects, positional audio,
+radio, dialogue, cutscenes and the movies' soundtracks play through CoreAudio. The output follows
+the default output device and survives sleep. Controller support exists but is untested with
+real controllers; it moved to M11. M6 (playable vanilla and the launcher) is next.
 
 ### Requirements
 
@@ -83,9 +85,17 @@ Display and debugging options:
   `mbutton`, `wheelup`, `wheeldown`, `move` and `focus`/`blur`. Keys and buttons tap by default;
   `+`/`-` hold and release. `@X:Y` first moves the pointer to client pixel X,Y. `look@DX:DY`
   sends a relative mouse motion, which turns the in-game camera. A tapped key stays down until the
-  game has presented a frame, so typed cheats register.
+  game has presented a frame, so typed cheats register. A virtual controller takes `pad.a`, `pad.b`,
+  `pad.x`, `pad.y`, `pad.lb`, `pad.rb`, `pad.lt`, `pad.rt`, `pad.back`, `pad.start`, `pad.ls`,
+  `pad.rs` and `pad.up`/`down`/`left`/`right` (tap, `+` or `-`), and `lstick@X:Y`/`rstick@X:Y` with
+  X and Y in percent, up positive.
+- `--ignore-user-input` ignores the real keyboard and mouse (Cmd-Q still quits), so a scripted
+  run cannot be disturbed.
 - `--ignore-focus-loss` keeps the game running when the window loses focus. By default it pauses
   as the original does, which stalls unattended runs.
+- `--no-audio` mutes the output. The mixer still runs against the system clock, so streaming and
+  cutscene timing behave as with a device.
+- `--audio-capture FILE.wav` records the final mix (48 kHz, 16-bit stereo).
 - `--dump-shaders DIR` writes the disassembly of every vertex and pixel shader the game creates.
 - `--interpret ADDR,…` runs those traces in the interpreter instead of the lifted code, and
   `--trace-pc ADDR,…` logs registers and the x87 stack whenever the interpreter reaches them.
@@ -103,7 +113,9 @@ build/dev/host/sa-host --game "gamefiles/Grand Theft Auto San Andreas" --native 
 
 Settings and saves live in `~/Library/Application Support/MacAndreas/Documents/GTA San Andreas
 User Files`. A `gta_sa.set` written by an M2 build may hold the windowed desktop mode; delete it
-once if the game switches to windowed mode after the splash screens.
+once if the game switches to windowed mode after the splash screens. The game always sees one
+controller, but a `gta_sa.set` saved before M5 has an empty joypad table that overrides the
+default buttons; use Controller Setup → Restore Defaults or delete the file once.
 
 To choose Start Game → New Game and capture the loading screen:
 
@@ -133,6 +145,18 @@ or any `[INTERP]` hit. SA steps its physics by measured time, so run it on an id
 
 ```bash
 tools/route/m4_route.py --minutes 10 --capture-dir out/route --log out/route.log
+```
+
+### Audio route
+
+`tools/route/m5_route.py` cycles every radio station in Options → Audio Setup, then starts a new
+game, plays the intro cutscene and rides the opening mission's BMX. It records the mix to
+`out/route5.wav` and exits non-zero if a station or the cutscene stream never opens, the
+recording goes silent, the game crashes or anything is interpreted. It is muted unless you pass
+`--speakers`:
+
+```bash
+tools/route/m5_route.py --capture-dir out/route5 --log out/route5.log --audio out/route5.wav
 ```
 
 ### Differential x87 tests

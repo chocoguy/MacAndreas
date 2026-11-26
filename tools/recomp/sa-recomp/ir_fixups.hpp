@@ -26,6 +26,8 @@ void fix_x87_fpatan_semantics(llvm::Module& semantics, std::vector<std::string>&
 
 void mark_x87_exact_semantics(llvm::Module& semantics, std::vector<std::string>& errors);
 
+size_t preserve_x87_condition_codes(llvm::Module& semantics, std::vector<std::string>& errors);
+
 void rewrite_x86_inline_asm(llvm::Module& module, std::vector<std::string>& errors);
 
 void strip_x86_function_attributes(llvm::Module& module);

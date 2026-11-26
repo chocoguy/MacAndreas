@@ -7,11 +7,14 @@
 #include <initializer_list>
 #include <span>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace ma::host {
 
 std::expected<size_t, std::string> load_function_table(void* dylib);
 TraceFn lookup_trace(uint32_t addr);
+std::vector<std::pair<uint32_t, TraceFn>> traces_in_range(uint32_t low, uint32_t high);
 void dispatch(GuestState& s, uint32_t target);
 void request_jump(GuestState& s, uint32_t target);
 void interpret_missing(GuestState& s, uint32_t target);

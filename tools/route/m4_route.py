@@ -98,6 +98,8 @@ def main():
     p.add_argument("--capture-dir", default="out/route")
     p.add_argument("--capture-every", type=int, default=300)
     p.add_argument("--log", default="out/route.log")
+    p.add_argument("--frame-times", default="out/route_frames.csv", help="per-frame times for tools/perf/frame_report.py")
+    p.add_argument("--extra", default="", help="extra sa-host arguments, space separated")
     p.add_argument("--print-keys", action="store_true")
     args = p.parse_args()
 
@@ -109,8 +111,10 @@ def main():
         return 0
     cmd = [args.host, "--game", args.game, "--native", args.native, "--manifest", "manifest", "--skip-intro",
            "--ignore-focus-loss", "--ignore-user-input", "--keys", route.keys(), "--capture-dir", args.capture_dir,
-           "--capture-frames", ",".join(str(f) for f in captures), "--exit-after-frames", str(end)]
+           "--capture-frames", ",".join(str(f) for f in captures), "--exit-after-frames", str(end),
+           "--frame-times", args.frame_times] + args.extra.split()
     Path(args.capture_dir).mkdir(parents=True, exist_ok=True)
+    Path(args.frame_times).parent.mkdir(parents=True, exist_ok=True)
     with open(args.log, "w") as log:
         code = subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT).returncode
     text = Path(args.log).read_text(errors="replace")
@@ -120,6 +124,9 @@ def main():
     print(f"exit code {code}, {end} frames, {len(interp)} interpreted entry points")
     for a in interp:
         print(f"  [INTERP] {a}")
+    perf = re.search(r"\[PERF\] (.*)", text)
+    if perf:
+        print(f"frame times: {perf.group(1)}")
     reached = re.search(r"exiting after (\d+) frames", text)
     return 0 if code == 0 and reached and not interp else 1
 

@@ -1,10 +1,12 @@
 #pragma once
 
 #include "../input/keys.hpp"
+#include "../settings.hpp"
 
 #include <cstdint>
 #include <functional>
 #include <string>
+#include <vector>
 
 namespace ma::host::platform {
 
@@ -18,10 +20,21 @@ struct InputCallbacks {
     std::function<void(uint32_t hwnd, bool active)> focus;
 };
 
+struct DisplayInfo {
+    std::string name;
+    uint32_t width = 0;
+    uint32_t height = 0;
+    double scale = 1;
+    bool primary = false;
+};
+
+std::vector<DisplayInfo> displays();
+DisplayMode display_pixels(uint32_t index);
 void set_post_callback(PostFn post);
 void set_input_callbacks(InputCallbacks callbacks);
 void set_user_input(bool enabled);
 void set_cursor_hidden(bool hidden);
+bool mouse_captured();
 void warp_cursor(uint32_t hwnd, int32_t x, int32_t y);
 void create_window(uint32_t hwnd, const std::string& title, uint32_t width, uint32_t height);
 void destroy_window(uint32_t hwnd);

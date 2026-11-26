@@ -902,7 +902,7 @@ Not done in M5, carried forward:
 - EAX reverb approximation (§9).
 - `DuplicateSoundBuffer` copies the samples instead of sharing them. SA never calls it.
 - `ClipCursor` and relative mouse capture, so mouse look keeps working when the pointer would
-  leave a window (M6, with the window modes).
+  leave a window. Done in M6, with the window modes.
 
 Work:
 - Fake DirectSound8 + EAX on CoreAudio (§3.7). Native libvorbisfile with guest callbacks.
@@ -917,6 +917,120 @@ Exit criteria:
 ### M6 — Playable vanilla (+ launcher MVP)
 
 Goal: the unmodified game is playable end to end through the launcher.
+
+Status: **in progress.** The window modes, mouse capture, saves, frame-time capture and the
+launcher MVP are in place. The mission playthroughs and the 2-hour soak still need a person
+(see below). Windows save round-trips are blocked on a save made on Windows and on a Windows
+machine or the reference to load ours. A clean-Mac run is blocked on bundling a linker.
+
+What is in place:
+- **Window modes** (`host/src/platform/window.mm`): `--window-mode windowed|borderless|fullscreen`
+  and `--display N`.
+  - Windowed sizes the window to the game's resolution in pixels, so 1280×720 on a 2× display is a
+    640×360-point window.
+  - Borderless covers the whole display, hides the menu bar and Dock, and keeps the notch area
+    black.
+  - Native full screen uses its own Space. Control-Command-F toggles it.
+  - The picture is letterboxed to keep its aspect ratio, and pointer coordinates are mapped
+    through the same rectangle, so menus line up in every mode.
+  - The game's mode list follows the chosen display's usable pixel size.
+- **Mouse capture** replaces `ClipCursor`. While the game hides the pointer and its window is key:
+  - the real pointer is frozen and hidden (`CGAssociateMouseAndMouseCursorPosition`), and mouse
+    look reads raw motion;
+  - a virtual pointer, confined to the picture, drives `WM_MOUSEMOVE` and `SetCursorPos`.
+  - Command, Command-Tab, losing focus or the game showing the pointer releases it at the virtual
+    position. A click captures it again.
+  - `--no-mouse-capture` turns it off, and `--ignore-user-input` runs never capture. SA only ever
+    calls `ClipCursor(NULL)`.
+- **Mouse look** reads raw `GCMouse` deltas while the window has focus, as DirectInput reports raw
+  counts on Windows (Y negated). When no raw motion has arrived in the last 0.25 s, the AppKit
+  deltas are used instead, in pixels. Fractional motion carries over between `GetDeviceState`
+  reads instead of being truncated. Confirmed in play.
+- **x87 condition codes**: `sa-recomp` keeps C0–C3 across `fld`, `fadd` and the other instructions
+  that do not set them, as real CPUs do (see Findings). Doors swing open when pushed, and peds
+  collide with box-shaped objects again. Confirmed in play.
+- **Shadow debugging** (`host/src/shadow.cpp`): `--shadow` runs sampled calls lifted and
+  interpreted in forked children on live game state and compares registers, the x87 stack and
+  every page written. `--probe`, `--touch`, `--dump-memory`, `--pool-stats` and `--pool-detail`
+  help narrow a bug down to one call (README, Debugging).
+- **Quit**: Cmd-Q closes the game the way its window's close button does (see Findings).
+- **Saves.**
+  - SA writes `GTASAsfN.b` into the user dir through the existing Documents mapping.
+  - A `saveN` key-script action calls the same save routine as the save menu (`0x619060`), and
+    refuses while `OnAMissionFlag` is set.
+  - `tools/route/m6_save.py` makes a save after failing the opening mission, then loads it from
+    the menu and checks the money.
+  - `tools/save/sa_save.py` checks the size (202,752 bytes), the block tag and the checksum.
+- **Frame-time capture**: `--frame-times FILE.csv` and a `[PERF]` summary. `tools/perf/frame_report.py`
+  prints percentiles and a histogram. `m4_route.py` records `out/route_frames.csv` by default.
+- **Launcher MVP** (`launcher/`, SwiftUI, built by CMake as `MacAndreas.app`):
+  - game folder selection and `sa-verify`;
+  - conversion through the bundled `sa-recomp` with progress;
+  - `stamp.json` hashing the exe, analysis, manifest, guest runtime and `sa-recomp`, with
+    reconversion when the stamp changes;
+  - display, window mode, aspect ratio, resolution and intro choices;
+  - launch with logs in `~/Library/Logs/MacAndreas`.
+  - The bundle carries its own `libLLVM`/`libzstd` with rewritten install names, so `sa-recomp`
+    no longer loads Homebrew.
+  - `--headless status|convert|snapshot` drives it without a window.
+  - Checked end to end on this Mac with the bundled tools only:
+    - conversion into `~/Library/Application Support/MacAndreas/build` took 15 minutes;
+    - the stamp then read up to date;
+    - the bundled `sa-host` booted the converted library at 2560×1440 borderless.
+  - The intermediate shards (about 750 MB) are deleted after a successful conversion, leaving a
+    234 MB library.
+
+Findings:
+- A save made during a mission crashes on load in the script interpreter: the mission's script
+  position is saved, but the mission code is not reloaded. Windows behaves the same, which is why
+  the game only offers saving outside missions. The debug save action checks the flag for that
+  reason.
+- Saving through the save routine moves the game clock forward (20:07 at save time, about 03:07
+  in the file). This is game logic, not the port.
+- GenericSave's block switch was missing 25 trace entry points (`0x5d14d5`–`0x5d15ab`); they are
+  now lift roots.
+- The launcher's resolution is only a starting point. Like `--resolution`, it loses to a mode saved
+  in `gta_sa.set`.
+- Cmd-Q went through AppKit's `terminate:`, which calls `exit()` while the game's threads are still
+  running. Static destructors then destroyed a `recursive_mutex` in use, and the process aborted
+  (`recursive_mutex lock failed`). Cmd-Q now posts `WM_CLOSE`, as the close button does, and the
+  game exits through `ExitProcess`. A second Cmd-Q quits at once. When WinMain returns,
+  `exit_process` runs too, never the static destructors.
+- `--ignore-user-input` does not cover the title-bar buttons or Cmd-Q, so someone using the Mac
+  can still end or resize a scripted run.
+- Mouse look barely moved the camera. The host truncated AppKit's fractional, accelerated point
+  deltas to integers, and SA turns 0.0025 rad per DirectInput count, so most motion was lost.
+- Doors did not open and peds walked through objects. Remill's x87 semantics write
+  `__remill_undefined_8()` (0 at run time) to C0, C2 and C3 for `fld`, `fild`, `fadd`, `fsub`,
+  `fmul`, `fdiv` and others. Real CPUs leave them unchanged, and MSVC relies on that: it schedules
+  `fnstsw` after unrelated loads and arithmetic and branches on an earlier `fcomp`.
+  `CCollision::ProcessSphereBox` (`0x4122c1`) does this, so a sphere whose centre lies inside a
+  box on one axis was treated as outside and never touched it. CJ passed through the front door
+  of his house without moving it. `sa-recomp` now drops those 22 writes, so the codes keep their
+  previous value. The interpreter already did, which is how `--shadow` caught it at the door:
+  lifted `0x412130` returned false where the interpreter returned a contact. The randomized
+  `--diff-test` missed it, because random spheres and boxes almost never overlap.
+- First frame-time numbers, from the in-world route on a dev build (host code at `-O0`, lifted code
+  at `-O2`) at 1280×720 on an M5: 13,125 in-world frames, mean 41.6 ms (24 fps), p50 41.7, p95
+  50.1, p99 94.2, max 213 ms. The menus run at the 120 Hz display rate. The M11 baseline needs a
+  release build on the base M1 named in the exit criteria.
+
+- `--shadow` has two known sources of noise. Timer and audio-clock words such as `0xb729a4` and
+  `0xb610e0` differ because the interpreted run is slower. Calls that enter a trace in the middle of
+  a function have no return address on the stack and end as inconclusive.
+
+Still to do in M6:
+- A regression test for the x87 condition codes. The lift smoke test bypasses `sa-recomp`'s
+  fixups, and `--diff-test`'s random spheres and boxes almost never overlap, so neither covers it.
+- Play the exit-criteria missions through, and run the 2-hour soak, by a person (see Exit
+  criteria).
+- Windows round trip: load a save made on Windows here, and load a save made here on Windows (or
+  in the CrossOver reference).
+- Clean Mac: `sa-recomp` still links through `xcrun clang`, which needs the Command Line Tools.
+  Bundle `ld64.lld` (from the pinned LLVM) and link with it, then test on a machine without
+  Homebrew or Xcode. The analysis data question (§9, analysis is local-only) decides what the
+  bundle can ship.
+- Capture the M11 performance baseline on the fixed routes.
 
 Work:
 - Save/load in the user dir. Saves round-trip with the Windows 1.0 US build in both directions.

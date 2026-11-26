@@ -14,6 +14,8 @@ struct DisplayMode {
     bool operator==(const DisplayMode&) const = default;
 };
 
+enum class WindowMode { windowed, borderless, fullscreen };
+
 struct Settings {
     uint32_t width = 1280;
     uint32_t height = 720;
@@ -21,6 +23,15 @@ struct Settings {
     bool skip_intro = false;
     bool ignore_focus_loss = false;
     std::vector<uint32_t> watch;
+    struct MemoryDump {
+        uint64_t frame;
+        uint32_t addr;
+        uint32_t size;
+        std::filesystem::path path;
+    };
+    std::vector<MemoryDump> memory_dumps;
+    bool pool_stats = false;
+    std::vector<uint64_t> pool_detail_frames;
     std::filesystem::path capture_dir;
     std::vector<uint32_t> capture_frames;
     bool capture_all = false;
@@ -31,6 +42,10 @@ struct Settings {
     bool silent_audio = false;
     bool audio_clockless = false;
     std::filesystem::path audio_capture;
+    WindowMode window_mode = WindowMode::windowed;
+    uint32_t display = 0;
+    bool mouse_capture = true;
+    std::filesystem::path frame_times;
 };
 
 Settings& settings();
@@ -38,5 +53,7 @@ std::vector<DisplayMode> build_mode_list(DisplayMode configured, const std::vect
                                          DisplayMode display);
 const std::vector<DisplayMode>& display_modes();
 bool parse_mode(std::string_view text, DisplayMode& out);
+bool parse_window_mode(std::string_view text, WindowMode& out);
+std::string_view window_mode_name(WindowMode mode);
 
 }

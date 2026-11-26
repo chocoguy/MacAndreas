@@ -6,6 +6,7 @@
 #include "manifest_runtime.hpp"
 #include "platform/window.hpp"
 #include "settings.hpp"
+#include "shadow.hpp"
 #include "thread.hpp"
 #include "thunks.hpp"
 #include "win32/process.hpp"
@@ -40,6 +41,7 @@ struct Options {
     std::vector<uint32_t> trace_pcs;
     std::vector<std::pair<uint32_t, uint32_t>> interpret_ranges;
     DiffTestOptions diff;
+    shadow::Options shadow;
 };
 
 bool parse(int argc, char** argv, Options& o) {
@@ -70,6 +72,67 @@ bool parse(int argc, char** argv, Options& o) {
                                                 static_cast<uint32_t>(std::stoul(item.substr(dash + 1), nullptr, 16)));
                 list = comma == std::string_view::npos ? std::string_view{} : list.substr(comma + 1);
             }
+        } else if (a == "--shadow" && i + 1 < argc) {
+            std::string_view list = argv[++i];
+            while (!list.empty()) {
+                auto comma = list.find(',');
+                std::string item(list.substr(0, comma));
+                auto dash = item.find('-');
+                uint32_t low = static_cast<uint32_t>(std::stoul(item.substr(0, dash), nullptr, 16));
+                uint32_t high = dash == std::string::npos
+                                    ? low + 1
+                                    : static_cast<uint32_t>(std::stoul(item.substr(dash + 1), nullptr, 16));
+                o.shadow.ranges.emplace_back(low, high);
+                list = comma == std::string_view::npos ? std::string_view{} : list.substr(comma + 1);
+            }
+        } else if (a == "--shadow-from" && i + 1 < argc) {
+            o.shadow.from_frame = std::stoull(argv[++i]);
+        } else if (a == "--shadow-samples" && i + 1 < argc) {
+            o.shadow.samples = static_cast<uint32_t>(std::stoul(argv[++i]));
+        } else if (a == "--shadow-every" && i + 1 < argc) {
+            o.shadow.every = static_cast<uint32_t>(std::stoul(argv[++i]));
+        } else if (a == "--dump-memory" && i + 1 < argc) {
+            std::string spec = argv[++i];
+            auto c1 = spec.find(':');
+            auto c2 = spec.find(':', c1 + 1);
+            auto c3 = spec.find(':', c2 + 1);
+            if (c1 == std::string::npos || c2 == std::string::npos || c3 == std::string::npos) {
+                return false;
+            }
+            settings().memory_dumps.push_back({std::stoull(spec.substr(0, c1)),
+                                               static_cast<uint32_t>(std::stoul(spec.substr(c1 + 1, c2 - c1 - 1), nullptr, 16)),
+                                               static_cast<uint32_t>(std::stoul(spec.substr(c2 + 1, c3 - c2 - 1), nullptr, 16)),
+                                               spec.substr(c3 + 1)});
+        } else if (a == "--probe" && i + 1 < argc) {
+            std::string_view list = argv[++i];
+            while (!list.empty()) {
+                auto comma = list.find(',');
+                o.shadow.probes.push_back(static_cast<uint32_t>(std::stoul(std::string(list.substr(0, comma)), nullptr, 16)));
+                list = comma == std::string_view::npos ? std::string_view{} : list.substr(comma + 1);
+            }
+        } else if (a == "--pool-detail" && i + 1 < argc) {
+            std::string_view list = argv[++i];
+            while (!list.empty()) {
+                auto comma = list.find(',');
+                settings().pool_detail_frames.push_back(std::stoull(std::string(list.substr(0, comma))));
+                list = comma == std::string_view::npos ? std::string_view{} : list.substr(comma + 1);
+            }
+            settings().pool_stats = true;
+        } else if (a == "--touch" && i + 2 < argc) {
+            o.shadow.touch_value = static_cast<uint32_t>(std::stoul(argv[++i], nullptr, 16));
+            std::string_view list = argv[++i];
+            while (!list.empty()) {
+                auto comma = list.find(',');
+                std::string item(list.substr(0, comma));
+                auto dash = item.find('-');
+                o.shadow.touch_ranges.emplace_back(static_cast<uint32_t>(std::stoul(item.substr(0, dash), nullptr, 16)),
+                                                   static_cast<uint32_t>(std::stoul(item.substr(dash + 1), nullptr, 16)));
+                list = comma == std::string_view::npos ? std::string_view{} : list.substr(comma + 1);
+            }
+        } else if (a == "--pool-stats") {
+            settings().pool_stats = true;
+        } else if (a == "--shadow-deep") {
+            o.shadow.deep = true;
         } else if (a == "--diff-test" && i + 1 < argc) {
             o.diff.list = argv[++i];
         } else if (a == "--diff-iterations" && i + 1 < argc) {
@@ -136,6 +199,16 @@ bool parse(int argc, char** argv, Options& o) {
             settings().silent_audio = true;
         } else if (a == "--audio-capture" && i + 1 < argc) {
             settings().audio_capture = argv[++i];
+        } else if (a == "--window-mode" && i + 1 < argc) {
+            if (!parse_window_mode(argv[++i], settings().window_mode)) {
+                return false;
+            }
+        } else if (a == "--display" && i + 1 < argc) {
+            settings().display = static_cast<uint32_t>(std::stoul(argv[++i]));
+        } else if (a == "--no-mouse-capture") {
+            settings().mouse_capture = false;
+        } else if (a == "--frame-times" && i + 1 < argc) {
+            settings().frame_times = argv[++i];
         } else if (a == "--keys" && i + 1 < argc) {
             settings().keys = argv[++i];
         } else {
@@ -163,8 +236,9 @@ int main(int argc, char** argv) {
     Options options;
     if (!parse(argc, argv, options)) {
         std::println(stderr, "usage: sa-host --game <game dir> --native <libgta_sa_native.dylib> [--manifest <dir>] "
-                     "[--trace-imports] [--trace-interp] [--interpret ADDR,...] [--interpret-range LO-HI,...] [--trace-pc ADDR,...] [--trap-nan] [--watch ADDR,...] [--diff-test LIST [--diff-iterations N] [--diff-seed N] [--diff-x87-args N] [--diff-deep] [--diff-verbose]] [--resolution WxH] [--modes WxH,...] [--skip-intro] [--ignore-focus-loss] [--capture-dir DIR] "
-                     "[--capture-frames N,M,...|all] [--exit-after-frames N] [--keys FRAME[m]:KEY[+|-],...] [--dump-shaders DIR] [--ignore-user-input] [--no-audio] [--audio-capture FILE.wav]");
+                     "[--trace-imports] [--trace-interp] [--interpret ADDR,...] [--interpret-range LO-HI,...] [--trace-pc ADDR,...] [--trap-nan] [--watch ADDR,...] [--diff-test LIST [--diff-iterations N] [--diff-seed N] [--diff-x87-args N] [--diff-deep] [--diff-verbose]] [--shadow LO-HI,... [--shadow-from FRAME] [--shadow-samples N] [--shadow-every N] [--shadow-deep]] [--dump-memory FRAME:ADDR:SIZE:FILE] [--pool-stats] [--pool-detail FRAME,...] [--probe ADDR,...] [--touch VALUE LO-HI,...] [--resolution WxH] [--modes WxH,...] [--skip-intro] [--ignore-focus-loss] [--capture-dir DIR] "
+                     "[--capture-frames N,M,...|all] [--exit-after-frames N] [--keys FRAME[m]:KEY[+|-],...] [--dump-shaders DIR] [--ignore-user-input] [--no-audio] [--audio-capture FILE.wav] "
+                     "[--window-mode windowed|borderless|fullscreen] [--display N] [--no-mouse-capture] [--frame-times FILE.csv]");
         return 64;
     }
     if (!settings().keys.empty()) {
@@ -264,6 +338,9 @@ int main(int argc, char** argv) {
     if (!options.diff.list.empty()) {
         return run_diff_tests(*image, options.diff);
     }
+    if (!options.shadow.ranges.empty() || !options.shadow.probes.empty() || !options.shadow.touch_ranges.empty()) {
+        shadow::install(options.shadow);
+    }
 
     std::println(stderr, "sa-host: guest base {}, {} traces, {} imports, entry 0x{:08x}",
                  static_cast<void*>(ma_guest_base), *traces, imports, image->entry_va());
@@ -279,5 +356,5 @@ int main(int argc, char** argv) {
         return 1;
     }
     std::println(stderr, "sa-host: entry point returned eax=0x{:08x}", eax(s));
-    return static_cast<int>(eax(s));
+    win32::exit_process(eax(s));
 }

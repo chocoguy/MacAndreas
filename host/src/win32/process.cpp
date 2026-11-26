@@ -5,11 +5,14 @@
 #include "../gfx/d3d9.hpp"
 #include "../input/input_state.hpp"
 #include "../platform/window.hpp"
+#include "../abi.hpp"
+#include "../guest_memory.hpp"
 #include "../thread.hpp"
 #include "user32.hpp"
 
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
 #include <cstdlib>
 #include <map>
 #include <mutex>
@@ -155,6 +158,23 @@ void register_all() {
         [](unsigned button, bool down) { mouse_button(0, button, down); },
         [](int32_t delta) { mouse_wheel(0, delta); },
         [](bool active) { focus_event(0, active); },
+        [](unsigned slot) {
+            constexpr uint32_t kPcSaveHelper = 0x00c17034;
+            constexpr uint32_t kPcSaveSlot = 0x00619060;
+            constexpr uint32_t kScriptSpace = 0x00a49960;
+            constexpr uint32_t kOnAMissionFlag = 0x00a476ac;
+            GuestThread* thread = current_thread();
+            if (!thread) {
+                return;
+            }
+            uint32_t flag = mem::read<uint32_t>(kOnAMissionFlag);
+            if (flag != 0 && mem::read<uint32_t>(kScriptSpace + flag) != 0) {
+                std::fprintf(stderr, "[SAVE] slot %u refused: a mission is running\n", slot + 1);
+                return;
+            }
+            auto result = guest_call<Conv::thiscall, uint32_t>(thread->state, kPcSaveSlot, kPcSaveHelper, slot);
+            std::fprintf(stderr, "[SAVE] slot %u: %s\n", slot + 1, result == 0 ? "saved" : "failed");
+        },
     });
 }
 

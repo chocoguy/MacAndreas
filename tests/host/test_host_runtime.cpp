@@ -7,6 +7,8 @@
 #include "guest_memory.hpp"
 #include "input/input_state.hpp"
 #include "input/keys.hpp"
+#include "perf.hpp"
+#include "platform/viewport.hpp"
 #include "thread.hpp"
 #include "settings.hpp"
 #include "thunks.hpp"
@@ -536,6 +538,50 @@ void test_mode_list() {
     CHECK(list[1] == (DisplayMode{1280, 720}));
     auto chosen = build_mode_list({1280, 720}, {{1920, 1080}, {1280, 720}, {1024, 768}}, {1920, 1200});
     CHECK((chosen == std::vector<DisplayMode>{{1280, 720}, {1024, 768}, {1920, 1080}}));
+    auto headless = build_mode_list({1280, 720}, {}, {});
+    CHECK(headless.front() == (DisplayMode{1280, 720}) && headless.size() > 5);
+    WindowMode mode = WindowMode::windowed;
+    CHECK(parse_window_mode("borderless", mode) && mode == WindowMode::borderless);
+    CHECK(parse_window_mode("fullscreen", mode) && mode == WindowMode::fullscreen);
+    CHECK(!parse_window_mode("Fullscreen", mode) && mode == WindowMode::fullscreen);
+    CHECK(window_mode_name(WindowMode::windowed) == "windowed");
+}
+
+void test_viewport() {
+    using namespace platform;
+    auto exact = fit_content(640, 360, 1280, 720);
+    CHECK(exact.x == 0 && exact.y == 0 && exact.width == 640 && exact.height == 360);
+    auto pillar = fit_content(1000, 360, 1280, 720);
+    CHECK(pillar.x == 180 && pillar.y == 0 && pillar.width == 640 && pillar.height == 360);
+    auto letter = fit_content(640, 500, 1280, 720);
+    CHECK(letter.x == 0 && letter.y == 70 && letter.height == 360);
+    auto top_left = view_to_client(pillar, 180, 360, 1280, 720);
+    CHECK(top_left.x == 0 && top_left.y == 0);
+    auto bottom_right = view_to_client(pillar, 820, 0, 1280, 720);
+    CHECK(bottom_right.x == 1280 && bottom_right.y == 720);
+    auto outside = view_to_client(pillar, 100, 180, 1280, 720);
+    CHECK(outside.x < 0);
+    auto back = client_to_view(letter, 640, 360, 1280, 720);
+    CHECK(back.x == 320 && back.y == 250);
+    auto round = view_to_client(letter, back.x, back.y, 1280, 720);
+    CHECK(round.x == 640 && round.y == 360);
+    auto clamped = clamp_client({-5, 900}, 1280, 720);
+    CHECK(clamped.x == 0 && clamped.y == 719);
+    auto empty = fit_content(0, 0, 1280, 720);
+    CHECK(empty.width == 0 && view_to_client(empty, 1, 1, 1280, 720).x == 0);
+}
+
+void test_frame_stats() {
+    std::vector<float> frames(100, 16.0f);
+    frames[10] = 40.0f;
+    frames[20] = 25.0f;
+    auto s = perf::summarize(frames);
+    CHECK(s.frames == 100 && s.p50_ms == 16.0f && s.max_ms == 40.0f);
+    CHECK(s.over_20ms == 2 && s.over_33ms == 1);
+    CHECK(s.p99_ms == 25.0f);
+    CHECK(std::fabs(s.mean_ms - 16.33) < 0.01);
+    CHECK(perf::summarize({}).frames == 0);
+    CHECK(perf::format_stats(s).starts_with("100 frames, mean 16.33 ms"));
 }
 
 void test_key_table() {
@@ -567,6 +613,18 @@ void test_key_script() {
     CHECK(input::parse_key_script("x:return", error).empty() && !error.empty());
     CHECK(input::parse_key_script("10:bogus", error).empty() && error.find("bogus") != std::string::npos);
     CHECK(input::parse_key_script("10return", error).empty());
+    auto save = input::parse_key_script("40:save3", error);
+    CHECK(save.size() == 1 && save[0].kind == input::StepKind::save && save[0].button == 2 && !save[0].tap);
+    CHECK(input::parse_key_script("40:save9", error).empty());
+    CHECK(input::parse_key_script("40:save3+", error).empty());
+    unsigned saved_slot = 99;
+    input::set_script_sink({.save = [&](unsigned slot) { saved_slot = slot; }});
+    input::set_key_script(save);
+    input::run_key_script(false, 39);
+    CHECK(saved_slot == 99);
+    input::run_key_script(false, 40);
+    CHECK(saved_slot == 2);
+    input::set_key_script({});
 
     std::vector<std::pair<std::string, bool>> fired;
     input::set_script_sink({.key = [&](const input::Key& k, bool down) { fired.emplace_back(std::string(k.name), down); }});
@@ -1026,6 +1084,24 @@ void test_keyboard_messages(GuestState& s) {
     input::write_mouse_state(dims, sizeof(dims));
     CHECK(static_cast<int32_t>(dims[8] | dims[9] << 8 | dims[10] << 16 | dims[11] << 24) == -120);
     CHECK(dims[12] == 0);
+
+    auto axis = [&](size_t at) {
+        return static_cast<int32_t>(dims[at] | dims[at + 1] << 8 | dims[at + 2] << 16 | dims[at + 3] << 24);
+    };
+    input::add_mouse_motion(0.4, -0.75);
+    input::write_mouse_state(dims, sizeof(dims));
+    CHECK(axis(0) == 0);
+    CHECK(axis(4) == 0);
+    input::add_mouse_motion(0.4, -0.75);
+    input::add_mouse_motion(0.4, 0.0);
+    input::write_mouse_state(dims, sizeof(dims));
+    CHECK(axis(0) == 1);
+    CHECK(axis(4) == -1);
+    input::add_mouse_motion(-0.2, 0.5);
+    input::write_mouse_state(dims, sizeof(dims));
+    CHECK(axis(0) == 0);
+    CHECK(axis(4) == 0);
+    input::reset();
 }
 
 }
@@ -1060,6 +1136,8 @@ int main() {
     test_wsprintf();
     test_allocator_realloc();
     test_mode_list();
+    test_viewport();
+    test_frame_stats();
     test_key_table();
     test_key_script();
     test_keyboard_messages(s);

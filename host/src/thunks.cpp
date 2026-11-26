@@ -21,6 +21,7 @@ struct Thunk {
 };
 
 std::mutex g_mutex;
+thread_local ThunkGuard t_guard = nullptr;
 std::vector<const ApiDef*> g_defs;
 std::unordered_map<std::string, const ApiDef*> g_by_key;
 std::deque<Thunk> g_thunks;
@@ -81,6 +82,8 @@ std::string thunk_name(uint32_t addr) {
 
 void set_trace_imports(bool enabled) { g_trace = enabled; }
 
+void set_thunk_guard(ThunkGuard guard) { t_guard = guard; }
+
 void invoke_thunk(GuestState& s, uint32_t addr) {
     const Thunk* thunk = nullptr;
     {
@@ -99,6 +102,9 @@ void invoke_thunk(GuestState& s, uint32_t addr) {
     }
     if (g_trace) {
         std::fprintf(stderr, "[API] %s!%s from 0x%08x\n", thunk->dll.c_str(), thunk->name.c_str(), return_address);
+    }
+    if (t_guard && !t_guard(thunk->dll, thunk->name)) {
+        std::_Exit(43);
     }
     ApiCall call{s, thunk->def};
     thunk->def->fn(call);

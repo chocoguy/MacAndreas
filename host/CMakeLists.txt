@@ -41,6 +41,8 @@ add_library(sa-host-core OBJECT
     src/native/natives.cpp
     src/manifest_runtime.cpp
     src/settings.cpp
+    src/perf.cpp
+    src/shadow.cpp
     src/gfx/ff.cpp
     src/gfx/sm.cpp
     src/gfx/sm_msl.cpp

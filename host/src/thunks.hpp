@@ -44,5 +44,7 @@ bool is_thunk(uint32_t addr);
 void invoke_thunk(GuestState& s, uint32_t addr);
 std::string thunk_name(uint32_t addr);
 void set_trace_imports(bool enabled);
+using ThunkGuard = bool (*)(std::string_view dll, std::string_view name);
+void set_thunk_guard(ThunkGuard guard);
 
 }

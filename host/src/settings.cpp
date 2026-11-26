@@ -1,6 +1,6 @@
 #include "settings.hpp"
 
-#include <CoreGraphics/CoreGraphics.h>
+#include "platform/window.hpp"
 
 #include <algorithm>
 #include <cstdio>
@@ -15,21 +15,33 @@ constexpr DisplayMode kStandardModes[] = {
     {1920, 1080}, {1920, 1200}, {2560, 1440}, {2560, 1600}, {3840, 2160},
 };
 
-DisplayMode main_display() {
-    DisplayMode mode;
-    if (CGDisplayModeRef m = CGDisplayCopyDisplayMode(CGMainDisplayID())) {
-        mode.width = static_cast<uint32_t>(CGDisplayModeGetPixelWidth(m));
-        mode.height = static_cast<uint32_t>(CGDisplayModeGetPixelHeight(m));
-        CGDisplayModeRelease(m);
-    }
-    return mode;
-}
-
 }
 
 Settings& settings() {
     static Settings s;
     return s;
+}
+
+bool parse_window_mode(std::string_view text, WindowMode& out) {
+    if (text == "windowed") {
+        out = WindowMode::windowed;
+    } else if (text == "borderless") {
+        out = WindowMode::borderless;
+    } else if (text == "fullscreen") {
+        out = WindowMode::fullscreen;
+    } else {
+        return false;
+    }
+    return true;
+}
+
+std::string_view window_mode_name(WindowMode mode) {
+    switch (mode) {
+    case WindowMode::windowed: return "windowed";
+    case WindowMode::borderless: return "borderless";
+    case WindowMode::fullscreen: return "fullscreen";
+    }
+    return "windowed";
 }
 
 bool parse_mode(std::string_view text, DisplayMode& out) {
@@ -73,7 +85,8 @@ std::vector<DisplayMode> build_mode_list(DisplayMode configured, const std::vect
 
 const std::vector<DisplayMode>& display_modes() {
     static const std::vector<DisplayMode> modes =
-        build_mode_list({settings().width, settings().height}, settings().modes, main_display());
+        build_mode_list({settings().width, settings().height}, settings().modes,
+                        platform::display_pixels(settings().display));
     return modes;
 }
 

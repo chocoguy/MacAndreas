@@ -2,16 +2,18 @@
 
 ## A native static recompilation port of GTA SA for macOS
 
+![Logo](https://mangogravy.com/MacAndreasIMPROVED-small.jpg)
+
 MacAndreas converts your own copy of GTA: San Andreas (PC, `gta_sa.exe` 1.0 US) into a native
 Apple Silicon program. SilentPatch, the Widescreen Fix and Project2DFX are built in. This
 repository contains no game code or assets; see [ROADMAP.md](ROADMAP.md) for the plan.
 
-Status: **M5 (audio) complete**, apart from comparing 3D positioning with the reference and
-checking lip-sync by eye. The game boots through the intro movies to the main menu, is
-playable in Los Santos with keyboard and mouse, and has sound. Sound effects, positional audio,
-radio, dialogue, cutscenes and the movies' soundtracks play through CoreAudio. The output follows
-the default output device and survives sleep. Controller support exists but is untested with
-real controllers; it moved to M11. M6 (playable vanilla and the launcher) is next.
+Status: **M6 (playable vanilla and the launcher) in progress.** The game boots through the intro
+movies to the main menu, is playable in Los Santos with keyboard and mouse, and has sound. It runs
+windowed, borderless or in native full screen on any display, captures the mouse for mouse look,
+and saves and loads. A SwiftUI launcher verifies the game, converts it and starts it. Not done
+yet: mission playthroughs, a long soak test, Windows save round trips and a clean-Mac run.
+Controller support exists but is untested with real controllers; it moved to M11.
 
 ### Requirements
 
@@ -48,6 +50,30 @@ Tests labelled `game` need your own executable. By default they look in
 `gamefiles/Grand Theft Auto San Andreas/`, which is git-ignored. Set `MACANDREAS_GAME_DIR` at
 configure time to point elsewhere. Without the game they are skipped.
 
+### Launcher
+
+The build also produces `build/dev/launcher/MacAndreas.app`. It bundles `sa-host`, `sa-verify`,
+`sa-recomp` with its own copy of LLVM, the manifest, the guest runtime and, if you have exported
+it, `analysis/sa-1.0us`. It does the following:
+- remembers the game folder and checks `gta_sa.exe` with `sa-verify`;
+- converts the game into `~/Library/Application Support/MacAndreas/build` with a progress bar and
+  writes `stamp.json` (hashes of the executable, analysis data, manifest, guest runtime and
+  `sa-recomp`), converting again only when one of them changes;
+- offers the display, window mode, aspect ratio, resolution and intro movies;
+- launches `sa-host`, logging to `~/Library/Logs/MacAndreas/`.
+
+```bash
+open build/dev/launcher/MacAndreas.app
+```
+
+It also runs without a window, which is how scripts and tests drive it:
+
+```bash
+build/dev/launcher/MacAndreas.app/Contents/MacOS/MacAndreas --headless --game "gamefiles/Grand Theft Auto San Andreas" status
+```
+
+`convert` runs the conversion and `snapshot FILE.png` renders the launcher window to an image.
+
 ### Recompile and boot
 
 `analysis/` is local-only, so export it first with `tools/recomp/ghidra/export.sh`. Then lift,
@@ -73,8 +99,22 @@ build/dev/host/sa-host --game "gamefiles/Grand Theft Auto San Andreas" --native 
 
 Display and debugging options:
 - `--resolution WxH` sets the starting display mode (default 1280x720, in pixels). The game's
-  Resolution option offers it and standard modes that fit the main display; `--modes WxH,…`
+  Resolution option offers it and standard modes that fit the chosen display; `--modes WxH,…`
   replaces those. A saved `gta_sa.set` takes precedence over `--resolution`.
+- `--window-mode windowed|borderless|fullscreen` picks a window (default), a borderless window
+  covering the display (the menu bar and Dock hide, and the notch area stays black), or native
+  macOS full screen in its own Space. Control-Command-F toggles native full screen from windowed
+  mode. The picture keeps its aspect ratio and is letterboxed or pillarboxed to fit.
+- `--display N` puts the window on display N, counted in `NSScreen` order with 0 being the display
+  that holds the menu bar.
+- The mouse is captured while the game hides the pointer and its window is focused: the pointer is
+  frozen and hidden, mouse look gets raw motion, and the menu pointer is confined to the picture.
+  Press Command (or Command-Tab away) to release it; click the game to capture it again.
+- Cmd-Q asks the game to close, as its close button does; a second Cmd-Q quits at once.
+  `--no-mouse-capture` turns this off. Scripted runs with `--ignore-user-input` never capture.
+- `--frame-times FILE.csv` records the time between presented frames and prints a summary
+  (`[PERF]`) on exit. `tools/perf/frame_report.py FILE.csv --skip N` prints percentiles and a
+  histogram, ignoring the first N frames.
 - `--skip-intro` skips the intro movies.
 - `--capture-dir DIR --capture-frames N,M,…` (or `all`) writes presented frames as PNG. Movie
   frames are numbered separately and saved as `movie_NNNNN.png`.
@@ -88,7 +128,9 @@ Display and debugging options:
   game has presented a frame, so typed cheats register. A virtual controller takes `pad.a`, `pad.b`,
   `pad.x`, `pad.y`, `pad.lb`, `pad.rb`, `pad.lt`, `pad.rt`, `pad.back`, `pad.start`, `pad.ls`,
   `pad.rs` and `pad.up`/`down`/`left`/`right` (tap, `+` or `-`), and `lstick@X:Y`/`rstick@X:Y` with
-  X and Y in percent, up positive.
+  X and Y in percent, up positive. `save1` … `save8` save to that slot through the same routine as
+  the in-game save menu; the save is refused while a mission is running, because a mission's
+  script state cannot be restored on load.
 - `--ignore-user-input` ignores the real keyboard and mouse (Cmd-Q still quits), so a scripted
   run cannot be disturbed.
 - `--ignore-focus-loss` keeps the game running when the window loses focus. By default it pauses
@@ -103,6 +145,23 @@ Display and debugging options:
   suspected lifting bug. Direct calls between lifted functions bypass it.
 - `--trap-nan` logs the first time each interpreted instruction puts a NaN on the x87 stack.
 - `--watch ADDR,…` logs a guest 32-bit value whenever it changes, once per presented frame.
+- `--shadow LO-HI,…` compares lifted code with the interpreter on real game state. On a call to a
+  lifted function in the range, two forked children run it, one lifted and one interpreted, with
+  guest memory write-protected so that every page written is recorded. Registers, the x87 stack
+  and the bytes written are compared, and a `[SHADOW]` line reports any difference.
+  `--shadow-from FRAME`, `--shadow-samples N` (per function, default 8), `--shadow-every N` and
+  `--shadow-deep` (interpret the callees too) tune it. A child that calls an import with side
+  effects (files, threads, waits, D3D, DirectSound, DirectInput) stops and the sample counts as
+  inconclusive, so the game's own state is never touched.
+- `--probe ADDR,…` logs the first calls to those functions with their arguments and return value,
+  and counts calls every 300 frames. `--touch VALUE LO-HI,…` logs calls in the ranges whose
+  registers or first six stack arguments hold VALUE. A VALUE below `0x10000` is a model index
+  and matches any `CObject` of that model. Both honour `--shadow-from`.
+- `--dump-memory FRAME:ADDR:SIZE:FILE` writes guest memory to a file at a presented frame (hex
+  address and size).
+- `--pool-stats` logs the ped, object, dummy and building pools every 300 frames, with how many
+  entities are within 30 m of the player and how many of those have no collision data.
+  `--pool-detail FRAME,…` lists each of those entities at the given frames.
 - Set `MTL_DEBUG_LAYER=1` to run with Metal API validation.
 
 For example, to capture the title screen and the main menu:
@@ -158,6 +217,21 @@ recording goes silent, the game crashes or anything is interpreted. It is muted 
 ```bash
 tools/route/m5_route.py --capture-dir out/route5 --log out/route5.log --audio out/route5.wav
 ```
+
+### Save and load route
+
+`tools/route/m6_save.py` starts a new game, checks that a save during the opening mission is
+refused, fails the mission with the suicide cheat, saves to slot 8 after the hospital respawn and
+checks the file with `tools/save/sa_save.py`. A second run loads the slot from Start Game → Load
+Game and checks that the player's money is restored. An existing save in that slot is put back
+afterwards:
+
+```bash
+tools/route/m6_save.py --capture-dir out/route6
+```
+
+`tools/save/sa_save.py GTASAsfN.b …` checks the size, block tag and checksum of any PC save and
+prints its title and camera position.
 
 ### Differential x87 tests
 

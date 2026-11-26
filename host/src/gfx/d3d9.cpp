@@ -7,8 +7,10 @@
 #include "sm.hpp"
 
 #include "../audio/output.hpp"
+#include "../perf.hpp"
 #include "../input/keys.hpp"
 #include "../platform/window.hpp"
+#include "../shadow.hpp"
 #include "../settings.hpp"
 #include "../thread.hpp"
 #include "../win32/com_object.hpp"
@@ -32,7 +34,110 @@ namespace ma::host::d3d9 {
 
 namespace {
 
+void dump_memory(uint64_t frame) {
+    for (const auto& d : settings().memory_dumps) {
+        if (d.frame != frame) {
+            continue;
+        }
+        if (FILE* f = std::fopen(d.path.c_str(), "wb")) {
+            std::fwrite(mem::ptr(d.addr), 1, d.size, f);
+            std::fclose(f);
+            std::fprintf(stderr, "[DUMP] frame %llu: 0x%08x+0x%x -> %s\n", static_cast<unsigned long long>(frame), d.addr,
+                         d.size, d.path.c_str());
+        }
+    }
+}
+
+void log_pools(uint64_t frame) {
+    bool detail = std::ranges::find(settings().pool_detail_frames, frame) != settings().pool_detail_frames.end();
+    if (!settings().pool_stats || (frame % 300 != 0 && !detail)) {
+        return;
+    }
+    struct PoolDef {
+        const char* name;
+        uint32_t global;
+        uint32_t stride;
+    };
+    static constexpr PoolDef kPools[] = {{"peds", 0xb74490, 0x7c4}, {"objects", 0xb7449c, 0x19c},
+                                         {"dummies", 0xb744a0, 0x38}, {"buildings", 0xb74498, 0x38}};
+    uint32_t player = mem::read<uint32_t>(0xb7cd98);
+    auto position = [](uint32_t entity, float out[3]) {
+        uint32_t matrix = mem::read<uint32_t>(entity + 0x14);
+        uint32_t at = matrix >= kNullGuardEnd && matrix < kAllocEnd ? matrix + 0x30 : entity + 0x4;
+        for (int i = 0; i < 3; ++i) {
+            out[i] = mem::read<float>(at + 4 * i);
+        }
+    };
+    float p[3] = {};
+    if (player) {
+        position(player, p);
+    }
+    std::string line = std::format("[POOLS] frame {} player {:.1f},{:.1f},{:.1f}", frame, p[0], p[1], p[2]);
+    for (const auto& def : kPools) {
+        uint32_t pool = mem::read<uint32_t>(def.global);
+        if (!pool) {
+            continue;
+        }
+        uint32_t objects = mem::read<uint32_t>(pool);
+        uint32_t map = mem::read<uint32_t>(pool + 4);
+        int32_t size = mem::read<int32_t>(pool + 8);
+        uint32_t used = 0;
+        uint32_t near = 0;
+        uint32_t no_col = 0;
+        uint32_t empty_col = 0;
+        for (int32_t i = 0; i < size; ++i) {
+            if (mem::read<uint8_t>(map + i) & 0x80) {
+                continue;
+            }
+            ++used;
+            float q[3];
+            position(objects + static_cast<uint32_t>(i) * def.stride, q);
+            float dx = q[0] - p[0];
+            float dy = q[1] - p[1];
+            if (player && dx * dx + dy * dy < 30.0f * 30.0f) {
+                ++near;
+                uint32_t entity = objects + static_cast<uint32_t>(i) * def.stride;
+                int16_t model = mem::read<int16_t>(entity + 0x22);
+                uint32_t info = model >= 0 && model < 20000 ? mem::read<uint32_t>(0xa9b0c8 + 4 * model) : 0;
+                uint32_t col = info ? mem::read<uint32_t>(info + 0x14) : 0;
+                uint32_t data = col ? mem::read<uint32_t>(col + 0x2c) : 0;
+                if (!col) {
+                    ++no_col;
+                } else if (!data || (mem::read<uint16_t>(data) == 0 && mem::read<uint16_t>(data + 2) == 0 &&
+                                     mem::read<uint16_t>(data + 4) == 0)) {
+                    ++empty_col;
+                }
+                if (detail) {
+                    int16_t info_index = info ? mem::read<int16_t>(info + 0x10) : -1;
+                    int special = info_index >= 0 ? mem::read<uint8_t>(0xbb4a90 + 0x50 * info_index + 0x1d) : -1;
+                    std::string extra;
+                    if (std::string_view(def.name) == "objects") {
+                        extra = std::format(" physflags={:08x} move={:.3f},{:.3f} turn={:.3f},{:.3f},{:.3f} mass={:.1f}",
+                                            mem::read<uint32_t>(entity + 0x40), mem::read<float>(entity + 0x44),
+                                            mem::read<float>(entity + 0x48), mem::read<float>(entity + 0x50),
+                                            mem::read<float>(entity + 0x54), mem::read<float>(entity + 0x58),
+                                            mem::read<float>(entity + 0x8c));
+                    }
+                    std::fprintf(stderr,
+                                 "[ENTITY] frame %llu %s #%d @%08x model %d at %.2f,%.2f,%.2f area %u flags %08x %08x special %d "
+                                 "col s%u b%u t%u%s\n",
+                                 static_cast<unsigned long long>(frame), def.name, i, entity, model, q[0], q[1], q[2],
+                                 mem::read<uint8_t>(entity + 0x2f), mem::read<uint32_t>(entity + 0x1c),
+                                 mem::read<uint32_t>(entity + 0x20), special, data ? mem::read<uint16_t>(data) : 0,
+                                 data ? mem::read<uint16_t>(data + 2) : 0, data ? mem::read<uint16_t>(data + 4) : 0,
+                                 extra.c_str());
+                }
+            }
+        }
+        line += std::format(" {} {}/{} ({} within 30m, {} without col model, {} with empty col)", def.name, used, size,
+                            near, no_col, empty_col);
+    }
+    std::fprintf(stderr, "%s\n", line.c_str());
+}
+
 void log_watched(uint64_t frame) {
+    dump_memory(frame);
+    log_pools(frame);
     static std::vector<uint32_t> last;
     const auto& watch = settings().watch;
     last.resize(watch.size(), 0xdeadbeef);
@@ -1280,12 +1385,14 @@ uint32_t dev_present(uint32_t self, uint32_t src, uint32_t dst, uint32_t hwnd, u
     auto* bb = com_get<Surface>(d->backbuffer);
     d->renderer->present(bb ? bb->gpu : nullptr);
     uint64_t frame = d->renderer->frame();
+    perf::frame_presented();
     if (frame == 1 || frame == 10 || frame % 600 == 0) {
         std::fprintf(stderr, "[D3D9] frame %llu: %llu draws so far, %llu shader draws skipped\n",
                      static_cast<unsigned long long>(frame), static_cast<unsigned long long>(d->draws),
                      static_cast<unsigned long long>(d->skipped_shader_draws));
     }
     log_watched(frame);
+    shadow::note_frame(frame);
     input::run_key_script(false, frame);
     platform::pump_events();
     if (settings().exit_after_frames != 0 && frame >= settings().exit_after_frames) {
@@ -1293,6 +1400,8 @@ uint32_t dev_present(uint32_t self, uint32_t src, uint32_t dst, uint32_t hwnd, u
         std::fflush(stderr);
         d->renderer.reset();
         audio::finish_output();
+        perf::finish();
+        std::fflush(stderr);
         std::_Exit(0);
     }
     return D::kOk;

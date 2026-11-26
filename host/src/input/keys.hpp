@@ -34,7 +34,7 @@ const Key* key_for_name(std::string_view name);
 uint8_t dik(const Key& key);
 uint8_t other_side(uint8_t side_vk);
 
-enum class StepKind : uint8_t { key, button, move, wheel, focus, look, pad_button, pad_stick };
+enum class StepKind : uint8_t { key, button, move, wheel, focus, look, pad_button, pad_stick, save };
 
 struct KeyStep {
     bool movie = false;
@@ -60,6 +60,7 @@ struct ScriptSink {
     std::function<void(unsigned button, bool down)> button;
     std::function<void(int32_t delta)> wheel;
     std::function<void(bool active)> focus;
+    std::function<void(unsigned slot)> save;
 };
 
 void set_key_script(std::vector<KeyStep> steps);

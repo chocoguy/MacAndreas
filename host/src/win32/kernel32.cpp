@@ -2,6 +2,7 @@
 #include "text.hpp"
 
 #include "../audio/output.hpp"
+#include "../perf.hpp"
 #include "../crash.hpp"
 #include "../thread.hpp"
 
@@ -448,6 +449,7 @@ constexpr ApiDef kApis[] = {
 
 [[noreturn]] void exit_process(uint32_t code) {
     audio::finish_output();
+    perf::finish();
     std::fprintf(stderr, "[EXIT] process exited with code %u\n", code);
     std::fflush(stderr);
     std::fflush(stdout);

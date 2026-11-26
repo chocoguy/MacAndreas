@@ -5,6 +5,7 @@
 #include <llvm/ADT/PostOrderIterator.h>
 #include <llvm/ADT/StringSet.h>
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/InlineAsm.h>
@@ -615,6 +616,43 @@ void mark_x87_exact_semantics(llvm::Module& m, std::vector<std::string>& errors)
             bin->eraseFromParent();
         }
     }
+}
+
+size_t preserve_x87_condition_codes(llvm::Module& m, std::vector<std::string>& errors) {
+    const llvm::DataLayout& layout = m.getDataLayout();
+    std::vector<llvm::StoreInst*> dead;
+    for (auto& fn : m) {
+        if (fn.isDeclaration()) {
+            continue;
+        }
+        for (auto& bb : fn) {
+            for (auto& inst : bb) {
+                auto* store = llvm::dyn_cast<llvm::StoreInst>(&inst);
+                auto* call = store ? llvm::dyn_cast<llvm::CallInst>(store->getValueOperand()) : nullptr;
+                auto* callee = call ? call->getCalledFunction() : nullptr;
+                if (!callee || callee->getName() != "__remill_undefined_8") {
+                    continue;
+                }
+                llvm::APInt offset(layout.getIndexTypeSizeInBits(store->getPointerOperandType()), 0);
+                auto* base = llvm::dyn_cast<llvm::Argument>(
+                    store->getPointerOperand()->stripAndAccumulateConstantOffsets(layout, offset, true));
+                if (!base || base->getDereferenceableBytes() <= kX87StatusWordOffset) {
+                    continue;
+                }
+                uint64_t at = offset.getZExtValue();
+                if (at >= kX87StatusFlagsOffset && at < kX87StatusFlagsOffset + 8 && (at - kX87StatusFlagsOffset) % 2 == 1) {
+                    dead.push_back(store);
+                }
+            }
+        }
+    }
+    for (auto* store : dead) {
+        store->eraseFromParent();
+    }
+    if (dead.empty()) {
+        errors.push_back("no undefined x87 condition-code writes found in the semantics");
+    }
+    return dead.size();
 }
 
 void fix_x87_fpatan_semantics(llvm::Module& m, std::vector<std::string>& errors) {

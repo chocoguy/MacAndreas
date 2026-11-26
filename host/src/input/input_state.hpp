@@ -8,7 +8,7 @@
 
 namespace ma::host::input {
 
-void add_mouse_motion(int32_t dx, int32_t dy);
+void add_mouse_motion(double dx, double dy);
 void add_mouse_wheel(int32_t dz);
 void set_mouse_button(unsigned button, bool down);
 void set_key(uint8_t dik, bool down);

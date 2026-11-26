@@ -12,8 +12,8 @@ namespace {
 
 struct State {
     std::mutex mutex;
-    int32_t dx = 0;
-    int32_t dy = 0;
+    double dx = 0;
+    double dy = 0;
     int32_t dz = 0;
     std::array<bool, 8> buttons{};
     std::array<bool, 256> keys{};
@@ -34,7 +34,7 @@ State& state() {
 
 }
 
-void add_mouse_motion(int32_t dx, int32_t dy) {
+void add_mouse_motion(double dx, double dy) {
     std::lock_guard lock(state().mutex);
     state().dx += dx;
     state().dy += dy;
@@ -112,12 +112,17 @@ void reset() {
 void write_mouse_state(uint8_t* out, size_t size) {
     std::lock_guard lock(state().mutex);
     State& s = state();
-    int32_t axes[3] = {s.dx, s.dy, s.dz};
+    auto whole = [](double& v) {
+        double w = std::trunc(std::clamp(v, -2147483647.0, 2147483647.0));
+        v -= w;
+        return static_cast<int32_t>(w);
+    };
+    int32_t axes[3] = {whole(s.dx), whole(s.dy), s.dz};
     std::memcpy(out, axes, std::min<size_t>(size, sizeof(axes)));
     for (size_t i = 0; i < s.buttons.size() && 12 + i < size; ++i) {
         out[12 + i] = s.buttons[i] ? 0x80 : 0;
     }
-    s.dx = s.dy = s.dz = 0;
+    s.dz = 0;
 }
 
 void write_keyboard_state(uint8_t* out, size_t size) {

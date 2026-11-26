@@ -94,6 +94,16 @@ public:
 
     size_t size() const { return size_; }
 
+    std::vector<std::pair<uint32_t, TraceFn>> in_range(uint32_t low, uint32_t high) const {
+        std::vector<std::pair<uint32_t, TraceFn>> out;
+        for (const auto& slot : slots_) {
+            if (slot.addr >= low && slot.addr < high && slot.fn) {
+                out.emplace_back(slot.addr, slot.fn);
+            }
+        }
+        return out;
+    }
+
 private:
     struct Slot {
         uint32_t addr = 0;
@@ -166,6 +176,10 @@ void force_interpret(uint32_t addr) { g_table.insert(addr, nullptr); }
 size_t force_interpret_range(uint32_t low, uint32_t high) { return g_table.clear_range(low, high); }
 
 TraceFn lookup_trace(uint32_t addr) { return g_table.find(addr); }
+
+std::vector<std::pair<uint32_t, TraceFn>> traces_in_range(uint32_t low, uint32_t high) {
+    return g_table.in_range(low, high);
+}
 
 void guest_fatal(GuestState& s, const char* kind, uint32_t addr) {
     std::fprintf(stderr, "[%s] 0x%08x (esp=0x%08x, return=0x%08x)\n", kind, addr, esp(s),

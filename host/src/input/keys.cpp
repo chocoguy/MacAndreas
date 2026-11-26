@@ -226,6 +226,11 @@ bool parse_action(std::string_view name, KeyStep& step) {
         step.pad_button = static_cast<uint8_t>(*b);
         return true;
     }
+    if (name.size() == 5 && same_name(name.substr(0, 4), "save") && name[4] >= '1' && name[4] <= '8') {
+        step.kind = StepKind::save;
+        step.button = static_cast<unsigned>(name[4] - '1');
+        return true;
+    }
     if (same_name(name, "focus") || same_name(name, "blur")) {
         step.kind = StepKind::focus;
         step.down = same_name(name, "focus");
@@ -377,6 +382,11 @@ void deliver(const ScriptSink& sink, const KeyStep& step) {
     case StepKind::focus:
         if (sink.focus) {
             sink.focus(step.down);
+        }
+        break;
+    case StepKind::save:
+        if (sink.save) {
+            sink.save(step.button);
         }
         break;
     }

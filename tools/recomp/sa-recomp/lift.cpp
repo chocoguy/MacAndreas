@@ -125,6 +125,8 @@ std::expected<void, std::string> prepare_semantics(llvm::Module& semantics) {
     fix_x87_status_word_semantics(semantics, errors);
     fix_x87_fpatan_semantics(semantics, errors);
     mark_x87_exact_semantics(semantics, errors);
+    size_t preserved = preserve_x87_condition_codes(semantics, errors);
+    std::fprintf(stderr, "sa-recomp: %zu x87 condition-code writes now preserve the previous value\n", preserved);
     if (!errors.empty()) {
         return std::unexpected(errors.front());
     }

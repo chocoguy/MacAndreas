@@ -20,6 +20,9 @@ uint32_t call_guest(GuestState& s, uint32_t target, std::span<const uint32_t> ar
 uint32_t call_guest(GuestState& s, uint32_t target, std::initializer_list<uint32_t> args, bool callee_pops);
 void register_trace(uint32_t addr, TraceFn fn);
 void set_trace_interp(bool enabled);
+void force_interpret(uint32_t addr);
+size_t force_interpret_range(uint32_t low, uint32_t high);
+void trace_interpreted_pc(uint32_t addr);
 void finish_call(GuestState& s, uint32_t expected_return);
 [[noreturn]] void guest_fatal(GuestState& s, const char* kind, uint32_t addr);
 

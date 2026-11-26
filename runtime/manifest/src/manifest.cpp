@@ -16,6 +16,7 @@ namespace {
 constexpr std::pair<std::string_view, Kind> kKinds[] = {
     {"byte_patch", Kind::byte_patch},       {"nop", Kind::nop},           {"data_poke", Kind::data_poke},
     {"call_redirect", Kind::call_redirect}, {"mid_hook", Kind::mid_hook}, {"func_replace", Kind::func_replace},
+    {"marker", Kind::marker},
 };
 
 constexpr std::pair<std::string_view, Source> kSources[] = {
@@ -229,6 +230,14 @@ void finish_entry(Pending& p, std::vector<Diagnostic>& errors, Manifest& manifes
             add(errors, f, line, "call_redirect len must be 5 (call rel32) or 6 (call [mem])");
         }
         break;
+    case Kind::marker:
+        if (has_bytes || has_target || e.len != 0) {
+            add(errors, f, line, "marker takes no bytes, target or len");
+        }
+        if (!e.tso) {
+            add(errors, f, line, "marker needs tso: true");
+        }
+        break;
     }
     if (errors.size() == before) {
         manifest.entries.push_back(std::move(e));
@@ -263,6 +272,7 @@ uint32_t Entry::span() const {
     case Kind::call_redirect:
     case Kind::mid_hook: return len ? len : 5;
     case Kind::func_replace: return 1;
+    case Kind::marker: return 0;
     }
     return 1;
 }

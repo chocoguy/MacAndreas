@@ -30,4 +30,6 @@ Result run(host::GuestState& s, uint32_t pc, const Hooks& hooks);
 
 std::string describe(uint32_t pc);
 
+void set_nan_trap(bool enabled);
+
 }

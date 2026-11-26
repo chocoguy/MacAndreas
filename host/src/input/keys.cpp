@@ -1,4 +1,5 @@
 #include "keys.hpp"
+#include "input_state.hpp"
 
 #include <algorithm>
 #include <charconv>
@@ -123,6 +124,7 @@ bool same_name(std::string_view a, std::string_view b) {
 struct Release {
     KeyStep step;
     uint64_t idle;
+    uint64_t presents;
 };
 
 struct Script {
@@ -134,6 +136,7 @@ struct Script {
     std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
     uint64_t last_frame = 0;
     uint64_t idle = 0;
+    uint64_t presents = 0;
     std::vector<Release> releases;
     ScriptSink sink;
 };
@@ -199,6 +202,10 @@ bool parse_action(std::string_view name, KeyStep& step) {
         step.kind = StepKind::move;
         return true;
     }
+    if (same_name(name, "look")) {
+        step.kind = StepKind::look;
+        return true;
+    }
     if (same_name(name, "focus") || same_name(name, "blur")) {
         step.kind = StepKind::focus;
         step.down = same_name(name, "focus");
@@ -260,8 +267,8 @@ std::vector<KeyStep> parse_key_script(std::string_view text, std::string& error)
             error = "unknown key \"" + std::string(name) + "\"";
             return {};
         }
-        if (step.kind == StepKind::move && !step.has_pos) {
-            error = "move needs @X:Y in \"" + std::string(item) + "\"";
+        if ((step.kind == StepKind::move || step.kind == StepKind::look) && !step.has_pos) {
+            error = std::string(step.kind == StepKind::move ? "move" : "look") + " needs @X:Y in \"" + std::string(item) + "\"";
             return {};
         }
         bool pressable = step.kind == StepKind::key || step.kind == StepKind::button;
@@ -302,6 +309,10 @@ void set_script_sink(ScriptSink sink) {
 namespace {
 
 void deliver(const ScriptSink& sink, const KeyStep& step) {
+    if (step.kind == StepKind::look) {
+        add_mouse_motion(step.x, step.y);
+        return;
+    }
     if (step.has_pos && step.down && sink.move) {
         sink.move(step.x, step.y);
     }
@@ -322,6 +333,7 @@ void deliver(const ScriptSink& sink, const KeyStep& step) {
         }
         break;
     case StepKind::move:
+    case StepKind::look:
         break;
     case StepKind::focus:
         if (sink.focus) {
@@ -344,7 +356,7 @@ bool due_now(Script& s, size_t& next, bool movie, bool timed, uint64_t now, std:
         }
         due.push_back(step);
         if (step.tap) {
-            s.releases.push_back(Release{step, s.idle});
+            s.releases.push_back(Release{step, s.idle, s.presents});
         }
         any = true;
         ++next;
@@ -378,7 +390,7 @@ void poll_key_script() {
             return;
         }
         std::erase_if(s.releases, [&](const Release& r) {
-            if (s.idle <= r.idle) {
+            if (s.idle <= r.idle || s.presents <= r.presents) {
                 return false;
             }
             KeyStep step = r.step;
@@ -403,6 +415,7 @@ void run_key_script(bool movie, uint64_t frame) {
     {
         std::lock_guard lock(script().mutex);
         Script& s = script();
+        ++s.presents;
         if (!movie) {
             s.last_frame = frame;
         }

@@ -194,8 +194,55 @@ void test_conflicts() {
 
 }
 
+void test_marker() {
+    constexpr std::string_view good = R"(- addr: 0x00406560
+  kind: marker
+  source: native
+  group: cdstream-tso
+  tso: true
+- addr: 0x00406560
+  kind: func_replace
+  source: native
+  group: stream
+  target: ma_stream
+)";
+    auto m = parse(good, "marker.yaml");
+    CHECK(m.has_value());
+    if (!m) {
+        return;
+    }
+    CHECK(m->entries.size() == 2);
+    CHECK(m->entries[0].kind == Kind::marker);
+    CHECK(m->entries[0].tso);
+    CHECK(m->entries[0].span() == 0);
+    CHECK(!m->entries[0].lift_time());
+    CheckContext context;
+    context.is_function_entry = [](uint32_t addr) { return addr == 0x00406560; };
+    CHECK(check(*m, context).empty());
+
+    constexpr std::string_view bad = R"(- addr: 0x00406560
+  kind: marker
+  source: native
+  group: cdstream-tso
+- addr: 0x00406570
+  kind: marker
+  source: native
+  group: cdstream-tso
+  tso: true
+  bytes: "90"
+)";
+    auto errors = parse(bad, "bad_marker.yaml");
+    CHECK(!errors.has_value());
+    if (errors) {
+        return;
+    }
+    CHECK(has_error(errors.error(), "marker needs tso: true"));
+    CHECK(has_error(errors.error(), "marker takes no bytes, target or len"));
+}
+
 int main() {
     test_parse_valid();
+    test_marker();
     test_parse_errors();
     test_conflicts();
     return ma::test::finish("manifest");

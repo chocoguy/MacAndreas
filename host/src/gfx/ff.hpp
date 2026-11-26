@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <span>
 #include <string>
+#include <type_traits>
 
 namespace ma::gfx {
 
@@ -127,6 +128,8 @@ struct StageKey {
 };
 
 struct ShaderKey {
+    uint64_t vs_program = 0;
+    uint64_t ps_program = 0;
     std::array<VertexElement, kMaxElements> elements{};
     uint8_t element_count = 0;
     uint8_t pretransformed = 0;
@@ -146,7 +149,10 @@ struct ShaderKey {
     uint8_t stage_count = 0;
     std::array<uint8_t, kMaxLights> light_types{};
     std::array<StageKey, kMaxStages> stages{};
+    uint8_t varyings = 0;
+    uint8_t pad[7] = {};
 };
+static_assert(std::has_unique_object_representations_v<ShaderKey>);
 
 struct PipelineKey {
     ShaderKey shader{};
@@ -161,8 +167,9 @@ struct PipelineKey {
     uint8_t write_mask = 0;
     uint8_t has_depth = 0;
     uint8_t has_color = 0;
-    uint8_t pad[2] = {};
+    uint8_t pad[6] = {};
 };
+static_assert(std::has_unique_object_representations_v<PipelineKey>);
 
 enum class FogSource : uint8_t { none = 0, depth = 1, specular_alpha = 2 };
 
@@ -198,9 +205,14 @@ struct FragmentUniforms {
     float stage_constant[kMaxStages][4];
 };
 
+namespace sm {
+struct Program;
+}
+
 PipelineKey build_pipeline_key(const FixedFunctionState& s, const VertexLayout& layout,
                                std::span<const uint16_t, kMaxStreams> strides,
-                               std::span<const TextureKind, kMaxStages> textures, bool has_color, bool has_depth);
+                               std::span<const TextureKind, kMaxStages> textures, bool has_color, bool has_depth,
+                               const sm::Program* vs = nullptr, const sm::Program* ps = nullptr);
 
 void build_uniforms(const FixedFunctionState& s, VertexUniforms& vs, FragmentUniforms& fs);
 
@@ -212,6 +224,9 @@ uint64_t hash_key(const T& key) {
 }
 
 std::string generate_msl(const ShaderKey& key);
+std::string msl_input_expr(const VertexElement& e, unsigned index);
+std::string msl_fog_and_alpha(const ShaderKey& key);
+std::string msl_compare(uint8_t func, const std::string& a, const std::string& b);
 
 void color_to_float4(uint32_t argb, float out[4]);
 

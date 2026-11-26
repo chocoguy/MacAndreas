@@ -1,4 +1,5 @@
 #include "crash.hpp"
+#include "difftest.hpp"
 #include "dispatch.hpp"
 #include "guest_memory.hpp"
 #include "input/keys.hpp"
@@ -10,6 +11,7 @@
 #include "win32/seh.hpp"
 
 #include "macandreas/exe_identity.hpp"
+#include "macandreas/interp.hpp"
 #include "macandreas/pe_image.hpp"
 
 #include <dlfcn.h>
@@ -20,6 +22,7 @@
 #include <print>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace {
 
@@ -32,6 +35,10 @@ struct Options {
     fs::path manifest;
     bool trace_imports = false;
     bool trace_interp = false;
+    std::vector<uint32_t> interpret;
+    std::vector<uint32_t> trace_pcs;
+    std::vector<std::pair<uint32_t, uint32_t>> interpret_ranges;
+    DiffTestOptions diff;
 };
 
 bool parse(int argc, char** argv, Options& o) {
@@ -47,6 +54,41 @@ bool parse(int argc, char** argv, Options& o) {
             o.trace_imports = true;
         } else if (a == "--trace-interp") {
             o.trace_interp = true;
+        } else if (a == "--trap-nan") {
+            ma::interp::set_nan_trap(true);
+        } else if (a == "--interpret-range" && i + 1 < argc) {
+            std::string_view list = argv[++i];
+            while (!list.empty()) {
+                auto comma = list.find(',');
+                std::string item(list.substr(0, comma));
+                auto dash = item.find('-');
+                if (dash == std::string::npos) {
+                    return false;
+                }
+                o.interpret_ranges.emplace_back(static_cast<uint32_t>(std::stoul(item.substr(0, dash), nullptr, 16)),
+                                                static_cast<uint32_t>(std::stoul(item.substr(dash + 1), nullptr, 16)));
+                list = comma == std::string_view::npos ? std::string_view{} : list.substr(comma + 1);
+            }
+        } else if (a == "--diff-test" && i + 1 < argc) {
+            o.diff.list = argv[++i];
+        } else if (a == "--diff-iterations" && i + 1 < argc) {
+            o.diff.iterations = static_cast<uint32_t>(std::stoul(argv[++i]));
+        } else if (a == "--diff-x87-args" && i + 1 < argc) {
+            o.diff.x87_args = static_cast<uint32_t>(std::stoul(argv[++i]));
+        } else if (a == "--diff-deep") {
+            o.diff.deep = true;
+        } else if (a == "--diff-verbose") {
+            o.diff.verbose = true;
+        } else if (a == "--diff-seed" && i + 1 < argc) {
+            o.diff.seed = std::stoull(argv[++i], nullptr, 0);
+        } else if ((a == "--interpret" || a == "--trace-pc" || a == "--watch") && i + 1 < argc) {
+            auto& out = a == "--interpret" ? o.interpret : a == "--trace-pc" ? o.trace_pcs : settings().watch;
+            std::string_view list = argv[++i];
+            while (!list.empty()) {
+                auto comma = list.find(',');
+                out.push_back(static_cast<uint32_t>(std::stoul(std::string(list.substr(0, comma)), nullptr, 16)));
+                list = comma == std::string_view::npos ? std::string_view{} : list.substr(comma + 1);
+            }
         } else if (a == "--resolution" && i + 1 < argc) {
             DisplayMode mode;
             if (!parse_mode(argv[++i], mode)) {
@@ -67,6 +109,8 @@ bool parse(int argc, char** argv, Options& o) {
             }
         } else if (a == "--skip-intro") {
             settings().skip_intro = true;
+        } else if (a == "--ignore-focus-loss") {
+            settings().ignore_focus_loss = true;
         } else if (a == "--capture-dir" && i + 1 < argc) {
             settings().capture_dir = argv[++i];
         } else if (a == "--capture-frames" && i + 1 < argc) {
@@ -83,6 +127,8 @@ bool parse(int argc, char** argv, Options& o) {
             }
         } else if (a == "--exit-after-frames" && i + 1 < argc) {
             settings().exit_after_frames = static_cast<uint32_t>(std::stoul(argv[++i]));
+        } else if (a == "--dump-shaders" && i + 1 < argc) {
+            settings().shader_dump_dir = argv[++i];
         } else if (a == "--keys" && i + 1 < argc) {
             settings().keys = argv[++i];
         } else {
@@ -110,8 +156,8 @@ int main(int argc, char** argv) {
     Options options;
     if (!parse(argc, argv, options)) {
         std::println(stderr, "usage: sa-host --game <game dir> --native <libgta_sa_native.dylib> [--manifest <dir>] "
-                     "[--trace-imports] [--trace-interp] [--resolution WxH] [--modes WxH,...] [--skip-intro] [--capture-dir DIR] "
-                     "[--capture-frames N,M,...|all] [--exit-after-frames N] [--keys FRAME[m]:KEY[+|-],...]");
+                     "[--trace-imports] [--trace-interp] [--interpret ADDR,...] [--interpret-range LO-HI,...] [--trace-pc ADDR,...] [--trap-nan] [--watch ADDR,...] [--diff-test LIST [--diff-iterations N] [--diff-seed N] [--diff-x87-args N] [--diff-deep] [--diff-verbose]] [--resolution WxH] [--modes WxH,...] [--skip-intro] [--ignore-focus-loss] [--capture-dir DIR] "
+                     "[--capture-frames N,M,...|all] [--exit-after-frames N] [--keys FRAME[m]:KEY[+|-],...] [--dump-shaders DIR]");
         return 64;
     }
     if (!settings().keys.empty()) {
@@ -165,6 +211,16 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    for (uint32_t addr : options.interpret) {
+        force_interpret(addr);
+    }
+    for (auto [low, high] : options.interpret_ranges) {
+        std::println(stderr, "sa-host: interpreting {} traces in 0x{:08x}-0x{:08x}", force_interpret_range(low, high), low,
+                     high);
+    }
+    for (uint32_t addr : options.trace_pcs) {
+        trace_interpreted_pc(addr);
+    }
     set_trace_imports(options.trace_imports);
     set_trace_interp(options.trace_interp);
     if (!options.manifest.empty()) {
@@ -197,6 +253,10 @@ int main(int argc, char** argv) {
 
     GuestThread* main_thread = create_guest_thread(kMainStackBottom, kMainStackTop);
     bind_current_thread(main_thread);
+
+    if (!options.diff.list.empty()) {
+        return run_diff_tests(*image, options.diff);
+    }
 
     std::println(stderr, "sa-host: guest base {}, {} traces, {} imports, entry 0x{:08x}",
                  static_cast<void*>(ma_guest_base), *traces, imports, image->entry_va());

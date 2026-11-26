@@ -14,7 +14,9 @@
 #include <llvm/IR/Module.h>
 #include <llvm/Support/raw_ostream.h>
 
+#include <cmath>
 #include <format>
+#include <optional>
 
 namespace ma::recomp {
 
@@ -65,6 +67,31 @@ bool is_supported_unary_intrinsic(llvm::Intrinsic::ID id) {
         default:
             return false;
     }
+}
+
+constexpr std::pair<llvm::Instruction::BinaryOps, const char*> kExactOps[] = {
+    {llvm::Instruction::FAdd, "ma_x87_exact_fadd"},
+    {llvm::Instruction::FSub, "ma_x87_exact_fsub"},
+    {llvm::Instruction::FMul, "ma_x87_exact_fmul"},
+    {llvm::Instruction::FDiv, "ma_x87_exact_fdiv"},
+};
+
+std::optional<llvm::Instruction::BinaryOps> exact_opcode(llvm::StringRef name) {
+    for (auto [op, n] : kExactOps) {
+        if (name == n) {
+            return op;
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<const char*> exact_name(unsigned opcode) {
+    for (auto [op, n] : kExactOps) {
+        if (op == opcode) {
+            return n;
+        }
+    }
+    return std::nullopt;
 }
 
 const llvm::StringSet<> kLongDoubleLibm = {
@@ -234,6 +261,36 @@ private:
 
     llvm::Type* lowered(llvm::Type* t) const { return is_f80(t) ? f64_ : t; }
 
+    llvm::Value* state_pointer() const {
+        if (fn_.arg_size() < 1 || !fn_.getArg(0)->getType()->isPointerTy()) {
+            return nullptr;
+        }
+        return fn_.getArg(0);
+    }
+
+    llvm::Value* x86_fptosi(llvm::IRBuilder<>& b, llvm::Value* v, llvm::Type* type) {
+        unsigned bits = type->getIntegerBitWidth();
+        double limit = std::ldexp(1.0, static_cast<int>(bits) - 1);
+        llvm::Value* low = b.CreateFCmpOGE(v, llvm::ConstantFP::get(f64_, -limit));
+        llvm::Value* high = b.CreateFCmpOLT(v, llvm::ConstantFP::get(f64_, limit));
+        llvm::Value* indefinite = llvm::ConstantInt::get(type, llvm::APInt::getSignedMinValue(bits));
+        return b.CreateSelect(b.CreateAnd(low, high), b.CreateFPToSI(v, type), indefinite);
+    }
+
+    llvm::Value* apply_precision(llvm::IRBuilder<>& b, llvm::Value* v) {
+        llvm::Value* state = state_pointer();
+        if (!state) {
+            return v;
+        }
+        auto* i16 = llvm::Type::getInt16Ty(ctx_);
+        llvm::Value* slot = b.CreateConstInBoundsGEP1_32(llvm::Type::getInt8Ty(ctx_), state, kX87ControlWordOffset);
+        llvm::Value* cw = b.CreateAlignedLoad(i16, slot, llvm::Align(2));
+        llvm::Value* single = b.CreateICmpEQ(b.CreateAnd(cw, llvm::ConstantInt::get(i16, 0x300)),
+                                             llvm::ConstantInt::get(i16, 0));
+        llvm::Value* rounded = b.CreateFPExt(b.CreateFPTrunc(v, llvm::Type::getFloatTy(ctx_)), f64_);
+        return b.CreateSelect(single, rounded, v);
+    }
+
     void lower(llvm::Instruction* inst) {
         llvm::IRBuilder<> b(inst);
         if (auto* ext = llvm::dyn_cast<llvm::FPExtInst>(inst)) {
@@ -247,9 +304,19 @@ private:
             return;
         }
         if (auto* bin = llvm::dyn_cast<llvm::BinaryOperator>(inst)) {
-            auto* v = b.CreateBinOp(bin->getOpcode(), get(bin->getOperand(0)), get(bin->getOperand(1)));
+            llvm::Value* v = b.CreateBinOp(bin->getOpcode(), get(bin->getOperand(0)), get(bin->getOperand(1)));
             if (auto* vi = llvm::dyn_cast<llvm::Instruction>(v)) {
                 vi->copyFastMathFlags(bin);
+            }
+            switch (bin->getOpcode()) {
+                case llvm::Instruction::FAdd:
+                case llvm::Instruction::FSub:
+                case llvm::Instruction::FMul:
+                case llvm::Instruction::FDiv:
+                    v = apply_precision(b, v);
+                    break;
+                default:
+                    break;
             }
             replace(inst, v);
             return;
@@ -271,7 +338,7 @@ private:
             return;
         }
         if (auto* c = llvm::dyn_cast<llvm::FPToSIInst>(inst)) {
-            replace(inst, b.CreateFPToSI(get(c->getOperand(0)), c->getType()));
+            replace(inst, x86_fptosi(b, get(c->getOperand(0)), c->getType()));
             return;
         }
         if (auto* c = llvm::dyn_cast<llvm::FPToUIInst>(inst)) {
@@ -323,6 +390,10 @@ private:
         for (auto& arg : call->args()) {
             args.push_back(get(arg.get()));
         }
+        if (auto op = exact_opcode(callee->getName())) {
+            replace(call, b.CreateBinOp(*op, args[0], args[1]));
+            return;
+        }
         llvm::Intrinsic::ID id = callee->getIntrinsicID();
         if (id != llvm::Intrinsic::not_intrinsic) {
             if (!is_supported_unary_intrinsic(id)) {
@@ -330,7 +401,11 @@ private:
                 return;
             }
             auto* decl = llvm::Intrinsic::getOrInsertDeclaration(&module_, id, {f64_});
-            replace(call, b.CreateCall(decl, args));
+            llvm::Value* v = b.CreateCall(decl, args);
+            if (id == llvm::Intrinsic::sqrt) {
+                v = apply_precision(b, v);
+            }
+            replace(call, v);
             return;
         }
         llvm::StringRef name = callee->getName();
@@ -344,7 +419,11 @@ private:
         }
         auto* type = llvm::FunctionType::get(lowered(callee->getReturnType()), params, false);
         auto target = module_.getOrInsertFunction(name.drop_back(1), type);
-        replace(call, b.CreateCall(target, args));
+        llvm::Value* v = b.CreateCall(target, args);
+        if (name == "sqrtl") {
+            v = apply_precision(b, v);
+        }
+        replace(call, v);
     }
 
     llvm::Function& fn_;
@@ -372,10 +451,241 @@ bool signature_uses_f80(const llvm::Function& fn) {
 
 }
 
+namespace {
+
+llvm::Function* find_semantic(llvm::Module& m, llvm::StringRef fragment) {
+    for (auto& fn : m) {
+        if (!fn.isDeclaration() && fn.getName().contains(fragment)) {
+            return &fn;
+        }
+    }
+    return nullptr;
+}
+
+bool stores_control_word(const llvm::Function& fn) {
+    for (const auto& bb : fn) {
+        for (const auto& inst : bb) {
+            if (auto* gep = llvm::dyn_cast<llvm::GetElementPtrInst>(&inst); gep && gep->getNumIndices() == 1) {
+                if (auto* c = llvm::dyn_cast<llvm::ConstantInt>(gep->getOperand(1));
+                    c && c->getZExtValue() == kX87ControlWordOffset) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+void clear_body(llvm::Function& fn) {
+    fn.dropAllReferences();
+    while (!fn.empty()) {
+        fn.begin()->eraseFromParent();
+    }
+    for (auto& arg : fn.args()) {
+        arg.removeAttr(llvm::Attribute::Returned);
+        arg.removeAttr(llvm::Attribute::WriteOnly);
+        arg.removeAttr(llvm::Attribute::ReadNone);
+        arg.removeAttr(llvm::Attribute::Initializes);
+    }
+    fn.removeFnAttr(llvm::Attribute::Memory);
+}
+
+}
+
+void fix_x87_control_word_semantics(llvm::Module& m, std::vector<std::string>& errors) {
+    auto& ctx = m.getContext();
+    auto* i8 = llvm::Type::getInt8Ty(ctx);
+    auto* i16 = llvm::Type::getInt16Ty(ctx);
+    auto* i32 = llvm::Type::getInt32Ty(ctx);
+    llvm::Function* read16 = m.getFunction("__remill_read_memory_16");
+    llvm::Function* write16 = m.getFunction("__remill_write_memory_16");
+    llvm::Function* set_rounding = m.getFunction("__remill_fpu_set_rounding");
+    llvm::Function* get_rounding = m.getFunction("__remill_fpu_get_rounding");
+    llvm::Function* fldcw = find_semantic(m, "5FLDCWEP6Memory");
+    llvm::Function* fnstcw = find_semantic(m, "6FNSTCWEP6Memory");
+    if (!read16 || !write16 || !set_rounding || !get_rounding || !fldcw || !fnstcw) {
+        errors.push_back("x87 control word semantics or intrinsics not found");
+        return;
+    }
+    if (!stores_control_word(*fldcw) || !stores_control_word(*fnstcw) || fldcw->arg_size() != 3 ||
+        fnstcw->arg_size() != 3) {
+        errors.push_back("x87 control word semantics do not match the expected State layout");
+        return;
+    }
+
+    clear_body(*fldcw);
+    {
+        llvm::IRBuilder<> b(llvm::BasicBlock::Create(ctx, "", fldcw));
+        llvm::Value* memory = fldcw->getArg(0);
+        llvm::Value* slot = b.CreateConstInBoundsGEP1_32(i8, fldcw->getArg(1), kX87ControlWordOffset);
+        llvm::Value* cw = b.CreateCall(read16, {memory, fldcw->getArg(2)});
+        b.CreateAlignedStore(cw, slot, llvm::Align(2));
+        llvm::Value* rc = b.CreateZExt(b.CreateAnd(b.CreateLShr(cw, 10), llvm::ConstantInt::get(i16, 3)), i32);
+        b.CreateCall(set_rounding, {rc});
+        b.CreateRet(memory);
+    }
+
+    clear_body(*fnstcw);
+    {
+        llvm::IRBuilder<> b(llvm::BasicBlock::Create(ctx, "", fnstcw));
+        llvm::Value* memory = fnstcw->getArg(0);
+        llvm::Value* slot = b.CreateConstInBoundsGEP1_32(i8, fnstcw->getArg(1), kX87ControlWordOffset);
+        llvm::Value* cw = b.CreateAlignedLoad(i16, slot, llvm::Align(2));
+        llvm::Value* rc = b.CreateShl(b.CreateAnd(b.CreateTrunc(b.CreateCall(get_rounding, {}), i16),
+                                                  llvm::ConstantInt::get(i16, 3)),
+                                      10);
+        llvm::Value* merged = b.CreateOr(b.CreateAnd(cw, llvm::ConstantInt::get(i16, 0xf3ff)), rc);
+        b.CreateAlignedStore(merged, slot, llvm::Align(2));
+        b.CreateRet(b.CreateCall(write16, {memory, fnstcw->getArg(2), merged}));
+    }
+}
+
+void fix_x87_status_word_semantics(llvm::Module& m, std::vector<std::string>& errors) {
+    auto& ctx = m.getContext();
+    auto* i8 = llvm::Type::getInt8Ty(ctx);
+    auto* i16 = llvm::Type::getInt16Ty(ctx);
+    llvm::Function* write16 = m.getFunction("__remill_write_memory_16");
+    llvm::Function* to_memory = find_semantic(m, "6FNSTSWI3MnWItEEEP6Memory");
+    llvm::Function* to_register = find_semantic(m, "6FNSTSWI3RnWItEEEP6Memory");
+    if (!write16 || !to_memory || !to_register || to_memory->arg_size() != 3 || to_register->arg_size() != 3 ||
+        !to_register->getArg(2)->getType()->isPointerTy()) {
+        errors.push_back("x87 FNSTSW semantics not found or not in the expected form");
+        return;
+    }
+    auto build = [&](llvm::Function& fn) -> llvm::Value* {
+        clear_body(fn);
+        llvm::IRBuilder<> b(llvm::BasicBlock::Create(ctx, "", &fn));
+        llvm::Value* state = fn.getArg(1);
+        llvm::Value* slot = b.CreateConstInBoundsGEP1_32(i8, state, kX87StatusWordOffset);
+        llvm::Value* word = b.CreateAnd(b.CreateAlignedLoad(i16, slot, llvm::Align(2)), llvm::ConstantInt::get(i16, 0x3800));
+        constexpr std::pair<unsigned, unsigned> kCodes[] = {{1, 8}, {3, 9}, {5, 10}, {7, 14}};
+        for (auto [offset, bit] : kCodes) {
+            llvm::Value* flag = b.CreateLoad(i8, b.CreateConstInBoundsGEP1_32(i8, state, kX87StatusFlagsOffset + offset));
+            llvm::Value* one = b.CreateZExt(b.CreateAnd(flag, llvm::ConstantInt::get(i8, 1)), i16);
+            word = b.CreateOr(word, b.CreateShl(one, bit));
+        }
+        b.CreateAlignedStore(word, slot, llvm::Align(2));
+        return word;
+    };
+    llvm::Value* word = build(*to_memory);
+    {
+        llvm::IRBuilder<> b(&to_memory->getEntryBlock());
+        b.CreateRet(b.CreateCall(write16, {to_memory->getArg(0), to_memory->getArg(2), word}));
+    }
+    word = build(*to_register);
+    {
+        llvm::IRBuilder<> b(&to_register->getEntryBlock());
+        b.CreateAlignedStore(word, to_register->getArg(2), llvm::Align(2));
+        b.CreateRet(to_register->getArg(0));
+    }
+}
+
+void mark_x87_exact_semantics(llvm::Module& m, std::vector<std::string>& errors) {
+    for (llvm::StringRef name : {"7DoFYL2XEP6Memory", "9DoFYL2XP1EP6Memory", "7DoF2XM1EP6Memory",
+                                 "8DoFPATANEP6Memory", "7DoFPREMEP6Memory", "8DoFPREM1EP6Memory",
+                                 "8DoFSCALEEP6Memory"}) {
+        llvm::Function* fn = find_semantic(m, name);
+        if (!fn) {
+            errors.push_back(std::format("x87 semantic {} not found", name.str()));
+            continue;
+        }
+        std::vector<llvm::BinaryOperator*> ops;
+        for (auto& bb : *fn) {
+            for (auto& inst : bb) {
+                if (auto* bin = llvm::dyn_cast<llvm::BinaryOperator>(&inst); bin && bin->getType()->isX86_FP80Ty()) {
+                    ops.push_back(bin);
+                }
+            }
+        }
+        for (auto* bin : ops) {
+            auto name = exact_name(bin->getOpcode());
+            if (!name) {
+                continue;
+            }
+            auto* type = bin->getType();
+            auto callee = m.getOrInsertFunction(*name, llvm::FunctionType::get(type, {type, type}, false));
+            auto* decl = llvm::cast<llvm::Function>(callee.getCallee());
+            decl->setDoesNotAccessMemory();
+            decl->setDoesNotThrow();
+            decl->setWillReturn();
+            decl->setSpeculatable();
+            llvm::IRBuilder<> b(bin);
+            llvm::CallInst* call = b.CreateCall(callee, {bin->getOperand(0), bin->getOperand(1)});
+            bin->replaceAllUsesWith(call);
+            bin->eraseFromParent();
+        }
+    }
+}
+
+void fix_x87_fpatan_semantics(llvm::Module& m, std::vector<std::string>& errors) {
+    llvm::Function* fpatan = find_semantic(m, "8DoFPATANEP6Memory");
+    if (!fpatan) {
+        errors.push_back("x87 FPATAN semantics not found");
+        return;
+    }
+    llvm::CallInst* atan = nullptr;
+    for (auto& bb : *fpatan) {
+        for (auto& inst : bb) {
+            if (auto* call = llvm::dyn_cast<llvm::CallInst>(&inst)) {
+                if (auto* callee = call->getCalledFunction(); callee && callee->getName() == "atanl") {
+                    atan = call;
+                }
+            }
+        }
+    }
+    auto* quotient = atan ? llvm::dyn_cast<llvm::BinaryOperator>(atan->getArgOperand(0)) : nullptr;
+    if (!quotient || quotient->getOpcode() != llvm::Instruction::FDiv) {
+        errors.push_back("x87 FPATAN semantics do not compute atanl(st1 / st0)");
+        return;
+    }
+    auto* type = atan->getType();
+    auto atan2 = m.getOrInsertFunction("atan2l", llvm::FunctionType::get(type, {type, type}, false));
+    llvm::IRBuilder<> b(atan);
+    llvm::CallInst* replacement = b.CreateCall(atan2, {quotient->getOperand(0), quotient->getOperand(1)});
+    replacement->copyMetadata(*atan);
+    atan->replaceAllUsesWith(replacement);
+    atan->eraseFromParent();
+}
+
+void lower_i80_memory(llvm::Function& fn, llvm::Module& module) {
+    std::vector<llvm::Instruction*> work;
+    for (auto& bb : fn) {
+        for (auto& inst : bb) {
+            if (auto* st = llvm::dyn_cast<llvm::StoreInst>(&inst); st && st->getValueOperand()->getType()->isIntegerTy(80)) {
+                work.push_back(st);
+            } else if (auto* ld = llvm::dyn_cast<llvm::LoadInst>(&inst); ld && ld->getType()->isIntegerTy(80)) {
+                work.push_back(ld);
+            }
+        }
+    }
+    auto& ctx = module.getContext();
+    auto* i8 = llvm::Type::getInt8Ty(ctx);
+    auto* i16 = llvm::Type::getInt16Ty(ctx);
+    auto* f64 = llvm::Type::getDoubleTy(ctx);
+    for (auto* inst : work) {
+        llvm::IRBuilder<> b(inst);
+        if (auto* st = llvm::dyn_cast<llvm::StoreInst>(inst)) {
+            llvm::Value* bits = st->getValueOperand();
+            llvm::Value* ptr = st->getPointerOperand();
+            b.CreateAlignedStore(b.CreateCall(double_from_f80_bits(module), {bits}), ptr, llvm::Align(1));
+            llvm::Value* high = b.CreateTrunc(b.CreateLShr(bits, 64), i16);
+            b.CreateAlignedStore(high, b.CreateConstInBoundsGEP1_32(i8, ptr, 8), llvm::Align(1));
+        } else {
+            auto* ld = llvm::cast<llvm::LoadInst>(inst);
+            llvm::Value* d = b.CreateAlignedLoad(f64, ld->getPointerOperand(), llvm::Align(1));
+            inst->replaceAllUsesWith(b.CreateCall(f80_bits_from_double(module), {d}));
+        }
+        inst->eraseFromParent();
+    }
+}
+
 void lower_x86_fp80(llvm::Module& module, std::vector<std::string>& errors) {
     for (auto& fn : module) {
         if (fn.isDeclaration()) {
             continue;
+        }
+        if (!fn.getName().starts_with("ma_f80_bits_from_double") && !fn.getName().starts_with("ma_double_from_f80_bits")) {
+            lower_i80_memory(fn, module);
         }
         if (signature_uses_f80(fn)) {
             errors.push_back(std::format("function {} has x86_fp80 in its signature", fn.getName().str()));
@@ -511,6 +821,43 @@ void relax_intrinsic_memory_attributes(llvm::Module& module) {
             }
         }
     }
+}
+
+size_t insert_tso_fences(llvm::Module& module, const std::vector<uint32_t>& functions) {
+    size_t fenced = 0;
+    for (uint32_t addr : functions) {
+        llvm::Function* fn = module.getFunction(std::format("sub_{:08x}", addr));
+        if (!fn || fn->isDeclaration()) {
+            continue;
+        }
+        std::vector<std::pair<llvm::CallInst*, bool>> accesses;
+        for (auto& bb : *fn) {
+            for (auto& inst : bb) {
+                auto* call = llvm::dyn_cast<llvm::CallInst>(&inst);
+                llvm::Function* callee = call ? call->getCalledFunction() : nullptr;
+                if (!callee) {
+                    continue;
+                }
+                llvm::StringRef name = callee->getName();
+                if (name.starts_with("__remill_read_memory_")) {
+                    accesses.emplace_back(call, false);
+                } else if (name.starts_with("__remill_write_memory_")) {
+                    accesses.emplace_back(call, true);
+                }
+            }
+        }
+        for (auto [call, write] : accesses) {
+            if (write) {
+                new llvm::FenceInst(module.getContext(), llvm::AtomicOrdering::Release, llvm::SyncScope::System,
+                                    call->getIterator());
+            } else {
+                new llvm::FenceInst(module.getContext(), llvm::AtomicOrdering::Acquire, llvm::SyncScope::System,
+                                    std::next(call->getIterator()));
+            }
+            ++fenced;
+        }
+    }
+    return fenced;
 }
 
 }

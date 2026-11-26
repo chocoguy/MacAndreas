@@ -135,8 +135,13 @@ int compile_parallel(const std::vector<fs::path>& inputs, const fs::path& runtim
             auto input = queue.front();
             queue.pop_front();
             auto output = fs::path(input).replace_extension(".o");
-            pid_t pid = spawn({self, "compile", "--runtime", runtime.string(), "--opt", std::to_string(opt), "--out",
-                               output.string(), input.string()});
+            std::vector<std::string> argv = {self, "compile", "--runtime", runtime.string(), "--opt", std::to_string(opt),
+                                             "--out", output.string()};
+            if (auto tso = input.parent_path() / "tso.txt"; fs::exists(tso)) {
+                argv.insert(argv.end(), {"--tso-file", tso.string()});
+            }
+            argv.push_back(input.string());
+            pid_t pid = spawn(argv);
             if (pid < 0) {
                 std::println(stderr, "sa-recomp: cannot spawn compiler for {}", input.string());
                 ++failures;
@@ -192,7 +197,7 @@ void usage() {
                  "  sa-recomp build   --exe <gta_sa.exe> --analysis <dir> --runtime <guest_intrinsics.bc> --out <dir>\n"
                  "                    [--jobs N] [--shard-size N] [--limit N] [--only 0xADDR,...] [--opt N] [--manifest <dir>]\n"
                  "  sa-recomp lift    --exe <gta_sa.exe> --analysis <dir> --out <dir> [--shard-size N] [--limit N]\n"
-                 "  sa-recomp compile --runtime <bc> --out <file.o> [--opt N] [--emit-ir] <module.bc>\n"
+                 "  sa-recomp compile --runtime <bc> --out <file.o> [--opt N] [--emit-ir] [--tso-file <tso.txt>] <module.bc>\n"
                  "  sa-recomp link    --out <dir>");
 }
 
@@ -251,6 +256,17 @@ int cmd_compile(const Args& args) {
     options.runtime_bc = args.get("runtime").value_or("");
     options.opt_level = static_cast<int>(to_size(args.get("opt"), 2));
     options.emit_ir = args.options.contains("emit-ir");
+    if (auto tso = args.get("tso-file")) {
+        std::ifstream list(*tso);
+        std::string line;
+        std::string joined;
+        while (std::getline(list, line)) {
+            if (!line.empty()) {
+                joined += (joined.empty() ? "" : ",") + line;
+            }
+        }
+        options.tso = parse_addresses(joined);
+    }
     auto result = ma::recomp::compile_module(options);
     if (!result) {
         std::println(stderr, "sa-recomp: {}", result.error());

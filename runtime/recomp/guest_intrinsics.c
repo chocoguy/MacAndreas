@@ -86,6 +86,7 @@ MA_INLINE void ma_double_to_f80(double d, uint8_t *p) {
 MA_INLINE Memory *__remill_read_memory_f80(Memory *m, uint32_t a, uint8_t *out) {
     double v = ma_f80_to_double(GUEST(a));
     memcpy(out, &v, sizeof v);
+    memcpy(out + sizeof v, GUEST(a) + 8, 2);
     return m;
 }
 

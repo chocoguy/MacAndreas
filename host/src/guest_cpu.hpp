@@ -6,6 +6,7 @@
 #include "remill/Arch/Runtime/HyperCall.h"
 #include "remill/Arch/X86/Runtime/State.h"
 
+#include <cstddef>
 #include <cstdint>
 
 namespace ma::host {
@@ -14,6 +15,10 @@ using GuestState = X86State;
 using TraceFn = Memory* (*)(GuestState&, uint32_t, Memory*);
 
 static_assert(sizeof(GuestState) == 3504, "Remill x86 State layout changed; rerun state-layout-check");
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+static_assert(offsetof(GuestState, x87.fxsave32.cwd) == 2768, "sa-recomp reads the x87 control word at State+2768");
+#pragma clang diagnostic pop
 
 inline uint32_t& eax(GuestState& s) { return s.gpr.rax.dword; }
 inline uint32_t& ecx(GuestState& s) { return s.gpr.rcx.dword; }

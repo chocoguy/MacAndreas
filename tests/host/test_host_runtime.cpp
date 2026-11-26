@@ -342,6 +342,9 @@ constexpr uint32_t kCodeSum = 0x00500000;
 constexpr uint32_t kCodeHandoff = 0x00500100;
 constexpr uint32_t kCodeCalls = 0x00500200;
 constexpr uint32_t kCodeX87 = 0x00500300;
+constexpr uint32_t kCodePrecision = 0x00500400;
+constexpr uint32_t kCodeExchange = 0x00500500;
+constexpr uint32_t kCodeArctan = 0x00500600;
 constexpr uint32_t kCodeIat = 0x00500f00;
 constexpr uint32_t kLiftedBlock = 0x00401200;
 constexpr uint32_t kLiftedDouble = 0x00401300;
@@ -392,6 +395,10 @@ void install_interp_fixtures() {
     mem::write<uint32_t>(kCodeIat, api("note_call"));
     write_code(kCodeX87, {0x8b, 0x44, 0x24, 0x04, 0xd9, 0x00, 0xd8, 0x08, 0x83, 0xec, 0x04, 0xdb, 0x1c, 0x24, 0x58,
                           0xc3});
+    write_code(kCodePrecision, {0x8b, 0x44, 0x24, 0x04, 0xd9, 0x00, 0xd8, 0x48, 0x04, 0xd9, 0xfa, 0xdd, 0x58, 0x08, 0xc3});
+    write_code(kCodeExchange, {0x8b, 0x44, 0x24, 0x04, 0xd9, 0x00, 0xd9, 0x40, 0x04, 0xd9, 0x40, 0x08, 0xd9, 0x40, 0x0c,
+                               0xd9, 0xcb, 0xd9, 0x58, 0x10, 0xdd, 0xd8, 0xdd, 0xd8, 0xdd, 0xd8, 0xc3});
+    write_code(kCodeArctan, {0x8b, 0x44, 0x24, 0x04, 0xd9, 0x00, 0xd9, 0x40, 0x04, 0xd9, 0xf3, 0xdd, 0x58, 0x08, 0xc3});
     register_trace(kLiftedBlock, lifted_block);
     register_trace(kLiftedDouble, lifted_double);
     register_trace(kLiftedCallsInterp, lifted_calls_interp);
@@ -427,6 +434,38 @@ void test_interpreter(GuestState& s) {
     CHECK(esp(s) == before);
 
     CHECK(ma::interp::describe(kCodeSum).starts_with("mov ecx, [esp+0x04]"));
+
+    uint16_t saved_cw = s.x87.fxsave32.cwd.flat;
+    mem::write<float>(value, 5474.0f);
+    mem::write<float>(value + 4, 1.0f / 3.0f);
+    double exact = std::sqrt(5474.0 * static_cast<double>(1.0f / 3.0f));
+    s.x87.fxsave32.cwd.flat = 0x027f;
+    guest_call<Conv::cdecl_, uint32_t>(s, kCodePrecision, value);
+    CHECK(mem::read<double>(value + 8) == exact);
+    s.x87.fxsave32.cwd.flat = 0x007f;
+    guest_call<Conv::cdecl_, uint32_t>(s, kCodePrecision, value);
+    float product = static_cast<float>(5474.0 * static_cast<double>(1.0f / 3.0f));
+    CHECK(mem::read<double>(value + 8) == static_cast<double>(std::sqrt(product)));
+    CHECK(mem::read<double>(value + 8) != exact);
+    s.x87.fxsave32.cwd.flat = saved_cw;
+    CHECK(esp(s) == before);
+
+    for (unsigned i = 0; i < 4; ++i) {
+        mem::write<float>(value + 4 * i, static_cast<float>(i + 1));
+    }
+    guest_call<Conv::cdecl_, uint32_t>(s, kCodeExchange, value);
+    CHECK(mem::read<float>(value + 16) == 1.0f);
+    CHECK(s.x87.fxsave32.swd.top == top);
+
+    mem::write<float>(value, 1.0f);
+    mem::write<float>(value + 4, -1.0f);
+    guest_call<Conv::cdecl_, uint32_t>(s, kCodeArctan, value);
+    CHECK(mem::read<double>(value + 8) == std::atan2(1.0, -1.0));
+    mem::write<float>(value, -0.0f);
+    mem::write<float>(value + 4, 0.0f);
+    guest_call<Conv::cdecl_, uint32_t>(s, kCodeArctan, value);
+    CHECK(mem::read<double>(value + 8) == 0.0 && std::signbit(mem::read<double>(value + 8)));
+    CHECK(esp(s) == before);
 }
 
 void test_wsprintf() {
@@ -522,6 +561,10 @@ void test_key_script() {
     CHECK(fired.size() == 1);
     input::note_idle_peek();
     input::poll_key_script();
+    CHECK(fired.size() == 1);
+    input::run_key_script(true, 7);
+    CHECK(fired.size() == 1);
+    input::poll_key_script();
     CHECK(fired.size() == 2 && fired[1].first == "space" && !fired[1].second);
     input::run_key_script(false, 25);
     CHECK(fired.size() == 4);
@@ -530,6 +573,9 @@ void test_key_script() {
     input::poll_key_script();
     CHECK(fired.size() == 4);
     input::note_idle_peek();
+    input::poll_key_script();
+    CHECK(fired.size() == 4);
+    input::run_key_script(false, 26);
     input::poll_key_script();
     CHECK(fired.size() == 5 && fired[4].first == "return" && !fired[4].second);
     input::run_key_script(false, 100);
@@ -565,9 +611,11 @@ void test_key_script() {
     CHECK((events == std::vector<std::string>{"move100:200", "button0+", "move-3:4", "wheel-120"}));
     input::note_idle_peek();
     input::poll_key_script();
-    CHECK(events.size() == 5 && events[4] == "button0-");
+    CHECK(events.size() == 4);
     input::run_key_script(false, 9);
-    CHECK(events.size() == 7 && events[5] == "button1+" && events[6] == "button1-");
+    CHECK(events.size() == 6 && events[4] == "button1+" && events[5] == "button1-");
+    input::poll_key_script();
+    CHECK(events.size() == 7 && events[6] == "button0-");
     auto timed = input::parse_key_script("0s:blur,3:focus,1s:return", error);
     CHECK(timed.size() == 3);
     CHECK(timed[0].timed && timed[0].frame == 0 && timed[0].kind == input::StepKind::focus && !timed[0].down);

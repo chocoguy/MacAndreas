@@ -13,6 +13,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <format>
 #include <unordered_map>
 #include <unordered_set>
@@ -64,6 +65,17 @@ public:
                 return;
             }
         }
+    }
+
+    size_t clear_range(uint32_t low, uint32_t high) {
+        size_t n = 0;
+        for (auto& slot : slots_) {
+            if (slot.addr >= low && slot.addr < high && slot.fn) {
+                slot.fn = nullptr;
+                ++n;
+            }
+        }
+        return n;
     }
 
     TraceFn find(uint32_t addr) const {
@@ -149,6 +161,10 @@ std::expected<size_t, std::string> load_function_table(void* dylib) {
 
 void register_trace(uint32_t addr, TraceFn fn) { g_table.insert(addr, fn); }
 
+void force_interpret(uint32_t addr) { g_table.insert(addr, nullptr); }
+
+size_t force_interpret_range(uint32_t low, uint32_t high) { return g_table.clear_range(low, high); }
+
 TraceFn lookup_trace(uint32_t addr) { return g_table.find(addr); }
 
 void guest_fatal(GuestState& s, const char* kind, uint32_t addr) {
@@ -165,7 +181,34 @@ std::mutex g_interp_mutex;
 std::unordered_set<uint32_t> g_interp_seen;
 std::atomic<bool> g_interp_trace = false;
 
-bool interp_has_native(void*, uint32_t pc) { return is_thunk(pc) || lookup_trace(pc) != nullptr; }
+std::unordered_map<uint32_t, uint32_t> g_trace_pcs;
+
+double trace_st(const GuestState& s, unsigned i) {
+    double v;
+    std::memcpy(&v, reinterpret_cast<const uint8_t*>(&s.st.elems[i]) + 6, sizeof(v));
+    return v;
+}
+
+void trace_pc(GuestState& s, uint32_t pc) {
+    auto it = g_trace_pcs.find(pc);
+    if (it == g_trace_pcs.end() || it->second >= 64) {
+        return;
+    }
+    ++it->second;
+    std::fprintf(stderr,
+                 "[TRACE] %08x eax=%08x ebx=%08x ecx=%08x edx=%08x esi=%08x edi=%08x ebp=%08x esp=%08x "
+                 "st0=%.9g st1=%.9g st2=%.9g [esp+32]=%.9g fcw=%04x\n",
+                 pc, eax(s), ebx(s), ecx(s), edx(s), esi(s), edi(s), ebp(s), esp(s), trace_st(s, 0), trace_st(s, 1),
+                 trace_st(s, 2), static_cast<double>(mem::read<float>(esp(s) + 32)),
+                 static_cast<unsigned>(s.x87.fxsave32.cwd.flat));
+}
+
+bool interp_has_native(void* context, uint32_t pc) {
+    if (!g_trace_pcs.empty() && context) {
+        trace_pc(*static_cast<GuestState*>(context), pc);
+    }
+    return is_thunk(pc) || lookup_trace(pc) != nullptr;
+}
 
 void interp_call_native(void*, GuestState& s, uint32_t target) { dispatch(s, target); }
 
@@ -177,7 +220,7 @@ void interpret(GuestState& s, uint32_t target) {
             std::fprintf(stderr, "[INTERP] 0x%08x caller=0x%08x\n", target, caller);
         }
     }
-    interp::Hooks hooks{nullptr, interp_has_native, interp_call_native};
+    interp::Hooks hooks{&s, interp_has_native, interp_call_native};
     auto result = interp::run(s, target, hooks);
     if (result.stop == interp::Stop::unsupported) {
         std::fprintf(stderr, "[INTERP] %s\n", result.message.c_str());
@@ -188,6 +231,8 @@ void interpret(GuestState& s, uint32_t target) {
 }
 
 void set_trace_interp(bool enabled) { g_interp_trace = enabled; }
+
+void trace_interpreted_pc(uint32_t addr) { g_trace_pcs[addr] = 0; }
 
 bool emulate_segment_instruction(GuestState& s) {
     constexpr uint32_t kCodeSelector = 0x1b;
@@ -327,6 +372,11 @@ __attribute__((visibility("default"))) Memory* __remill_missing_block(GuestState
 }
 
 __attribute__((visibility("default"))) Memory* __remill_error(GuestState& s, uint32_t pc, Memory* m) {
+    ma::host::eip(s) = pc;
+    if (ma::host::emulate_segment_instruction(s)) {
+        ma::host::request_jump(s, pc + 1);
+        return m;
+    }
     ma::host::interpret_missing(s, pc);
     return m;
 }

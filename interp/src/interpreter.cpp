@@ -4,6 +4,10 @@
 
 #include <Zydis/Zydis.h>
 
+#include <atomic>
+#include <mutex>
+#include <unordered_set>
+#include <cstdio>
 #include <bit>
 #include <cfenv>
 #include <cmath>
@@ -39,6 +43,8 @@ int32_t sign_extend(uint32_t v, unsigned bits) {
     v &= mask_of(bits);
     return static_cast<int32_t>((v ^ m) - m);
 }
+
+std::atomic<bool> g_nan_trap = false;
 
 class Machine {
 public:
@@ -463,13 +469,37 @@ private:
         return Outcome::next;
     }
 
+    double precision(double r) const {
+        return (s_.x87.fxsave32.cwd.flat & 0x300) == 0 ? static_cast<double>(static_cast<float>(r)) : r;
+    }
+
     double st(unsigned i) {
         double v;
         std::memcpy(&v, reinterpret_cast<uint8_t*>(&s_.st.elems[i]) + 6, sizeof(v));
         return v;
     }
 
-    void set_st(unsigned i, double v) { std::memcpy(reinterpret_cast<uint8_t*>(&s_.st.elems[i]) + 6, &v, sizeof(v)); }
+    void set_st(unsigned i, double v) {
+        if (g_nan_trap.load(std::memory_order_relaxed) && std::isnan(v)) {
+            report_nan(host::eip(s_));
+        }
+        std::memcpy(reinterpret_cast<uint8_t*>(&s_.st.elems[i]) + 6, &v, sizeof(v));
+    }
+
+    void report_nan(uint32_t pc) {
+        static std::mutex mutex;
+        static std::unordered_set<uint32_t> seen;
+        std::lock_guard lock(mutex);
+        if (!seen.insert(pc).second) {
+            return;
+        }
+        std::string operands;
+        for (unsigned i = 0; i < 3; ++i) {
+            operands += std::format(" st{}={}", i, st(i));
+        }
+        std::fprintf(stderr, "[NAN] 0x%08x %s:%s esp=0x%08x\n", pc, describe(pc).c_str(), operands.c_str(),
+                     host::esp(s_));
+    }
 
     void fpush(double v) {
         for (int i = 7; i > 0; --i) {
@@ -605,12 +635,7 @@ private:
         sw.c1 = s_.sw.c1 & 1;
         sw.c2 = s_.sw.c2 & 1;
         sw.c3 = s_.sw.c3 & 1;
-        sw.pe = s_.sw.pe & 1;
-        sw.ue = s_.sw.ue & 1;
-        sw.oe = s_.sw.oe & 1;
-        sw.ze = s_.sw.ze & 1;
-        sw.de = s_.sw.de & 1;
-        sw.ie = s_.sw.ie & 1;
+        sw.flat &= 0x7f00;
         return sw.flat;
     }
 
@@ -651,7 +676,7 @@ private:
         case ZYDIS_MNEMONIC_FDIVR: case ZYDIS_MNEMONIC_FDIVRP: case ZYDIS_MNEMONIC_FIDIVR: r = b / a; break;
         default: return Outcome::unsupported;
         }
-        set_st(dst, r);
+        set_st(dst, precision(r));
         if (pop) {
             fpop();
         }
@@ -707,7 +732,7 @@ private:
         case ZYDIS_MNEMONIC_FLDLG2: fpush(0.30102999566398119521); return Outcome::next;
         case ZYDIS_MNEMONIC_FLDLN2: fpush(0.69314718055994530942); return Outcome::next;
         case ZYDIS_MNEMONIC_FXCH: {
-            unsigned i = visible >= 2 && is_st(1) ? st_index(ops_[1].reg.value) : 1;
+            unsigned i = insn_.raw.modrm.rm;
             double t = st(0);
             set_st(0, st(i));
             set_st(i, t);
@@ -722,7 +747,7 @@ private:
             return execute_fpu_arith(m);
         case ZYDIS_MNEMONIC_FCHS: set_st(0, -st(0)); return Outcome::next;
         case ZYDIS_MNEMONIC_FABS: set_st(0, std::fabs(st(0))); return Outcome::next;
-        case ZYDIS_MNEMONIC_FSQRT: set_st(0, std::sqrt(st(0))); return Outcome::next;
+        case ZYDIS_MNEMONIC_FSQRT: set_st(0, precision(std::sqrt(st(0)))); return Outcome::next;
         case ZYDIS_MNEMONIC_FSIN: set_st(0, std::sin(st(0))); s_.sw.c2 = 0; return Outcome::next;
         case ZYDIS_MNEMONIC_FCOS: set_st(0, std::cos(st(0))); s_.sw.c2 = 0; return Outcome::next;
         case ZYDIS_MNEMONIC_FSINCOS: {
@@ -743,12 +768,35 @@ private:
             set_st(0, r);
             return Outcome::next;
         }
+        case ZYDIS_MNEMONIC_FYL2X: case ZYDIS_MNEMONIC_FYL2XP1: {
+            double x = m == ZYDIS_MNEMONIC_FYL2X ? std::log2(st(0)) : std::log2(st(0) + 1.0);
+            double r = st(1) * x;
+            fpop();
+            set_st(0, r);
+            return Outcome::next;
+        }
+        case ZYDIS_MNEMONIC_F2XM1: set_st(0, std::exp2(st(0)) - 1.0); return Outcome::next;
+        case ZYDIS_MNEMONIC_FXTRACT: {
+            double v = st(0);
+            int e = 0;
+            double sig = std::frexp(v, &e);
+            set_st(0, v == 0.0 ? -std::numeric_limits<double>::infinity() : static_cast<double>(e - 1));
+            fpush(v == 0.0 ? v : sig * 2.0);
+            return Outcome::next;
+        }
         case ZYDIS_MNEMONIC_FRNDINT: set_st(0, std::nearbyint(st(0))); return Outcome::next;
         case ZYDIS_MNEMONIC_FSCALE: set_st(0, std::ldexp(st(0), static_cast<int>(std::trunc(st(1))))); return Outcome::next;
         case ZYDIS_MNEMONIC_FPREM: case ZYDIS_MNEMONIC_FPREM1: {
-            double r = m == ZYDIS_MNEMONIC_FPREM ? std::fmod(st(0), st(1)) : std::remainder(st(0), st(1));
+            double a = st(0);
+            double b = st(1);
+            double r = m == ZYDIS_MNEMONIC_FPREM ? std::fmod(a, b) : std::remainder(a, b);
+            double q = m == ZYDIS_MNEMONIC_FPREM ? std::trunc(a / b) : std::nearbyint(a / b);
+            auto bits = std::isfinite(q) && std::fabs(q) < 9.2e18 ? static_cast<uint64_t>(std::fabs(q)) : 0;
             set_st(0, r);
+            s_.sw.c0 = (bits >> 2) & 1;
+            s_.sw.c1 = bits & 1;
             s_.sw.c2 = 0;
+            s_.sw.c3 = (bits >> 1) & 1;
             return Outcome::next;
         }
         case ZYDIS_MNEMONIC_FCOM: case ZYDIS_MNEMONIC_FCOMP: case ZYDIS_MNEMONIC_FUCOM: case ZYDIS_MNEMONIC_FUCOMP: {
@@ -780,7 +828,7 @@ private:
             fpop();
             return Outcome::next;
         case ZYDIS_MNEMONIC_FCOMI: case ZYDIS_MNEMONIC_FCOMIP: case ZYDIS_MNEMONIC_FUCOMI: case ZYDIS_MNEMONIC_FUCOMIP: {
-            unsigned i = visible >= 2 && is_st(1) ? st_index(ops_[1].reg.value) : 1;
+            unsigned i = insn_.raw.modrm.rm;
             fcompare(st(0), st(i), true);
             if (m == ZYDIS_MNEMONIC_FCOMIP || m == ZYDIS_MNEMONIC_FUCOMIP) {
                 fpop();
@@ -1094,6 +1142,11 @@ private:
                 next_ = branch_target(0);
             }
             return Outcome::next;
+        case ZYDIS_MNEMONIC_XLAT: {
+            uint32_t addr = host::ebx(s_) + (host::eax(s_) & 0xff);
+            host::eax(s_) = (host::eax(s_) & 0xffffff00u) | host::mem::read<uint8_t>(addr);
+            return Outcome::next;
+        }
         case ZYDIS_MNEMONIC_CALL:
             return call_to(branch_target(0));
         case ZYDIS_MNEMONIC_RET: {
@@ -1286,5 +1339,7 @@ std::string describe(uint32_t pc) {
     }
     return std::format("{} [{}]", text, hex);
 }
+
+void set_nan_trap(bool enabled) { g_nan_trap = enabled; }
 
 }

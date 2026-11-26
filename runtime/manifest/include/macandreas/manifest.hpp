@@ -11,7 +11,7 @@
 
 namespace ma::manifest {
 
-enum class Kind { byte_patch, nop, data_poke, call_redirect, mid_hook, func_replace };
+enum class Kind { byte_patch, nop, data_poke, call_redirect, mid_hook, func_replace, marker };
 enum class Source { silentpatch, widescreen, project2dfx, native };
 
 std::string_view to_string(Kind kind);

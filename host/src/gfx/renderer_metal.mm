@@ -32,6 +32,7 @@ namespace {
 
 constexpr NSUInteger kChunkSize = 8u << 20;
 constexpr NSUInteger kVertexUniformIndex = 8;
+constexpr NSUInteger kVertexConstantIndex = 9;
 constexpr int kFramesInFlight = 3;
 
 const char* kUtilitySource = R"(
@@ -420,6 +421,16 @@ public:
         }
         [enc_ setVertexBytes:&c.vs length:sizeof(c.vs) atIndex:kVertexUniformIndex];
         [enc_ setFragmentBytes:&c.fs length:sizeof(c.fs) atIndex:0];
+        if (c.key.shader.vs_program && c.vs_consts) {
+            Staging st = stage(sizeof(VertexConstants), 256);
+            std::memcpy(st.cpu, c.vs_consts, std::min<size_t>(c.vs_const_bytes, sizeof(VertexConstants)));
+            [enc_ setVertexBuffer:st.buffer offset:st.offset atIndex:kVertexConstantIndex];
+        }
+        if (c.key.shader.ps_program && c.ps_consts) {
+            Staging st = stage(sizeof(PixelConstants), 256);
+            std::memcpy(st.cpu, c.ps_consts, std::min<size_t>(c.ps_const_bytes, sizeof(PixelConstants)));
+            [enc_ setFragmentBuffer:st.buffer offset:st.offset atIndex:1];
+        }
         for (unsigned i = 0; i < c.key.shader.stage_count; ++i) {
             if (!c.key.shader.stages[i].texture) {
                 continue;
@@ -854,6 +865,10 @@ private:
             return it->second;
         }
         std::string src = generate_msl(k);
+        if (src.empty()) {
+            libraries_[h] = nil;
+            return nil;
+        }
         NSError* error = nil;
         MTLCompileOptions* opts = [[MTLCompileOptions alloc] init];
         opts.mathMode = MTLMathModeSafe;

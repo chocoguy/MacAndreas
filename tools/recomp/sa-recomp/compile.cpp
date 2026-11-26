@@ -135,6 +135,7 @@ std::expected<void, std::string> compile_module(const CompileOptions& options) {
     strip_x86_function_attributes(m);
     relax_intrinsic_memory_attributes(m);
     route_calls_through_dispatch(m);
+    insert_tso_fences(m, options.tso);
 
     m.setTargetTriple(llvm::Triple(kHostTriple));
     m.setDataLayout(host_layout);

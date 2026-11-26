@@ -34,7 +34,7 @@ const Key* key_for_name(std::string_view name);
 uint8_t dik(const Key& key);
 uint8_t other_side(uint8_t side_vk);
 
-enum class StepKind : uint8_t { key, button, move, wheel, focus };
+enum class StepKind : uint8_t { key, button, move, wheel, focus, look };
 
 struct KeyStep {
     bool movie = false;

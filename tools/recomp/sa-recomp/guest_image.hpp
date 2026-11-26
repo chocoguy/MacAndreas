@@ -22,6 +22,7 @@ public:
     bool patch(uint32_t addr, const std::vector<uint8_t>& bytes);
     bool is_call_at(uint32_t addr) const;
     std::vector<uint32_t> scan_jump_table(uint32_t site, uint32_t max_distance = 0x10000) const;
+    std::vector<uint32_t> computed_transfer_targets(uint32_t site) const;
     uint32_t entry() const { return image_.entry_va(); }
     const pe::Image& image() const { return image_; }
 

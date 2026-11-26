@@ -4,10 +4,12 @@
 #include "ff.hpp"
 #include "formats.hpp"
 #include "renderer.hpp"
+#include "sm.hpp"
 
 #include "../input/keys.hpp"
 #include "../platform/window.hpp"
 #include "../settings.hpp"
+#include "../thread.hpp"
 #include "../win32/com_object.hpp"
 #include "../win32/process.hpp"
 #include "../win32/user32.hpp"
@@ -15,8 +17,11 @@
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <fstream>
+#include <format>
 #include <memory>
 #include <set>
 #include <string>
@@ -25,6 +30,21 @@
 namespace ma::host::d3d9 {
 
 namespace {
+
+void log_watched(uint64_t frame) {
+    static std::vector<uint32_t> last;
+    const auto& watch = settings().watch;
+    last.resize(watch.size(), 0xdeadbeef);
+    for (size_t i = 0; i < watch.size(); ++i) {
+        uint32_t v = mem::read<uint32_t>(watch[i]);
+        if (v != last[i]) {
+            std::fprintf(stderr, "[WATCH] frame %llu 0x%08x = 0x%08x (%d)\n", static_cast<unsigned long long>(frame),
+                         watch[i], v, static_cast<int32_t>(v));
+            last[i] = v;
+        }
+    }
+}
+
 
 using namespace win32;
 using namespace gfx;
@@ -104,6 +124,7 @@ struct VertexDecl : ComObject {
 
 struct Shader : ComObject {
     std::vector<uint8_t> code;
+    std::shared_ptr<const gfx::sm::Program> program;
     bool pixel = false;
     uint32_t device_guest = 0;
 };
@@ -146,12 +167,8 @@ struct Device : ComObject {
     uint32_t swapchain = 0;
     uint32_t vertex_shader = 0;
     uint32_t pixel_shader = 0;
-    std::vector<float> vs_const = std::vector<float>(256 * 4);
-    std::vector<float> ps_const = std::vector<float>(224 * 4);
-    std::array<int32_t, 64> vs_int{};
-    std::array<int32_t, 64> ps_int{};
-    std::array<uint32_t, 16> vs_bool{};
-    std::array<uint32_t, 16> ps_bool{};
+    VertexConstants vs_consts{};
+    PixelConstants ps_consts{};
     std::array<float, 4 * 6> clip_planes{};
     uint32_t palette = 0;
     bool software_vp = false;
@@ -817,10 +834,25 @@ SamplerDesc sampler_desc(const std::array<uint32_t, D::samp::count>& s) {
 
 bool prepare_draw(Device& d, DrawCall& call, const VertexLayout& layout,
                   std::span<const uint16_t, kMaxStreams> strides) {
-    if (d.vertex_shader != 0 || d.pixel_shader != 0) {
-        ++d.skipped_shader_draws;
-        log_once("draw with a programmable shader skipped (shader translator is M4 work)");
-        return false;
+    const gfx::sm::Program* vs = nullptr;
+    const gfx::sm::Program* ps = nullptr;
+    if (d.vertex_shader != 0) {
+        auto* s = com_get<Shader>(d.vertex_shader);
+        vs = s && s->program && s->program->ok() ? s->program.get() : nullptr;
+        if (!vs) {
+            ++d.skipped_shader_draws;
+            log_once("draw with an unparsed vertex shader skipped");
+            return false;
+        }
+    }
+    if (d.pixel_shader != 0) {
+        auto* s = com_get<Shader>(d.pixel_shader);
+        ps = s && s->program && s->program->ok() ? s->program.get() : nullptr;
+        if (!ps) {
+            ++d.skipped_shader_draws;
+            log_once("draw with an unparsed pixel shader skipped");
+            return false;
+        }
     }
     auto* rt = com_get<Surface>(d.render_target);
     auto* ds = com_get<Surface>(d.depth_stencil);
@@ -836,7 +868,17 @@ bool prepare_draw(Device& d, DrawCall& call, const VertexLayout& layout,
             call.samplers[i] = sampler_desc(d.st.ss[i]);
         }
     }
-    call.key = build_pipeline_key(d.st, layout, strides, kinds, color.texture != nullptr, depth != nullptr);
+    call.key = build_pipeline_key(d.st, layout, strides, kinds, color.texture != nullptr, depth != nullptr, vs, ps);
+    if (vs) {
+        call.vs_consts = &d.vs_consts;
+        uint32_t regs = vs->const_relative ? 256 : std::min<uint32_t>(vs->const_count, 256);
+        call.vs_const_bytes = static_cast<uint32_t>(offsetof(VertexConstants, c) + regs * 16);
+    }
+    if (ps) {
+        call.ps_consts = &d.ps_consts;
+        uint32_t regs = ps->const_relative ? 224 : std::min<uint32_t>(ps->const_count, 224);
+        call.ps_const_bytes = static_cast<uint32_t>(offsetof(PixelConstants, c) + regs * 16);
+    }
     build_uniforms(d.st, call.vs, call.fs);
     call.viewport = d.st.viewport;
     call.scissor_enable = d.st.rs[D::rs::scissortestenable] != 0;
@@ -1242,6 +1284,7 @@ uint32_t dev_present(uint32_t self, uint32_t src, uint32_t dst, uint32_t hwnd, u
                      static_cast<unsigned long long>(frame), static_cast<unsigned long long>(d->draws),
                      static_cast<unsigned long long>(d->skipped_shader_draws));
     }
+    log_watched(frame);
     input::run_key_script(false, frame);
     platform::pump_events();
     if (settings().exit_after_frames != 0 && frame >= settings().exit_after_frames) {
@@ -1983,8 +2026,27 @@ uint32_t create_shader(uint32_t self, uint32_t function, uint32_t out, bool pixe
     ++n;
     s->code.resize(n * 4);
     std::memcpy(s->code.data(), mem::ptr(function), n * 4);
+    uint64_t hash = gfx::hash_bytes(s->code.data(), s->code.size());
+    s->program = gfx::sm::find_program(hash);
+    if (!s->program) {
+        std::vector<uint32_t> tokens(n);
+        std::memcpy(tokens.data(), s->code.data(), n * 4);
+        auto parsed = std::make_shared<gfx::sm::Program>(gfx::sm::parse(tokens, hash));
+        if (!parsed->ok()) {
+            std::fprintf(stderr, "[D3D9] %s shader %016llx rejected: %s\n", pixel ? "pixel" : "vertex",
+                         static_cast<unsigned long long>(hash), parsed->error.c_str());
+        }
+        if (!settings().shader_dump_dir.empty()) {
+            std::error_code ec;
+            std::filesystem::create_directories(settings().shader_dump_dir, ec);
+            std::ofstream(settings().shader_dump_dir / std::format("{}_{:016x}.txt", pixel ? "ps" : "vs", hash))
+                << gfx::sm::disassemble(*parsed);
+        }
+        gfx::sm::register_program(parsed);
+        s->program = parsed;
+    }
     log_once(std::string(pixel ? "pixel" : "vertex") + " shaders created (first version token " +
-             std::to_string(version) + ")");
+             std::format("{:08x}", version) + ")");
     com_out(out, com_objects().wrap(pixel ? g_pshader_iface : g_vshader_iface, std::move(s)));
     return D::kOk;
 }
@@ -2051,51 +2113,51 @@ uint32_t copy_constants(T* store, size_t store_count, uint32_t start, uint32_t d
 
 uint32_t dev_set_vs_const_f(uint32_t self, uint32_t start, uint32_t data, uint32_t count) {
     Device* d = dev(self);
-    return d ? copy_constants<float, 4>(d->vs_const.data(), 256, start, data, count, true) : D::kInvalidCall;
+    return d ? copy_constants<float, 4>(&d->vs_consts.c[0][0], 256, start, data, count, true) : D::kInvalidCall;
 }
 uint32_t dev_get_vs_const_f(uint32_t self, uint32_t start, uint32_t data, uint32_t count) {
     Device* d = dev(self);
-    return d ? copy_constants<float, 4>(d->vs_const.data(), 256, start, data, count, false) : D::kInvalidCall;
+    return d ? copy_constants<float, 4>(&d->vs_consts.c[0][0], 256, start, data, count, false) : D::kInvalidCall;
 }
 uint32_t dev_set_vs_const_i(uint32_t self, uint32_t start, uint32_t data, uint32_t count) {
     Device* d = dev(self);
-    return d ? copy_constants<int32_t, 4>(d->vs_int.data(), 16, start, data, count, true) : D::kInvalidCall;
+    return d ? copy_constants<int32_t, 4>(&d->vs_consts.i[0][0], 16, start, data, count, true) : D::kInvalidCall;
 }
 uint32_t dev_get_vs_const_i(uint32_t self, uint32_t start, uint32_t data, uint32_t count) {
     Device* d = dev(self);
-    return d ? copy_constants<int32_t, 4>(d->vs_int.data(), 16, start, data, count, false) : D::kInvalidCall;
+    return d ? copy_constants<int32_t, 4>(&d->vs_consts.i[0][0], 16, start, data, count, false) : D::kInvalidCall;
 }
 uint32_t dev_set_vs_const_b(uint32_t self, uint32_t start, uint32_t data, uint32_t count) {
     Device* d = dev(self);
-    return d ? copy_constants<uint32_t, 1>(d->vs_bool.data(), 16, start, data, count, true) : D::kInvalidCall;
+    return d ? copy_constants<uint32_t, 1>(d->vs_consts.b, 16, start, data, count, true) : D::kInvalidCall;
 }
 uint32_t dev_get_vs_const_b(uint32_t self, uint32_t start, uint32_t data, uint32_t count) {
     Device* d = dev(self);
-    return d ? copy_constants<uint32_t, 1>(d->vs_bool.data(), 16, start, data, count, false) : D::kInvalidCall;
+    return d ? copy_constants<uint32_t, 1>(d->vs_consts.b, 16, start, data, count, false) : D::kInvalidCall;
 }
 uint32_t dev_set_ps_const_f(uint32_t self, uint32_t start, uint32_t data, uint32_t count) {
     Device* d = dev(self);
-    return d ? copy_constants<float, 4>(d->ps_const.data(), 224, start, data, count, true) : D::kInvalidCall;
+    return d ? copy_constants<float, 4>(&d->ps_consts.c[0][0], 224, start, data, count, true) : D::kInvalidCall;
 }
 uint32_t dev_get_ps_const_f(uint32_t self, uint32_t start, uint32_t data, uint32_t count) {
     Device* d = dev(self);
-    return d ? copy_constants<float, 4>(d->ps_const.data(), 224, start, data, count, false) : D::kInvalidCall;
+    return d ? copy_constants<float, 4>(&d->ps_consts.c[0][0], 224, start, data, count, false) : D::kInvalidCall;
 }
 uint32_t dev_set_ps_const_i(uint32_t self, uint32_t start, uint32_t data, uint32_t count) {
     Device* d = dev(self);
-    return d ? copy_constants<int32_t, 4>(d->ps_int.data(), 16, start, data, count, true) : D::kInvalidCall;
+    return d ? copy_constants<int32_t, 4>(&d->ps_consts.i[0][0], 16, start, data, count, true) : D::kInvalidCall;
 }
 uint32_t dev_get_ps_const_i(uint32_t self, uint32_t start, uint32_t data, uint32_t count) {
     Device* d = dev(self);
-    return d ? copy_constants<int32_t, 4>(d->ps_int.data(), 16, start, data, count, false) : D::kInvalidCall;
+    return d ? copy_constants<int32_t, 4>(&d->ps_consts.i[0][0], 16, start, data, count, false) : D::kInvalidCall;
 }
 uint32_t dev_set_ps_const_b(uint32_t self, uint32_t start, uint32_t data, uint32_t count) {
     Device* d = dev(self);
-    return d ? copy_constants<uint32_t, 1>(d->ps_bool.data(), 16, start, data, count, true) : D::kInvalidCall;
+    return d ? copy_constants<uint32_t, 1>(d->ps_consts.b, 16, start, data, count, true) : D::kInvalidCall;
 }
 uint32_t dev_get_ps_const_b(uint32_t self, uint32_t start, uint32_t data, uint32_t count) {
     Device* d = dev(self);
-    return d ? copy_constants<uint32_t, 1>(d->ps_bool.data(), 16, start, data, count, false) : D::kInvalidCall;
+    return d ? copy_constants<uint32_t, 1>(d->ps_consts.b, 16, start, data, count, false) : D::kInvalidCall;
 }
 
 uint32_t dev_set_stream_source(uint32_t self, uint32_t stream, uint32_t buffer, uint32_t offset, uint32_t stride) {
@@ -2485,6 +2547,11 @@ uint32_t d3d_create_device(uint32_t self, uint32_t adapter, uint32_t type, uint3
     d->behavior = behavior;
     std::memcpy(d->present.data(), mem::ptr(params), sizeof(d->present));
     d->window = d->present[7] ? d->present[7] : focus;
+    if ((behavior & 0x2) == 0) {
+        if (GuestThread* t = current_thread()) {
+            t->state.x87.fxsave32.cwd.flat = static_cast<uint16_t>(t->state.x87.fxsave32.cwd.flat & ~0x300u);
+        }
+    }
     std::fprintf(stderr,
                  "[D3D9] CreateDevice(adapter=%u, type=%u, behavior=0x%08x%s) requested %ux%u fmt=%u windowed=%u\n",
                  adapter, type, behavior, (behavior & 0x2) ? " FPU_PRESERVE" : " (FPU set to single precision)",

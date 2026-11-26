@@ -61,6 +61,18 @@ struct StreamData {
     uint32_t size = 0;
 };
 
+struct VertexConstants {
+    int32_t i[16][4] = {};
+    uint32_t b[16] = {};
+    float c[256][4] = {};
+};
+
+struct PixelConstants {
+    int32_t i[16][4] = {};
+    uint32_t b[16] = {};
+    float c[224][4] = {};
+};
+
 struct DrawCall {
     PipelineKey key{};
     VertexUniforms vs{};
@@ -83,6 +95,10 @@ struct DrawCall {
     float slope_bias = 0;
     uint32_t stencil_ref = 0;
     float blend_color[4] = {};
+    const VertexConstants* vs_consts = nullptr;
+    uint32_t vs_const_bytes = 0;
+    const PixelConstants* ps_consts = nullptr;
+    uint32_t ps_const_bytes = 0;
 };
 
 struct RenderTarget {

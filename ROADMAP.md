@@ -732,6 +732,93 @@ Exit criteria:
 
 Goal: free roam in Los Santos with correct rendering and physics.
 
+Status: **exit criteria met except vehicle handling against a reference**. `tools/route/m4_route.py`
+starts a new game and plays a 10-minute route from Grove Street:
+- the opening mission's BMX into East Los Santos
+- the Rhino (`AIWPRTON`) through the streets, with mouse look while driving
+- a walk and a sprint, then the jetpack (`ROCKETMAN`) over the city
+- the faster clock (`YSOHNUL`) through several days and nights
+
+It runs 24,450 frames with no crash, zero `[INTERP]` hits and zero skipped shader draws. Handling
+by feel and on recorded checkpoints still needs a person and the M7 reference harness.
+
+What is in place:
+- **Shader translator** (`host/src/gfx/sm.cpp`, `sm_msl.cpp`): parses vs/ps 1.1–2.0 bytecode and
+  emits MSL functions that plug into the fixed-function pipeline key.
+  - Constants live in full `VertexConstants`/`PixelConstants` blocks (buffers 9 and 1). ps1.x
+    constants are clamped.
+  - Fog and alpha test are applied after the pixel shader.
+  - `a0` follows SM1 floor and SM2 round. Relative addressing, loops and `if`/`rep` are handled.
+  - SM3, predication, MRT and depth output are rejected with a `[SHADER]` log. SA never uses them.
+  - Every shader draw on the route is translated (0 skipped). Skinned peds, buildings and
+    vehicles look right in the captures. Water and post effects have not been compared against
+    the original.
+  - `--dump-shaders DIR` writes disassembly.
+- **x87 precision** (§3.4): `CreateDevice` without `D3DCREATE_FPU_PRESERVE` sets PC=24 on the
+  calling thread, as d3d9 does.
+  - `FLDCW`/`FNSTCW` semantics are rebuilt so the control word round-trips. Remill cleared the
+    precision bits.
+  - The lowered `fadd`/`fsub`/`fmul`/`fdiv`/`fsqrt` (including `sqrtl`) round to float when PC=0, as
+    does the interpreter.
+  - The arithmetic inside `fyl2x`, `fyl2xp1`, `f2xm1`, `fpatan`, `fprem`/`fprem1` and `fscale` is
+    exempt, through `ma_x87_exact_*` markers, because real hardware runs those at full precision.
+  - The mismatch made `CTrain::ProcessControl` spin forever after the intro.
+- **x87 correctness found by the differential tests:**
+  - Remill's `fpatan` computed `atan(st1/st0)` and lost the quadrant. It is now `atan2l`.
+  - `fist`/`fistp` of an out-of-range value or NaN stores the integer indefinite (`0x80000000`),
+    not ARM's saturated value.
+  - `fnstsw` reports C0–C3 and TOP only, in both implementations, because remill's sticky exception
+    flags are ad hoc and compiled code never reads them.
+  - Remill's 80-bit load (`fld m80`) rebuilds the value as an `i80` and stores those bits into
+    the stack slot. That clashed with the double-in-slot lowering: every `fld tbyte` pushed the
+    80-bit mantissa read as a double. The CRT's x87 `asin` returned garbage for exactly 1.0,
+    `CBike::ProcessControl` divided by it, and CJ and the BMX became NaN on the first frame of the
+    ride. `i80` loads and stores to memory now convert through doubles, and
+    `__remill_read_memory_f80` passes the real sign and exponent.
+  - The interpreter's `fxch st(i)` and `fcomi st, st(i)` used st(1) whenever Zydis exposed one
+    visible operand. They now use ModRM. `fyl2x`, `fyl2xp1`, `f2xm1`, `fxtract` and `xlat` were added,
+    and `fprem` sets the quotient bits.
+- **Differential tests** (`sa-host --diff-test`): each function runs lifted and interpreted in
+  forked children from the same randomized registers, stack, buffers and control words (double,
+  single, extended). Registers, the x87 stack and every written byte are compared.
+  - On the 360 leaf x87 functions from `tools/recomp/x87_candidates.py`: 337 agree, 0 differ and
+    23 are inconclusive (both fault or time out on random pointers). The first run had 58
+    differences.
+  - On the 267 functions in the CRT math range, with x87 arguments and callees interpreted
+    (`--diff-x87-args`, `--diff-deep`), the remaining differences are interpreter gaps only: the
+    CRT's SSE2 math paths. The interpreter has no SSE2.
+- **TSO markers**: `kind: marker` manifest entries with `tso: true` are written to `tso.txt`.
+  `compile` then fences every guest load (acquire) and store (release) in those traces.
+  CdStreamThread, CdStreamSync and CdStreamGetStatus carry them (70, 38 and 24 barriers). A marker
+  that names no lifted trace fails the build.
+- **Interpreter coverage**: zero on the route.
+  - A raw scan of `.text` finds 70 jump tables the analysis missed (1,092 targets).
+  - A small evaluator recognizes the 48 SecuROM call/jump stubs that compute their target and
+    return point from two data words (`add`/`sub`/`xor`/`adc`/`sbb`, `not`, `rol`/`ror` by `cl`).
+    It lifts both.
+  - `__remill_error` falls back to the interpreter.
+- **Input**: a tapped key stays down until a frame has been presented, so typed cheats register.
+  `look@DX:DY` turns the camera. `--ignore-focus-loss` keeps unattended runs from pausing.
+- **Debugging**:
+  - `--interpret-range LO-HI` bisects lifting bugs.
+  - `--trap-nan` logs the first interpreted instruction that produces a NaN.
+  - `--watch ADDR` logs guest values per frame.
+  - `--trace-pc` and `--interpret` target single traces.
+
+Findings:
+- The route is not frame-deterministic. SA steps physics by measured time, so a loaded machine
+  changes where the player ends up. Run routes on an idle machine. A fixed-timestep mode would
+  make them reproducible.
+- Direct calls between lifted functions bypass the dispatcher, so `--interpret-range` cannot
+  force everything in a range into the interpreter.
+- The CRT selects its SSE2 math functions at startup (`0xc9c400`). Those run lifted; the
+  interpreter cannot cross-check them.
+
+Not done in M4, carried forward:
+- Vehicle handling against a reference by feel and on recorded checkpoints (M7 harness).
+- Interpreter SSE/SSE2 support, for differential tests of the CRT's SSE2 math.
+- A fixed-timestep option for reproducible routes.
+
 Work:
 - D3D9 shader translator and the custom pipelines: buildings day/night, vehicle env-map,
   skinning, post effects, water.

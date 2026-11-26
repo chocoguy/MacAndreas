@@ -28,6 +28,7 @@ struct LiftResult {
     size_t stubs = 0;
     std::vector<uint32_t> unresolved_jumps;
     size_t manifest_patches = 0;
+    std::vector<uint32_t> tso;
 };
 
 std::expected<LiftResult, std::string> lift_program(const LiftOptions& options);

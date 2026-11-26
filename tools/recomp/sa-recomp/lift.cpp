@@ -28,6 +28,7 @@
 #include <chrono>
 #include <cstdio>
 #include <format>
+#include <fstream>
 #include <map>
 #include <set>
 #include <unordered_map>
@@ -109,7 +110,7 @@ private:
     std::unordered_map<uint64_t, llvm::Function*> batch_;
 };
 
-void prepare_semantics(llvm::Module& semantics) {
+std::expected<void, std::string> prepare_semantics(llvm::Module& semantics) {
     if (auto* hyper = semantics.getFunction("__remill_sync_hyper_call"); hyper && !hyper->isDeclaration()) {
         auto name = hyper->getName().str();
         auto* type = hyper->getFunctionType();
@@ -119,6 +120,15 @@ void prepare_semantics(llvm::Module& semantics) {
         llvm::cast<llvm::Function>(replacement.getCallee())->setName(name);
     }
     relax_intrinsic_memory_attributes(semantics);
+    std::vector<std::string> errors;
+    fix_x87_control_word_semantics(semantics, errors);
+    fix_x87_status_word_semantics(semantics, errors);
+    fix_x87_fpatan_semantics(semantics, errors);
+    mark_x87_exact_semantics(semantics, errors);
+    if (!errors.empty()) {
+        return std::unexpected(errors.front());
+    }
+    return {};
 }
 
 std::expected<void, std::string> write_module(llvm::Module& module, const std::filesystem::path& path) {
@@ -167,7 +177,8 @@ std::expected<void, std::string> write_functable(const std::filesystem::path& pa
 }
 
 std::expected<size_t, std::string> apply_manifest(const std::filesystem::path& dir, GuestImage& image,
-                                                  const Analysis& analysis, const remill::Arch& arch) {
+                                                  const Analysis& analysis, const remill::Arch& arch,
+                                                  std::vector<uint32_t>& tso) {
     auto loaded = ma::manifest::load_directory(dir);
     std::string report;
     if (!loaded) {
@@ -229,6 +240,9 @@ std::expected<size_t, std::string> apply_manifest(const std::filesystem::path& d
     }
     size_t applied = 0;
     for (const auto& e : loaded->entries) {
+        if (e.tso) {
+            tso.push_back(e.addr);
+        }
         if (e.kind == ma::manifest::Kind::call_redirect || e.kind == ma::manifest::Kind::mid_hook) {
             report += std::format("{}:{}: {} lowering is not implemented yet\n", e.file, e.line,
                                   ma::manifest::to_string(e.kind));
@@ -278,11 +292,13 @@ std::expected<LiftResult, std::string> lift_program(const LiftOptions& options) 
     if (!semantics) {
         return std::unexpected("cannot load remill x86 semantics");
     }
-    prepare_semantics(*semantics);
+    if (auto prepared = prepare_semantics(*semantics); !prepared) {
+        return std::unexpected("semantics: " + prepared.error());
+    }
 
     LiftResult result;
     if (!options.manifest_dir.empty()) {
-        auto applied = apply_manifest(options.manifest_dir, *image, *analysis, *arch);
+        auto applied = apply_manifest(options.manifest_dir, *image, *analysis, *arch, result.tso);
         if (!applied) {
             return std::unexpected("manifest:\n" + applied.error());
         }
@@ -315,6 +331,10 @@ std::expected<LiftResult, std::string> lift_program(const LiftOptions& options) 
                 }
             }
         }
+        std::unordered_set<uint32_t> known_sites(analysis->unresolved_jumps.begin(), analysis->unresolved_jumps.end());
+        for (const auto& [site, targets] : analysis->jump_targets) {
+            known_sites.insert(site);
+        }
         size_t recovered_sites = 0;
         size_t recovered_targets = 0;
         for (uint32_t site : analysis->unresolved_jumps) {
@@ -329,6 +349,24 @@ std::expected<LiftResult, std::string> lift_program(const LiftOptions& options) 
         }
         std::fprintf(stderr, "sa-recomp: recovered %zu of %zu unresolved jump tables (%zu targets)\n", recovered_sites,
                      analysis->unresolved_jumps.size(), recovered_targets);
+        {
+            uint32_t base = image->image().image_base;
+            size_t stubs = 0;
+            for (const auto& s : image->image().sections) {
+                if (!s.executable()) {
+                    continue;
+                }
+                uint32_t start = base + s.virtual_address;
+                for (uint32_t site = start; site < start + s.mapped_size(); ++site) {
+                    auto found = image->computed_transfer_targets(site);
+                    if (!found.empty()) {
+                        ++stubs;
+                        roots.insert(roots.end(), found.begin(), found.end());
+                    }
+                }
+            }
+            std::fprintf(stderr, "sa-recomp: %zu computed-transfer stubs\n", stubs);
+        }
         if (options.data_pointer_roots) {
             uint32_t base = image->image().image_base;
             for (const auto& s : image->image().sections) {
@@ -341,6 +379,22 @@ std::expected<LiftResult, std::string> lift_program(const LiftOptions& options) 
                     roots.insert(roots.end(), found.begin(), found.end());
                     auto immediates = image->code_immediates_into(start, start + s.mapped_size());
                     roots.insert(roots.end(), immediates.begin(), immediates.end());
+                    size_t raw_sites = 0;
+                    size_t raw_targets = 0;
+                    for (uint32_t site = start; site + 7 <= start + s.mapped_size(); ++site) {
+                        if (known_sites.contains(site)) {
+                            continue;
+                        }
+                        auto targets = image->scan_jump_table(site);
+                        if (targets.size() < 2) {
+                            continue;
+                        }
+                        ++raw_sites;
+                        raw_targets += targets.size();
+                        roots.insert(roots.end(), targets.begin(), targets.end());
+                    }
+                    std::fprintf(stderr, "sa-recomp: %s: %zu jump tables outside the analysis (%zu targets)\n",
+                                 s.name.c_str(), raw_sites, raw_targets);
                 }
             }
         }
@@ -418,6 +472,16 @@ std::expected<LiftResult, std::string> lift_program(const LiftOptions& options) 
     result.functable = options.out_dir / "functable.bc";
     if (auto w = write_functable(result.functable, defined, stubs); !w) {
         return std::unexpected(w.error());
+    }
+    std::ofstream tso_list(options.out_dir / "tso.txt");
+    for (uint32_t addr : result.tso) {
+        if (!defined.contains(addr)) {
+            if (options.only.empty()) {
+                return std::unexpected(std::format("tso marker 0x{:08x} names no lifted trace", addr));
+            }
+            continue;
+        }
+        tso_list << std::format("0x{:08x}\n", addr);
     }
     return result;
 }

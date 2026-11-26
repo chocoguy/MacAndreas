@@ -13,6 +13,7 @@ add_library(sa-host-core OBJECT
     src/thread.cpp
     src/thunks.cpp
     src/dispatch.cpp
+    src/difftest.cpp
     src/crash.cpp
     src/win32/process.cpp
     src/win32/kernel32.cpp
@@ -37,6 +38,8 @@ add_library(sa-host-core OBJECT
     src/manifest_runtime.cpp
     src/settings.cpp
     src/gfx/ff.cpp
+    src/gfx/sm.cpp
+    src/gfx/sm_msl.cpp
     src/gfx/formats.cpp
     src/gfx/d3d9.cpp
     src/gfx/renderer_metal.mm

@@ -81,7 +81,18 @@ Display and debugging options:
   `FRAMEm` counts movie frames and `Ns` counts seconds since start. Actions are key names in lower
   case (`return`, `escape`, `space`, `up`, `a`, `f1`, `lshift`, `num5` …), `lbutton`, `rbutton`,
   `mbutton`, `wheelup`, `wheeldown`, `move` and `focus`/`blur`. Keys and buttons tap by default;
-  `+`/`-` hold and release. `@X:Y` first moves the pointer to client pixel X,Y.
+  `+`/`-` hold and release. `@X:Y` first moves the pointer to client pixel X,Y. `look@DX:DY`
+  sends a relative mouse motion, which turns the in-game camera. A tapped key stays down until the
+  game has presented a frame, so typed cheats register.
+- `--ignore-focus-loss` keeps the game running when the window loses focus. By default it pauses
+  as the original does, which stalls unattended runs.
+- `--dump-shaders DIR` writes the disassembly of every vertex and pixel shader the game creates.
+- `--interpret ADDR,…` runs those traces in the interpreter instead of the lifted code, and
+  `--trace-pc ADDR,…` logs registers and the x87 stack whenever the interpreter reaches them.
+  `--interpret-range LO-HI,…` does the same for every trace in an address range, to bisect a
+  suspected lifting bug. Direct calls between lifted functions bypass it.
+- `--trap-nan` logs the first time each interpreted instruction puts a NaN on the x87 stack.
+- `--watch ADDR,…` logs a guest 32-bit value whenever it changes, once per presented frame.
 - Set `MTL_DEBUG_LAYER=1` to run with Metal API validation.
 
 For example, to capture the title screen and the main menu:
@@ -111,6 +122,36 @@ those addresses into lift roots for the next build:
 
 ```bash
 tools/recomp/interp_triage.py --apply boot.log
+```
+
+### In-world route
+
+`tools/route/m4_route.py` starts a new game and plays a scripted 10-minute route. It rides the
+opening mission's BMX, drives the Rhino, walks, sprints, flies the jetpack and runs the clock
+through day and night. It captures every 300 frames into `out/route` and exits non-zero on a crash
+or any `[INTERP]` hit. SA steps its physics by measured time, so run it on an idle machine:
+
+```bash
+tools/route/m4_route.py --minutes 10 --capture-dir out/route --log out/route.log
+```
+
+### Differential x87 tests
+
+`--diff-test LIST` runs each function in LIST (one hex address per line) both as lifted code and
+in the interpreter, from the same randomized registers, stack arguments and buffers. It then
+compares the registers, the x87 stack and every byte written. Each run happens in a forked child,
+so faults and endless loops are contained. The x87 control word cycles through double, single and
+extended precision. `--diff-iterations N` (default 12), `--diff-seed N` and `--diff-verbose`
+adjust it. `--diff-x87-args N` pushes N random values (with ±1, 0 and ±0.5 mixed in) on the x87
+stack for routines that take their argument there, such as the CRT's `_CI*` helpers.
+`--diff-deep` also interprets the callees instead of handing them to lifted code. `tools/recomp/x87_candidates.py` lists the leaf functions that use the x87 unit:
+
+```bash
+tools/recomp/x87_candidates.py --exe "gamefiles/Grand Theft Auto San Andreas/gta_sa.exe" --functions analysis/sa-1.0us/functions.json --out analysis/sa-1.0us/x87_leaf.txt
+```
+
+```bash
+build/dev/host/sa-host --game "gamefiles/Grand Theft Auto San Andreas" --native build/dev/native/libgta_sa_native.dylib --diff-test analysis/sa-1.0us/x87_leaf.txt
 ```
 
 ### Tools

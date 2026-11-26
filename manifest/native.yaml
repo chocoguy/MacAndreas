@@ -32,3 +32,24 @@
   group: display-mode
   bytes: "0100000001000000"
   notes: "FrontEndMenuManager m_nPrefsVideoMode and m_nDisplayVideoMode start at RW video mode 1; with defaultFullscreenRes cleared the first-run sync from GcurSelVM never runs"
+
+- addr: 0x00406560
+  kind: marker
+  source: native
+  group: cdstream-tso
+  tso: true
+  notes: "CdStreamThread publishes channel status, nSectorsToRead and the read buffer with plain stores that CdStreamSync and the streaming code read without locks; acquire/release ordering keeps x86 TSO on arm64"
+
+- addr: 0x0156cd80
+  kind: marker
+  source: native
+  group: cdstream-tso
+  tso: true
+  notes: "CdStreamSync checks nSectorsToRead and sets bLocked before waiting on the channel semaphore"
+
+- addr: 0x01563850
+  kind: marker
+  source: native
+  group: cdstream-tso
+  tso: true
+  notes: "CdStreamGetStatus polls channel status and nSectorsToRead without a lock"

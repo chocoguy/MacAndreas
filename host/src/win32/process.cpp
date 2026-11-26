@@ -1,5 +1,7 @@
 #include "process.hpp"
 
+#include "../settings.hpp"
+
 #include "../gfx/d3d9.hpp"
 #include "../input/input_state.hpp"
 #include "../platform/window.hpp"
@@ -138,7 +140,11 @@ void register_all() {
     register_apis(vorbisfile_apis());
     register_apis(d3d9::apis());
     platform::set_post_callback(post_message);
-    platform::set_input_callbacks({key_event, mouse_move, mouse_button, mouse_wheel, focus_event});
+    platform::set_input_callbacks({key_event, mouse_move, mouse_button, mouse_wheel, [](uint32_t hwnd, bool active) {
+                                       if (active || !settings().ignore_focus_loss) {
+                                           focus_event(hwnd, active);
+                                       }
+                                   }});
     input::set_script_sink({
         [](const input::Key& key, bool down) { key_event(0, key, down, false); },
         [](int32_t x, int32_t y) {

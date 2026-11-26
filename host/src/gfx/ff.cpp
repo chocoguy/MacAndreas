@@ -1,10 +1,14 @@
 #include "ff.hpp"
+#include "sm.hpp"
 
 #include <algorithm>
 #include <bit>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <format>
+#include <mutex>
+#include <set>
 
 namespace ma::gfx {
 
@@ -285,13 +289,16 @@ void normalize_blend(uint8_t& src, uint8_t& dst) {
 
 PipelineKey build_pipeline_key(const FixedFunctionState& s, const VertexLayout& layout,
                                std::span<const uint16_t, kMaxStreams> strides,
-                               std::span<const TextureKind, kMaxStages> textures, bool has_color, bool has_depth) {
+                               std::span<const TextureKind, kMaxStages> textures, bool has_color, bool has_depth,
+                               const sm::Program* vs, const sm::Program* ps) {
     PipelineKey key{};
     ShaderKey& k = key.shader;
+    k.vs_program = vs ? vs->hash : 0;
+    k.ps_program = ps ? ps->hash : 0;
     k.elements = layout.elements;
     k.element_count = layout.count;
-    k.pretransformed = layout.pretransformed;
-    bool lighting = s.rs[rs::lighting] != 0 && !layout.pretransformed;
+    k.pretransformed = vs ? 0 : layout.pretransformed;
+    bool lighting = !vs && s.rs[rs::lighting] != 0 && !layout.pretransformed;
     k.lighting = lighting ? 1 : 0;
     if (lighting) {
         k.color_vertex = s.rs[rs::colorvertex] ? 1 : 0;
@@ -312,7 +319,7 @@ PipelineKey build_pipeline_key(const FixedFunctionState& s, const VertexLayout& 
         if (table != fog::none) {
             k.fog_source = static_cast<uint8_t>(FogSource::depth);
             k.fog_mode = static_cast<uint8_t>(table);
-        } else if (layout.pretransformed || vertex == fog::none) {
+        } else if (vs || layout.pretransformed || vertex == fog::none) {
             k.fog_source = static_cast<uint8_t>(FogSource::specular_alpha);
         } else {
             k.fog_source = static_cast<uint8_t>(FogSource::depth);
@@ -320,14 +327,59 @@ PipelineKey build_pipeline_key(const FixedFunctionState& s, const VertexLayout& 
             k.range_fog = s.rs[rs::rangefogenable] ? 1 : 0;
         }
     }
+    if (ps && ps->major >= 3) {
+        k.fog_source = 0;
+        k.fog_mode = 0;
+        k.range_fog = 0;
+    }
+    if (ps) {
+        k.specular_enable = 0;
+    }
     if (s.rs[rs::alphatestenable] && s.rs[rs::alphafunc] != cmp::always) {
         k.alpha_func = static_cast<uint8_t>(s.rs[rs::alphafunc]);
+    }
+    auto fill_coords = [&](unsigned i, StageKey& sk) {
+        const auto& t = s.tss[i];
+        uint32_t ttf = t[tss::texturetransformflags];
+        sk.projected = (ttf & ttff::projected) ? 1 : 0;
+        if (vs) {
+            uint32_t n = ttf & 0xff;
+            sk.coord_count = static_cast<uint8_t>(n ? std::min<uint32_t>(n, 4) : 4);
+            return;
+        }
+        uint32_t tci = t[tss::texcoordindex];
+        sk.coord_index = static_cast<uint8_t>(std::min<uint32_t>(tci & 0xffff, 7));
+        sk.coord_mode = static_cast<uint8_t>((tci >> 16) & 0xff);
+        if (const auto* e = find_element(layout, declusage::texcoord, sk.coord_index)) {
+            sk.coord_count = static_cast<uint8_t>(element_components(e->type));
+        }
+        sk.transform_count = layout.pretransformed ? 0 : static_cast<uint8_t>(std::min<uint32_t>(ttf & 0xff, 4));
+    };
+    if (ps) {
+        uint8_t used = static_cast<uint8_t>(ps->texcoords_used | (ps->samplers_used & 0xff));
+        unsigned top = 0;
+        for (unsigned i = 0; i < kMaxStages; ++i) {
+            if (used & (1u << i)) {
+                top = i + 1;
+                StageKey& sk = k.stages[i];
+                if ((ps->samplers_used & (1u << i)) && textures[i] != TextureKind::none) {
+                    sk.texture = static_cast<uint8_t>(textures[i]);
+                }
+                fill_coords(i, sk);
+            }
+        }
+        k.stage_count = static_cast<uint8_t>(top);
+        k.varyings = static_cast<uint8_t>(used | (vs ? vs->outputs_written : 0));
     }
     unsigned count = 0;
     while (count < kMaxStages && s.tss[count][tss::colorop] != top::disable && s.tss[count][tss::colorop] != 0) {
         ++count;
     }
-    k.stage_count = static_cast<uint8_t>(count);
+    if (ps) {
+        count = 0;
+    } else {
+        k.stage_count = static_cast<uint8_t>(count);
+    }
     for (unsigned i = 0; i < count; ++i) {
         const auto& t = s.tss[i];
         StageKey& sk = k.stages[i];
@@ -347,16 +399,14 @@ PipelineKey build_pipeline_key(const FixedFunctionState& s, const VertexLayout& 
                     op_uses_texture(sk.alpha_op, sk.alpha_arg0, sk.alpha_arg1, sk.alpha_arg2);
         if (uses && textures[i] != TextureKind::none) {
             sk.texture = static_cast<uint8_t>(textures[i]);
-            uint32_t tci = t[tss::texcoordindex];
-            sk.coord_index = static_cast<uint8_t>(std::min<uint32_t>(tci & 0xffff, 7));
-            sk.coord_mode = static_cast<uint8_t>((tci >> 16) & 0xff);
-            if (const auto* e = find_element(layout, declusage::texcoord, sk.coord_index)) {
-                sk.coord_count = static_cast<uint8_t>(element_components(e->type));
+            fill_coords(i, sk);
+            if (vs) {
+                k.varyings |= static_cast<uint8_t>(1u << i);
             }
-            uint32_t ttf = t[tss::texturetransformflags];
-            sk.transform_count = layout.pretransformed ? 0 : static_cast<uint8_t>(std::min<uint32_t>(ttf & 0xff, 4));
-            sk.projected = (ttf & ttff::projected) ? 1 : 0;
         }
+    }
+    if (vs && !ps) {
+        k.varyings |= vs->outputs_written;
     }
     for (unsigned i = 0; i < kMaxStreams; ++i) {
         key.strides[i] = strides[i];
@@ -567,7 +617,38 @@ std::string material_expr(uint8_t source, const char* material) {
 
 }
 
-std::string generate_msl(const ShaderKey& k) {
+std::string msl_input_expr(const VertexElement& e, unsigned index) { return input_expr(e, index); }
+
+std::string msl_compare(uint8_t func, const std::string& a, const std::string& b) { return cmp_expr(func, a, b); }
+
+std::string msl_fog_and_alpha(const ShaderKey& k) {
+    std::string s;
+    if (k.fog_source == static_cast<uint8_t>(FogSource::specular_alpha)) {
+        s += "  float f = saturate(in.fogz);\n  cur.rgb = mix(u.fog_color.rgb, cur.rgb, f);\n";
+    } else if (k.fog_source == static_cast<uint8_t>(FogSource::depth)) {
+        s += "  float d = in.fogz;\n  float f;\n";
+        switch (k.fog_mode) {
+        case fog::exp: s += "  f = exp(-d * u.fog.z);\n"; break;
+        case fog::exp2: s += "  f = exp(-(d * u.fog.z) * (d * u.fog.z));\n"; break;
+        default: s += "  f = u.fog.y != u.fog.x ? (u.fog.y - d) / (u.fog.y - u.fog.x) : 1.0;\n"; break;
+        }
+        s += "  f = saturate(f);\n  cur.rgb = mix(u.fog_color.rgb, cur.rgb, f);\n";
+    }
+    if (k.alpha_func) {
+        s += std::format("  if (!({})) discard_fragment();\n", cmp_expr(k.alpha_func, "round(cur.a * 255.0)", "u.fog.w"));
+    }
+    return s;
+}
+
+namespace {
+
+bool programmable(const ShaderKey& k) { return k.vs_program != 0 || k.ps_program != 0; }
+
+bool writes_slot(const ShaderKey& k, unsigned i) {
+    return programmable(k) ? ((k.varyings >> i) & 1) != 0 : (i < k.stage_count && k.stages[i].texture != 0);
+}
+
+std::string msl_header(const ShaderKey& k) {
     std::string s;
     s += "#include <metal_stdlib>\nusing namespace metal;\n";
     s += "struct LightU { float4 diffuse; float4 specular; float4 ambient; float4 position; float4 direction; "
@@ -576,6 +657,10 @@ std::string generate_msl(const ShaderKey& k) {
          "float4 global_ambient; float4 mat_diffuse; float4 mat_ambient; float4 mat_specular; float4 mat_emissive; "
          "float4 mat_power; LightU lights[8]; };\n";
     s += "struct FSU { float4 texture_factor; float4 fog_color; float4 fog; float4 stage_constant[8]; };\n";
+    if (programmable(k)) {
+        s += "struct VSC { int4 i[16]; uint4 b[4]; float4 c[256]; };\n";
+        s += "struct PSC { int4 i[16]; uint4 b[4]; float4 c[224]; };\n";
+    }
     s += "struct VIn {\n";
     for (unsigned i = 0; i < k.element_count; ++i) {
         s += std::format("  {} a{} [[attribute({})]];\n", input_type(k.elements[i].type), i, i);
@@ -585,13 +670,17 @@ std::string generate_msl(const ShaderKey& k) {
     }
     s += "};\n";
     s += "struct VOut {\n  float4 pos [[position]];\n  float4 diffuse;\n  float4 specular;\n  float fogz;\n";
-    for (unsigned i = 0; i < k.stage_count; ++i) {
-        if (k.stages[i].texture) {
+    for (unsigned i = 0; i < kMaxStages; ++i) {
+        if (writes_slot(k, i)) {
             s += std::format("  float4 t{};\n", i);
         }
     }
     s += "};\n";
+    return s;
+}
 
+std::string ff_vertex(const ShaderKey& k) {
+    std::string s;
     int pos = -1;
     int nrm = -1;
     int col0 = -1;
@@ -615,6 +704,11 @@ std::string generate_msl(const ShaderKey& k) {
     auto element = [&](int idx) { return input_expr(k.elements[static_cast<unsigned>(idx)], static_cast<unsigned>(idx)); };
 
     s += "vertex VOut vs_main(VIn in [[stage_in]], constant VSU& u [[buffer(8)]]) {\n  VOut o;\n";
+    for (unsigned i = 0; i < kMaxStages; ++i) {
+        if (programmable(k) && writes_slot(k, i)) {
+            s += std::format("  o.t{} = float4(0.0);\n", i);
+        }
+    }
     s += std::format("  float4 P = {};\n", pos >= 0 ? element(pos) : "float4(0.0, 0.0, 0.0, 1.0)");
     s += std::format("  float4 vdiff = {};\n", col0 >= 0 ? element(col0) : "float4(1.0)");
     s += std::format("  float4 vspec = {};\n", col1 >= 0 ? element(col1) : "float4(0.0)");
@@ -685,7 +779,7 @@ std::string generate_msl(const ShaderKey& k) {
     }
     for (unsigned i = 0; i < k.stage_count; ++i) {
         const StageKey& st = k.stages[i];
-        if (!st.texture) {
+        if (!writes_slot(k, i)) {
             continue;
         }
         std::string c;
@@ -719,7 +813,11 @@ std::string generate_msl(const ShaderKey& k) {
         s += std::format("  o.t{0} = t{0};\n", i);
     }
     s += "  return o;\n}\n";
+    return s;
+}
 
+std::string ff_fragment(const ShaderKey& k) {
+    std::string s;
     s += "fragment float4 fs_main(VOut in [[stage_in]], constant FSU& u [[buffer(0)]]";
     for (unsigned i = 0; i < k.stage_count; ++i) {
         if (k.stages[i].texture == static_cast<uint8_t>(TextureKind::tex2d)) {
@@ -760,21 +858,62 @@ std::string generate_msl(const ShaderKey& k) {
     if (k.specular_enable) {
         s += "  cur.rgb = saturate(cur.rgb + specular.rgb);\n";
     }
-    if (k.fog_source == static_cast<uint8_t>(FogSource::specular_alpha)) {
-        s += "  float f = saturate(in.fogz);\n  cur.rgb = mix(u.fog_color.rgb, cur.rgb, f);\n";
-    } else if (k.fog_source == static_cast<uint8_t>(FogSource::depth)) {
-        s += "  float d = in.fogz;\n  float f;\n";
-        switch (k.fog_mode) {
-        case fog::exp: s += "  f = exp(-d * u.fog.z);\n"; break;
-        case fog::exp2: s += "  f = exp(-(d * u.fog.z) * (d * u.fog.z));\n"; break;
-        default: s += "  f = u.fog.y != u.fog.x ? (u.fog.y - d) / (u.fog.y - u.fog.x) : 1.0;\n"; break;
-        }
-        s += "  f = saturate(f);\n  cur.rgb = mix(u.fog_color.rgb, cur.rgb, f);\n";
-    }
-    if (k.alpha_func) {
-        s += std::format("  if (!({})) discard_fragment();\n", cmp_expr(k.alpha_func, "round(cur.a * 255.0)", "u.fog.w"));
-    }
+    s += msl_fog_and_alpha(k);
     s += "  return cur;\n}\n";
+    return s;
+}
+
+void report_once(uint64_t hash, const std::string& text) {
+    static std::mutex m;
+    static std::set<uint64_t> seen;
+    std::lock_guard lock(m);
+    if (seen.insert(hash).second) {
+        std::fprintf(stderr, "[SHADER] %016llx: %s\n", static_cast<unsigned long long>(hash), text.c_str());
+    }
+}
+
+}
+
+std::string generate_msl(const ShaderKey& k) {
+    std::shared_ptr<const sm::Program> vs;
+    std::shared_ptr<const sm::Program> ps;
+    if (k.vs_program) {
+        vs = sm::find_program(k.vs_program);
+        if (!vs) {
+            report_once(k.vs_program, "vertex program not registered");
+            return {};
+        }
+    }
+    if (k.ps_program) {
+        ps = sm::find_program(k.ps_program);
+        if (!ps) {
+            report_once(k.ps_program, "pixel program not registered");
+            return {};
+        }
+    }
+    std::string s = msl_header(k);
+    if (vs) {
+        std::string error;
+        std::string f = sm::vertex_function(*vs, k, error);
+        if (f.empty()) {
+            report_once(vs->hash, "vertex translation failed: " + error);
+            return {};
+        }
+        s += f;
+    } else {
+        s += ff_vertex(k);
+    }
+    if (ps) {
+        std::string error;
+        std::string f = sm::fragment_function(*ps, k, error);
+        if (f.empty()) {
+            report_once(ps->hash, "pixel translation failed: " + error);
+            return {};
+        }
+        s += f;
+    } else {
+        s += ff_fragment(k);
+    }
     return s;
 }
 

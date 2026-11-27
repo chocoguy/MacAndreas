@@ -1,0 +1,316 @@
+- addr: 0x00585bb7, 0x00577e32, 0x00577ee4, 0x005782e5, 0x00578394
+  kind: operand_slot
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_center
+  notes: "the map's center: half of 480 times the aspect ratio (the screen's for the full-screen map, the menu canvas's otherwise) instead of 320; the map origin moves with it when it changes; opening the map recenters on it"
+
+- addr: 0x00577714, 0x00577780, 0x00578074, 0x00578289
+  kind: operand_slot
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_cursor_right
+  notes: "the map cursor's right limit: the map's right edge minus 4"
+
+- addr: 0x00577794, 0x00577800, 0x00577fc4, 0x0057841c, 0x00577814, 0x00577888,
+    0x00578124, 0x00578751
+  kind: operand_slot
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_cursor_left
+  notes: "the map cursor's left limit: the map's inset plus 4"
+
+- addr: 0x0057789c, 0x00577908, 0x005781d4, 0x005785b2
+  kind: operand_slot
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_cursor_bottom
+  notes: "the map cursor's bottom limit: the map's bottom minus 4"
+
+- addr: 0x00573d64, 0x0057526e, 0x0057532e, 0x0058806b, 0x00588095, 0x005782d0,
+    0x00578374, 0x005783f8, 0x00578600, 0x005786a4, 0x00578730
+  kind: operand_slot
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_inset
+  notes: "the map's inset: 0 for the full-screen map, 60 in the framed one; rendering, tile streaming and input share it"
+
+- addr: 0x00573dcd, 0x00575353, 0x00577e1d, 0x00577ec1, 0x00577f45
+  kind: operand_slot
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_right
+  notes: "the map's right edge: the canvas width minus the inset, instead of 580"
+
+- addr: 0x00573df3, 0x00575303, 0x00578467, 0x00578506, 0x0057858d
+  kind: operand_slot
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_bottom
+  notes: "the map's bottom edge: 448 minus the inset, instead of 388"
+
+- addr: 0x0057533c
+  kind: operand_slot
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_left_scale
+  notes: "the map's left edge as a fraction of the canvas"
+
+- addr: 0x00575361
+  kind: operand_slot
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_right_scale
+  notes: "the map's right edge as a fraction of the canvas"
+
+- addr: 0x005752ec
+  kind: operand_slot
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_top_scale
+  notes: "the map's top edge as a fraction of 448"
+
+- addr: 0x00575311
+  kind: operand_slot
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_bottom_scale
+  notes: "the map's bottom edge as a fraction of 448"
+
+- addr: 0x00577679, 0x005779a8, 0x00577e70, 0x00578320, 0x005784b5, 0x00578650
+  kind: operand_slot
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_speed
+  notes: "map zoom and pan speed 14 instead of 7, as on the previous full-screen map"
+
+- addr: 0x005751a4
+  kind: mid_hook
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_init_origin
+  resume: 0x005751ab
+  notes: "PrintMap starts the map centered on the canvas's middle instead of x 320"
+
+- addr: 0x0057747d
+  kind: mid_hook
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_zoom_reference
+  notes: "zoom keeps the world point under the map cursor in place (mouse, keyboard and pad), through the game's own map projection, instead of the viewport midpoint"
+
+- addr: 0x00578785
+  kind: mid_hook
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_clamp_origin
+  resume: 0x00578821
+  notes: "the map-origin clamp: the pan range shrinks with zoom and reaches zero when an axis fits the viewport"
+
+- addr: 0x00573d24
+  kind: mid_hook
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_clamp_streaming
+  notes: "zoom input skips the native pan clamp: clamp before tile streaming so it matches drawing"
+
+- addr: 0x00575246
+  kind: mid_hook
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_clamp_draw
+  notes: "clamp before drawing the map"
+
+- addr: 0x00575715
+  kind: mid_hook
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_overview_begin
+  notes: "the zoomed-out overview starts: its square texture is widened to the 480/448 pixel scale"
+
+- addr: 0x00575b49
+  kind: mid_hook
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_overview_end
+  notes: "the overview ends"
+
+- addr: 0x005757b3, 0x00575862, 0x00575917, 0x005759c9, 0x00575b0e
+  kind: mid_hook
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_overview_rect
+  notes: "the overview's texture, frame and unrevealed-zone rectangles widen about the map origin by 480/448"
+
+- addr: 0x005834a1
+  kind: mid_hook
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_overview_projection
+  notes: "radar blips on the overview widen about the map origin by 480/448"
+
+- addr: 0x0058337b
+  kind: mid_hook
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_overview_limit_begin
+  notes: "the native blip clamp runs in its original x space on the overview"
+
+- addr: 0x005833c5
+  kind: mid_hook
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_overview_limit_end
+  notes: "then the blip returns to the widened overview"
+
+- addr: 0x00575f89
+  kind: mid_hook
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_area_name
+  notes: "the map's area name moves up 40 units on the full-screen map, which has no lower frame"
+
+- addr: 0x005760a1
+  kind: mid_hook
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_legend_window
+  notes: "the legend window is centered over the full-width map"
+
+- addr: 0x005761eb
+  kind: mid_hook
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_legend_entry
+  notes: "the legend's entries move with its window"
+
+- addr: 0x00577c7b
+  kind: call_redirect
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_top_y
+  notes: "map mouse hit tests and dragging use the drawn map's edges and center"
+
+- addr: 0x00577c94
+  kind: call_redirect
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_bottom_y
+  notes: "map mouse hit tests and dragging use the drawn map's edges and center"
+
+- addr: 0x00577cb7
+  kind: call_redirect
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_left_x
+  notes: "map mouse hit tests and dragging use the drawn map's edges and center"
+
+- addr: 0x00577cd0
+  kind: call_redirect
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_right_x
+  notes: "map mouse hit tests and dragging use the drawn map's edges and center"
+
+- addr: 0x00577d6f
+  kind: call_redirect
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_center_x
+  notes: "map mouse hit tests and dragging use the drawn map's edges and center"
+
+- addr: 0x00577d99
+  kind: call_redirect
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_center_x
+  notes: "map mouse hit tests and dragging use the drawn map's edges and center"
+
+- addr: 0x00577dab
+  kind: call_redirect
+  source: widescreen
+  group: map
+  setting: widescreen.hud
+  target: ws_map_center_x
+  notes: "map mouse hit tests and dragging use the drawn map's edges and center"
+
+- addr: 0x00575bf6, 0x00575c40, 0x00575c84, 0x00575cce, 0x00575d1f, 0x00575d6f,
+    0x00575dc2, 0x00575e12
+  kind: call_redirect
+  source: widescreen
+  group: map-frame
+  setting: widescreen.fullscreen_map
+  target: ws_skip_call
+  notes: "the full-screen map draws no frame or frame masks (CSprite2d::DrawRect calls skipped)"
+
+- addr: 0x00575a48, 0x00575a83
+  kind: mid_hook
+  source: widescreen
+  group: map-width-640
+  setting: widescreen.hud
+  target: ws_width_640
+  resume: +5
+  notes: "cmp eax, 640: the map's width == 640 shortcuts; the compare is made against a width that never matches, so the scale branch always runs, including 640-wide non-4:3 modes"
+
+- addr: 0x00575ec6, 0x00576017
+  kind: mid_hook
+  source: widescreen
+  group: map-width-640
+  setting: widescreen.hud
+  target: ws_width_640
+  resume: +5
+  notes: "mov esi, 640 before cmp eax, esi (esi is only compared with the width afterwards): the map's width == 640 shortcuts; the compare is made against a width that never matches, so the scale branch always runs, including 640-wide non-4:3 modes"
+
+- addr: 0x00575322, 0x00575347, 0x0057536f, 0x005754d0, 0x0057556a, 0x00575634,
+    0x00575670, 0x00575732, 0x0057576c, 0x005757e5, 0x0057581b, 0x00575894, 0x005758ca,
+    0x00575946, 0x00575976
+  kind: mid_hook
+  source: widescreen
+  group: map-width-640
+  setting: widescreen.hud
+  target: ws_width_640
+  len: 6
+  resume: +6
+  notes: "cmp esi, edx or ecx with 640: the map's width == 640 shortcuts; the compare is made against a width that never matches, so the scale branch always runs, including 640-wide non-4:3 modes"
+
+- addr: 0x00575b6a, 0x005761fb
+  kind: mid_hook
+  source: widescreen
+  group: map-width-640
+  setting: widescreen.hud
+  target: ws_width_640
+  len: 10
+  resume: +10
+  notes: "cmp RsGlobal.maximumWidth, 640: the map's width == 640 shortcuts; the compare is made against a width that never matches, so the scale branch always runs, including 640-wide non-4:3 modes"

@@ -240,8 +240,161 @@ void test_marker() {
     CHECK(has_error(errors.error(), "marker takes no bytes, target or len"));
 }
 
+void test_resume_addresses() {
+    auto ok = parse(R"(- addr: 0x00401000
+  kind: mid_hook
+  source: widescreen
+  group: g
+  target: ws_hook
+  resume: 0x00401006, 0x401010
+)", "resume.yaml");
+    CHECK(ok.has_value());
+    CHECK(ok && ok->entries[0].resume == std::vector<uint32_t>({0x401006, 0x401010}));
+    auto bad = parse(R"(- addr: 0x00401000
+  kind: func_replace
+  source: widescreen
+  group: g
+  target: ws_fn
+  resume: 0x00401006
+- addr: 0x00401020
+  kind: mid_hook
+  source: widescreen
+  group: g
+  target: ws_hook
+  resume: somewhere
+)", "resume.yaml");
+    CHECK(!bad.has_value());
+    CHECK(!bad && has_error(bad.error(), "func_replace takes no resume addresses"));
+    CHECK(!bad && has_error(bad.error(), "resume \"somewhere\" is not a 32-bit address or an offset +1 to +15"));
+    auto relative = parse(R"(- addr: 0x00401000, 0x00401020
+  kind: mid_hook
+  source: widescreen
+  group: g
+  target: ws_hook
+  resume: +6
+)", "resume.yaml");
+    CHECK(relative.has_value());
+    CHECK(relative && relative->entries.size() == 2);
+    CHECK(relative && relative->entries[0].resume == std::vector<uint32_t>({0x401006}));
+    CHECK(relative && relative->entries[1].resume == std::vector<uint32_t>({0x401026}));
+    auto far = parse(R"(- addr: 0x00401000
+  kind: mid_hook
+  source: widescreen
+  group: g
+  target: ws_hook
+  resume: +16
+)", "resume.yaml");
+    CHECK(!far && has_error(far.error(), "resume \"+16\" is not a 32-bit address or an offset +1 to +15"));
+}
+
+void test_operand_slots() {
+    auto ok = parse(R"(- addr: 0x0058eb3f, 0x0058ec0c,
+    0x0058f55c
+  kind: operand_slot
+  source: widescreen
+  group: hud
+  setting: widescreen.hud
+  target: ws_hud_width
+)", "slots.yaml");
+    CHECK(ok.has_value());
+    CHECK(ok && ok->entries.size() == 3);
+    CHECK(ok && ok->entries[2].addr == 0x58f55c && ok->entries[2].target == "ws_hud_width");
+    CHECK(ok && ok->entries[0].span() == 6 && ok->entries[0].lift_time());
+    CHECK(ma::manifest::operand_slot_address(0x58eb3f) == 0xE8000000u + 4 * 0x58eb3fu);
+    CHECK(ma::manifest::is_operand_slot_instruction(0xD8, 0x0D));
+    CHECK(ma::manifest::is_operand_slot_instruction(0xD9, 0x05));
+    CHECK(!ma::manifest::is_operand_slot_instruction(0xD9, 0x1D));
+    CHECK(!ma::manifest::is_operand_slot_instruction(0xD8, 0x4C));
+    auto bad = parse(R"(- addr: 0x00401000
+  kind: operand_slot
+  source: widescreen
+  group: g
+  bytes: 90
+- addr: 0x02000000
+  kind: operand_slot
+  source: widescreen
+  group: g
+  target: ws_slot
+- addr: 0x00401000, 0x00401010
+  kind: mid_hook
+  source: widescreen
+  group: g
+  target: ws_hook
+  resume: 0x00401006
+)", "slots.yaml");
+    CHECK(!bad.has_value());
+    CHECK(!bad && has_error(bad.error(), "operand_slot needs a target slot"));
+    CHECK(!bad && has_error(bad.error(), "operand_slot takes no bytes or len"));
+    CHECK(!bad && has_error(bad.error(), "operand_slot 0x02000000 is above 0x02000000"));
+    CHECK(!bad && has_error(bad.error(), "an entry with several addresses takes no resume addresses"));
+    auto data = parse(R"(- addr: 0x00866b78
+  kind: data_slot
+  source: widescreen
+  group: hud
+  target: ws_radar_width
+)", "slots.yaml");
+    CHECK(data && data->entries[0].span() == 4 && !data->entries[0].lift_time());
+}
+
+void test_groups_and_settings() {
+    auto m = parse(R"(- addr: 0x00401000
+  kind: data_poke
+  source: silentpatch
+  group: fix-a
+  bytes: "90"
+  setting: silentpatch.fix_a
+- addr: 0x00401010
+  kind: data_poke
+  source: widescreen
+  group: fix-a
+  bytes: "90"
+  setting: silentpatch.fix_a
+- addr: 0x00401020
+  kind: data_poke
+  source: silentpatch
+  group: fix-b
+  bytes: "01"
+  setting: silentpatch.fix_b
+- addr: 0x00401030
+  kind: data_poke
+  source: silentpatch
+  group: fix-b
+  bytes: "01"
+)",
+                   "groups.yaml");
+    CHECK(m.has_value());
+    if (!m) {
+        return;
+    }
+    CheckContext ctx;
+    ctx.is_known_setting = [](std::string_view key) { return key == "silentpatch.fix_a"; };
+    auto errors = check(*m, ctx);
+    CHECK(has_error(errors, "group fix-a mixes sources: widescreen here, silentpatch at groups.yaml:1"));
+    CHECK(has_error(errors, "group fix-b mixes settings: \"\" here, \"silentpatch.fix_b\" at groups.yaml:13"));
+    CHECK(has_error(errors, "setting \"silentpatch.fix_b\" is not a known settings key"));
+    CHECK(errors.size() == 3);
+
+    auto lift = parse(R"(- addr: 0x00401000
+  kind: byte_patch
+  source: silentpatch
+  group: fix-c
+  bytes: "90"
+  setting: silentpatch.fix_a
+)",
+                      "lift.yaml");
+    CHECK(lift.has_value());
+    if (lift) {
+        auto lift_errors = check(*lift, ctx);
+        CHECK(has_error(lift_errors, "lift-time patches cannot switch at run time"));
+        CHECK(lift_errors.size() == 1);
+    }
+}
+
 int main() {
     test_parse_valid();
+    test_groups_and_settings();
+    test_resume_addresses();
+    test_operand_slots();
     test_marker();
     test_parse_errors();
     test_conflicts();

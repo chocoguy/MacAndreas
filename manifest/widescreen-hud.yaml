@@ -1,0 +1,742 @@
+- addr: 0x0045c255, 0x0046e5a8, 0x00483eca, 0x00483fd3, 0x00573f93, 0x00573ff0,
+    0x005740bc, 0x00574110, 0x00574143, 0x00574761, 0x005747a6, 0x00574857,
+    0x005748aa, 0x005749a5, 0x00574da8, 0x00574e31, 0x00574ecc, 0x00574f30,
+    0x0057500f, 0x005750a1, 0x00575102, 0x0057538c, 0x00575b84, 0x00575edf,
+    0x00575f64, 0x0057602e, 0x0057605e, 0x0057613b, 0x005761bd, 0x00576215,
+    0x005763c0, 0x005763f5, 0x005764ce, 0x005765c0, 0x00576603, 0x00576646,
+    0x00576689, 0x0057672f, 0x00576772, 0x005767b5, 0x005767f8, 0x005769b2,
+    0x005769e9, 0x00578fb3, 0x00578fd1, 0x00579041, 0x00579154, 0x005791b1,
+    0x00579202, 0x00579220, 0x0057928c, 0x005795cf, 0x00579665, 0x00579718,
+    0x00579863, 0x00579981, 0x00579a01, 0x00579cc4, 0x0057a2a0, 0x0057a319,
+    0x0057a36e, 0x0057a3eb, 0x0057bd09, 0x0057bd40, 0x0057c529, 0x00582ddb,
+    0x00582eb0, 0x00583019, 0x00583128, 0x00583389, 0x005833a6, 0x005834ba,
+    0x005842e6, 0x0058439c, 0x00584434, 0x00585650, 0x0058a441, 0x0058a82e,
+    0x0058a982, 0x0058c0dc, 0x0058c142, 0x0058c4a1, 0x0058e4ed, 0x0058e7ce,
+    0x0058e7f8, 0x007038bb, 0x0070527e, 0x00719c0d, 0x00719c6e, 0x00719d2d,
+    0x00719d94, 0x00719dd1, 0x00719e0e, 0x00719e4b, 0x00719e6f, 0x00719e97,
+    0x0071e532, 0x0071f333, 0x0071f7fd, 0x00721690, 0x0072195b, 0x007288f5,
+    0x00728941, 0x0073145c, 0x007314f8, 0x00854826, 0x00854866
+  kind: operand_slot
+  source: widescreen
+  group: hud-scale
+  setting: widescreen.hud
+  target: ws_hud_scale
+  notes: "2D scale factors after fild RsGlobal.maximumWidth: each keeps its value divided by aspect/(4/3), so widths keep their 4:3 proportions"
+
+- addr: 0x0043cf57, 0x004477cd, 0x004477f7, 0x0047ad2a, 0x004e9f30, 0x00580f16,
+    0x00580f95, 0x005810ef, 0x00581158, 0x005811cd, 0x0058148a, 0x005814f7,
+    0x005815b1, 0x005815eb, 0x00581633, 0x005818cf, 0x00589155, 0x0058922d,
+    0x005892ca, 0x0058937e, 0x005894c5, 0x005894e9, 0x005896d8, 0x00589703,
+    0x005897c3, 0x0058986d, 0x0058990c, 0x00589a16, 0x00589b2d, 0x00589c73,
+    0x00589d61, 0x00589e49, 0x00589f31, 0x0058a013, 0x0058a090, 0x0058a134,
+    0x0058a178, 0x0058a21d, 0x0058a2c0, 0x0058ad3a, 0x0058ad65, 0x0058ae4a,
+    0x0058b09f, 0x0058b13f, 0x0058b273, 0x0058b2a4, 0x0058b3af, 0x0058b3fc,
+    0x0058b56a, 0x0058b5ee, 0x0058b67e, 0x0058b76f, 0x0058b7d6, 0x0058ba62,
+    0x0058bac6, 0x0058bbdb, 0x0058bcb0, 0x0058bd58, 0x0058be8d, 0x0058bf7e,
+    0x0058bffc, 0x0058c395, 0x0058c41d, 0x0058c4dc, 0x0058c863, 0x0058cbc1,
+    0x0058ccdb, 0x0058cde6, 0x0058cee2, 0x0058d15c, 0x0058d2db, 0x0058d459,
+    0x0058d8c3, 0x0058d92d, 0x0058dcb8, 0x0058dd00, 0x0058dd7e, 0x0058df71,
+    0x0058dfe5, 0x0058eb3f, 0x0058ec0c, 0x0058ee7e, 0x0058eef4, 0x0058ef50,
+    0x0058efc5, 0x0058f116, 0x0058f194, 0x0058f55c, 0x0058f5f4, 0x0058f91c,
+    0x0058f9d0, 0x0058fa5d
+  kind: operand_slot
+  source: widescreen
+  group: hud-scale
+  setting: widescreen.hud
+  target: ws_hud_width
+  notes: "m_dwHUDWidth: clock, money, info bars, weapon icons, ammo, wanted stars, vehicle and area names, subtitles, stats box, mission texts, timers, help text, menu system, odd jobs, trip skip, radio station, rampage and garage texts use (1/640)/(aspect/(4/3)) times the HUD width percent"
+
+- addr: 0x0043cf47, 0x004477b7, 0x004478ac, 0x004e9f1a, 0x00580e11, 0x00580f85,
+    0x005810cc, 0x00581132, 0x005811a1, 0x0058147a, 0x005814e7, 0x00581699,
+    0x00581889, 0x00588b9c, 0x0058913e, 0x00589216, 0x00589346, 0x005894af,
+    0x00589735, 0x0058978b, 0x00589813, 0x0058983f, 0x005898bd, 0x005898f6,
+    0x005899ff, 0x00589a4b, 0x00589b16, 0x00589c5c, 0x00589ca8, 0x00589d4a,
+    0x00589d92, 0x00589e32, 0x00589e7a, 0x00589f1a, 0x00589f62, 0x00589ffc,
+    0x0058a040, 0x0058a07a, 0x0058ad24, 0x0058ae0d, 0x0058b089, 0x0058b12d,
+    0x0058b263, 0x0058b5de, 0x0058b7bd, 0x0058ba4c, 0x0058bba7, 0x0058bd19,
+    0x0058be2b, 0x0058bf1c, 0x0058bfcb, 0x0058c37f, 0x0058c407, 0x0058c4c6,
+    0x0058c84d, 0x0058cbab, 0x0058ccc5, 0x0058cdd0, 0x0058cecc, 0x0058d146,
+    0x0058d2c5, 0x0058d882, 0x0058d945, 0x0058dca2, 0x0058dd68, 0x0058ddf4,
+    0x0058dee4, 0x0058df55, 0x0058df9b, 0x0058eb29, 0x0058ebf9, 0x0058ee60,
+    0x0058eec8, 0x0058ef32, 0x0058ef99, 0x0058f0f8, 0x0058f168, 0x0058f546,
+    0x0058f5ce, 0x0058f90b, 0x0058f9c0, 0x0058fa4a
+  kind: operand_slot
+  source: widescreen
+  group: hud-scale
+  setting: widescreen.hud
+  target: ws_hud_height
+  notes: "m_dwHUDHeight: the same elements use 1/448 times the HUD height percent"
+
+- addr: 0x0058f92d, 0x0058f9f5, 0x0058fa8e
+  kind: operand_slot
+  source: widescreen
+  group: hud-scale
+  setting: widescreen.hud
+  target: ws_weapon_icon_width
+  notes: "weapon icon and both ammo widths: 0.17343046/(aspect/(4/3)) times the HUD width percent"
+
+- addr: 0x0058d894, 0x0058d94b
+  kind: operand_slot
+  source: widescreen
+  group: hud-scale
+  setting: widescreen.hud
+  target: ws_weapon_icon_left
+  notes: "weapon icon x: 47 instead of 58, the constant at 0x866c4c"
+
+- addr: 0x00576398, 0x0057a1e3, 0x0057a47d, 0x0057a4cb, 0x0057a4ee
+  kind: operand_slot
+  source: widescreen
+  group: hud-scale
+  setting: widescreen.hud
+  target: ws_unscaled_width
+  notes: "main menu, its entry sprite and the briefs text scale keep 1/640 when the shared 1/640 narrows"
+
+- addr: 0x00859520
+  kind: data_slot
+  source: widescreen
+  group: hud-scale
+  setting: widescreen.hud
+  target: ws_menu_width
+  site: ws-1e5411ee.0
+  notes: "the shared 1/640 (ResXInv) becomes (1/640)/(aspect/(4/3)) for its remaining users"
+
+- addr: 0x0085951c
+  kind: data_slot
+  source: widescreen
+  group: hud-scale
+  setting: widescreen.hud
+  target: ws_menu_scaled_width
+  site: ws-1e5411ee.0
+  notes: "the shared 640 (ScaledResX) becomes 480 times the aspect ratio"
+
+- addr: 0x0053e3e7, 0x0053e409, 0x0058e2c8, 0x0058e319, 0x0058e527, 0x0058e773,
+    0x0058e7e4, 0x0058e80e
+  kind: operand_slot
+  source: widescreen
+  group: crosshair
+  setting: widescreen.hud
+  target: ws_crosshair_height
+  notes: "m_dwCrosshairHeight: the crosshairs use 1/480 instead of 1/448; 0x58e2c8 is an fadd of 1.0 on 1.0 US and the mod points it at 1/480 as well"
+
+- addr: 0x00742e50, 0x00742e61, 0x00742ede, 0x00742eef, 0x00742ffd, 0x0074300e,
+    0x007430a2, 0x007430b3
+  kind: operand_slot
+  source: widescreen
+  group: crosshair
+  setting: widescreen.hud
+  target: ws_lock_on_width
+  notes: "rocket launcher and Hydra lock-ons use 20.0 instead of 28.0, so they are circles rather than ellipses"
+
+- addr: 0x00866b78
+  kind: data_slot
+  source: widescreen
+  group: radar
+  setting: widescreen.hud
+  target: ws_radar_width
+  site: ws-677f461c
+  notes: "radar width from widescreen.radar_width (85.5 by default) instead of 94"
+
+- addr: 0x00866b74
+  kind: data_slot
+  source: widescreen
+  group: radar
+  setting: widescreen.hud
+  target: ws_radar_height
+  site: ws-677f461c
+  notes: "radar height from widescreen.radar_height (78 by default) instead of 76"
+
+- addr: 0x0058ef57, 0x0058efcc, 0x0058f11d, 0x0058f19b
+  kind: operand_slot
+  source: widescreen
+  group: radar
+  setting: widescreen.hud
+  target: ws_player_info_bars_x
+  notes: "CHud::DrawPlayerInfo's bars read the radar width as their x: they keep 94"
+
+- addr: 0x0058c385, 0x0058c40d
+  kind: operand_slot
+  source: widescreen
+  group: subtitles
+  setting: widescreen.hud
+  target: ws_subtitles_width
+  notes: "gameplay subtitle letter width 1.2 times widescreen.subtitles_scale (the second was 1.22)"
+
+- addr: 0x0058c39b, 0x0058c423, 0x0058c4e2
+  kind: operand_slot
+  source: widescreen
+  group: subtitles
+  setting: widescreen.hud
+  target: ws_subtitles_height
+  notes: "gameplay subtitle letter height 0.58 times widescreen.subtitles_scale"
+
+- addr: 0x0058c51d, 0x0058c5f0
+  kind: operand_slot
+  source: widescreen
+  group: subtitles
+  setting: widescreen.hud
+  target: ws_subtitles_wrap_reserve
+  notes: "subtitle wrap width reserves the radar's space on both sides: 2 * max(140, 40 + radar width + 6) - 20"
+
+- addr: 0x0058c576, 0x0058c643
+  kind: operand_slot
+  source: widescreen
+  group: subtitles
+  setting: widescreen.hud
+  target: ws_subtitles_shift
+  notes: "subtitle x shift 20 instead of 140, which centers them"
+
+- addr: 0x0058c5be
+  kind: operand_slot
+  source: widescreen
+  group: subtitles
+  setting: widescreen.hud
+  target: ws_zero
+  notes: "the vital-stats branch's extra 40 after centering becomes 0"
+
+- addr: 0x007193bc
+  kind: operand_slot
+  source: widescreen
+  group: subtitles
+  setting: widescreen.hud
+  target: ws_one
+  notes: "CFont::SetScaleForCurrentlanguage: other languages keep the English letter width (1.0 instead of 0.8)"
+
+- addr: 0x0057e3a5
+  kind: call_redirect
+  source: widescreen
+  group: menu-helper-text
+  setting: widescreen.hud
+  target: ws_menu_from_right
+  notes: "the menu helper text's StretchX(610.0) becomes 30 scaled units from the right edge, so the text stays right-aligned"
+
+- addr: 0x00481300, 0x00483bd0, 0x0048a320, 0x0048cdd0, 0x0046d050, 0x00472310,
+    0x00470a90, 0x00474900, 0x004762d0
+  kind: mid_hook
+  source: widescreen
+  group: script-text
+  setting: widescreen.hud
+  target: ws_script_command
+  notes: "script command handlers: texts and rectangles added since the last command belong to the script that ran it, so DrawScriptText can lay out minigame panels by script"
+
+- addr: 0x0058d552
+  kind: call_redirect
+  source: widescreen
+  group: script-text
+  setting: widescreen.hud
+  target: ws_draw_script_text
+  site: ws-e03c0a40
+  notes: "CHud::DrawScriptText: script texts and rectangles move by the 4:3 pillar width (left and right panels of listed minigames to the HUD edges), pool and track-betting labels shrink to fit, and the records are restored after drawing"
+
+- addr: 0x0058fce4
+  kind: call_redirect
+  source: widescreen
+  group: script-text
+  setting: widescreen.hud
+  target: ws_draw_script_text
+  site: ws-e03c0a40
+  notes: "CHud::DrawScriptText: script texts and rectangles move by the 4:3 pillar width (left and right panels of listed minigames to the HUD edges), pool and track-betting labels shrink to fit, and the records are restored after drawing"
+
+- addr: 0x00582687
+  kind: call_redirect
+  source: widescreen
+  group: script-menus
+  setting: widescreen.hud
+  target: ws_script_menu_call
+  site: ws-319e75b1
+  notes: "script menu (shop, gym and result panels) drawn with its x moved like script panels; none on the map"
+
+- addr: 0x005826d9
+  kind: call_redirect
+  source: widescreen
+  group: script-menus
+  setting: widescreen.hud
+  target: ws_script_menu_call
+  site: ws-319e75b1
+  notes: "script menu (shop, gym and result panels) drawn with its x moved like script panels; none on the map"
+
+- addr: 0x00582757
+  kind: call_redirect
+  source: widescreen
+  group: script-menus
+  setting: widescreen.hud
+  target: ws_script_menu_call
+  site: ws-319e75b1
+  notes: "script menu (shop, gym and result panels) drawn with its x moved like script panels; none on the map"
+
+- addr: 0x00582679
+  kind: call_redirect
+  source: widescreen
+  group: script-menus
+  setting: widescreen.hud
+  target: ws_script_menu_call
+  site: ws-22330b9b
+  notes: "script menu (shop, gym and result panels) drawn with its x moved like script panels; none on the map"
+
+- addr: 0x005826cf
+  kind: call_redirect
+  source: widescreen
+  group: script-menus
+  setting: widescreen.hud
+  target: ws_script_menu_call
+  site: ws-22330b9b
+  notes: "script menu (shop, gym and result panels) drawn with its x moved like script panels; none on the map"
+
+- addr: 0x0058274d
+  kind: call_redirect
+  source: widescreen
+  group: script-menus
+  setting: widescreen.hud
+  target: ws_script_menu_call
+  site: ws-22330b9b
+  notes: "script menu (shop, gym and result panels) drawn with its x moved like script panels; none on the map"
+
+- addr: 0x00582627
+  kind: mid_hook
+  source: widescreen
+  group: script-menus
+  setting: widescreen.hud
+  target: ws_script_menu_tail_a
+  site: ws-319e75b1
+  notes: "the tail jump to the first script menu renderer: drawn as a call with the panel moved, then returns to the caller"
+
+- addr: 0x0058261e
+  kind: mid_hook
+  source: widescreen
+  group: script-menus
+  setting: widescreen.hud
+  target: ws_script_menu_tail_b
+  site: ws-22330b9b
+  notes: "the tail jump to the second script menu renderer: drawn as a call with the panel moved, then returns to the caller"
+
+- addr: 0x00579538
+  kind: call_redirect
+  source: widescreen
+  group: menu-pages
+  setting: widescreen.hud
+  target: ws_menu_page
+  site: ws-17c80d70
+  notes: "the menu's radio station list page draws 2D moved right by the 4:3 pillar width"
+
+- addr: 0x00579541
+  kind: call_redirect
+  source: widescreen
+  group: menu-pages
+  setting: widescreen.hud
+  target: ws_menu_page
+  site: ws-11b0a1c2
+  notes: "the menu's briefs page draws 2D moved right by the 4:3 pillar width"
+
+- addr: 0x0057954a
+  kind: call_redirect
+  source: widescreen
+  group: menu-pages
+  setting: widescreen.hud
+  target: ws_menu_page
+  site: ws-a170eccb
+  notes: "the menu's stats page draws 2D moved right by the 4:3 pillar width"
+
+- addr: 0x0058fbd6
+  kind: call_redirect
+  source: widescreen
+  group: hud-elements
+  setting: widescreen.hud
+  target: ws_hud_element_right
+  site: ws-9eb69cc0
+  notes: "player info: drawn moved toward the center to fit the HUD aspect ratio setting (nothing moves under auto)"
+
+- addr: 0x0058fc53
+  kind: call_redirect
+  source: widescreen
+  group: hud-elements
+  setting: widescreen.hud
+  target: ws_hud_element_left
+  site: ws-69f1242b
+  notes: "radar: drawn moved toward the center to fit the HUD aspect ratio setting (nothing moves under auto)"
+
+- addr: 0x0058fc45
+  kind: call_redirect
+  source: widescreen
+  group: hud-elements
+  setting: widescreen.hud
+  target: ws_hud_element_left
+  site: ws-ab19fbf6
+  notes: "vital stats: drawn moved toward the center to fit the HUD aspect ratio setting (nothing moves under auto)"
+
+- addr: 0x0058fcfa
+  kind: call_redirect
+  source: widescreen
+  group: hud-elements
+  setting: widescreen.hud
+  target: ws_hud_element_left
+  site: ws-c811139e
+  notes: "help text: drawn moved toward the center to fit the HUD aspect ratio setting (nothing moves under auto)"
+
+- addr: 0x0058d542
+  kind: call_redirect
+  source: widescreen
+  group: hud-elements
+  setting: widescreen.hud
+  target: ws_hud_element_right
+  site: ws-f1748044
+  notes: "area name: drawn moved toward the center to fit the HUD aspect ratio setting (nothing moves under auto)"
+
+- addr: 0x0058fbe9
+  kind: call_redirect
+  source: widescreen
+  group: hud-elements
+  setting: widescreen.hud
+  target: ws_hud_element_right
+  site: ws-2db6131f
+  notes: "vehicle name: drawn moved toward the center to fit the HUD aspect ratio setting (nothing moves under auto)"
+
+- addr: 0x0058fbee
+  kind: call_redirect
+  source: widescreen
+  group: hud-elements
+  setting: widescreen.hud
+  target: ws_hud_element_right
+  site: ws-134bb060
+  notes: "timers: drawn moved toward the center to fit the HUD aspect ratio setting (nothing moves under auto)"
+
+- addr: 0x0058fc6a
+  kind: call_redirect
+  source: widescreen
+  group: hud-elements
+  setting: widescreen.hud
+  target: ws_hud_element_left
+  notes: "trip skip: drawn moved toward the center to fit the HUD aspect ratio setting (nothing moves under auto)"
+
+- addr: 0x0053e82d
+  kind: call_redirect
+  source: widescreen
+  group: menu-canvas
+  setting: widescreen.hud
+  target: ws_menu_draw_call
+  site: ws-2e747ef8
+  notes: "CMenuManager::DrawFrontEnd in the menu canvas: RsGlobal's width becomes the canvas width, 2D moves to its middle, the bars beside it are black and the mouse is in canvas space"
+
+- addr: 0x0053eb8c
+  kind: call_redirect
+  source: widescreen
+  group: menu-canvas
+  setting: widescreen.hud
+  target: ws_menu_draw_call
+  site: ws-2e747ef8
+  notes: "CMenuManager::DrawFrontEnd in the menu canvas: RsGlobal's width becomes the canvas width, 2D moves to its middle, the bars beside it are black and the mouse is in canvas space"
+
+- addr: 0x0053e53e
+  kind: mid_hook
+  source: widescreen
+  group: menu-canvas
+  setting: widescreen.hud
+  target: ws_menu_draw_tail
+  site: ws-2e747ef8
+  notes: "the tail jump to CMenuManager::DrawFrontEnd: drawn in the menu canvas as a call, then returns to the caller"
+
+- addr: 0x0053bf44
+  kind: call_redirect
+  source: widescreen
+  group: menu-canvas
+  setting: widescreen.hud
+  target: ws_menu_input_call
+  site: ws-3d23eab5
+  notes: "CMenuManager::ProcessInput in the menu canvas, so hit tests use the same layout and mouse space as drawing"
+
+- addr: 0x0053e7a5
+  kind: call_redirect
+  source: widescreen
+  group: menu-canvas
+  setting: widescreen.hud
+  target: ws_menu_input_call
+  site: ws-3d23eab5
+  notes: "CMenuManager::ProcessInput in the menu canvas, so hit tests use the same layout and mouse space as drawing"
+
+- addr: 0x00580044
+  kind: mid_hook
+  source: widescreen
+  group: menu-canvas
+  setting: widescreen.hud
+  target: ws_menu_mouse_range
+  site: ws-39548f8b
+  notes: "after the native clamp to the narrower canvas: the mouse x is the raw x in canvas space, limited only by the physical screen edges"
+
+- addr: 0x00574509
+  kind: call_redirect
+  source: widescreen
+  group: menu-canvas
+  setting: widescreen.hud
+  target: ws_menu_video_mode
+  site: ws-7359caeb
+  notes: "the video mode change uses the physical screen; the canvas is applied again afterwards for the new mode"
+
+- addr: 0x0057d096
+  kind: call_redirect
+  source: widescreen
+  group: menu-canvas
+  setting: widescreen.hud
+  target: ws_menu_video_mode
+  site: ws-7359caeb
+  notes: "the video mode change uses the physical screen; the canvas is applied again afterwards for the new mode"
+
+- addr: 0x0057d16e
+  kind: call_redirect
+  source: widescreen
+  group: menu-canvas
+  setting: widescreen.hud
+  target: ws_menu_video_mode
+  site: ws-7359caeb
+  notes: "the video mode change uses the physical screen; the canvas is applied again afterwards for the new mode"
+
+- addr: 0x0057d2b2
+  kind: call_redirect
+  source: widescreen
+  group: menu-canvas
+  setting: widescreen.hud
+  target: ws_menu_video_mode
+  site: ws-7359caeb
+  notes: "the video mode change uses the physical screen; the canvas is applied again afterwards for the new mode"
+
+- addr: 0x00574519
+  kind: call_redirect
+  source: widescreen
+  group: menu-canvas
+  setting: widescreen.hud
+  target: ws_menu_centre_mouse
+  site: ws-d1e2e61a
+  notes: "CentreMousePointer uses the physical screen"
+
+- addr: 0x0057d0a0
+  kind: call_redirect
+  source: widescreen
+  group: menu-canvas
+  setting: widescreen.hud
+  target: ws_menu_centre_mouse
+  site: ws-d1e2e61a
+  notes: "CentreMousePointer uses the physical screen"
+
+- addr: 0x00718a41
+  kind: operand_slot
+  source: widescreen
+  group: script-text
+  setting: widescreen.hud
+  target: ws_print_char_min_x
+  notes: "CFont::PrintChar's left cull edge becomes the 4:3 inset (negative on wide screens), so text moved into the centered canvas is not cut"
+
+- addr: 0x00728350
+  kind: mid_hook
+  source: widescreen
+  group: splash-screens
+  setting: widescreen.hud
+  target: ws_sprite_draw
+  notes: "CSprite2d::Draw: a full-screen textured sprite (splash and loading screens, not the map) is drawn at its texture's aspect ratio (4:3 for square and 2:1 rasters), centered, with black bars beside it at the sprite's alpha; the caller's rectangle is left alone. The tvcorn and backbet textures get black 4:3 pillar bars."
+
+- addr: 0x00590480
+  kind: mid_hook
+  source: widescreen
+  group: splash-screens
+  setting: widescreen.hud
+  target: ws_loading_bar
+  notes: "the loading screen's DrawBarChart call: the bar sits at the artwork's logo (widescreen LOADSCS art) or at the 4:3 position inside the centered splash"
+
+- addr: 0x0057a8d1
+  kind: call_redirect
+  source: widescreen
+  group: menu-sliders
+  setting: widescreen.hud
+  target: ws_display_slider
+  site: ws-ad5b7411
+  notes: "the menu slider is drawn 140 scaled units from the right edge, 100 wide with 3-unit notches; its minimum is the slider's left edge for mouse hit tests"
+
+- addr: 0x0057aace
+  kind: call_redirect
+  source: widescreen
+  group: menu-sliders
+  setting: widescreen.hud
+  target: ws_display_slider
+  site: ws-ad5b7411
+  notes: "the menu slider is drawn 140 scaled units from the right edge, 100 wide with 3-unit notches; its minimum is the slider's left edge for mouse hit tests"
+
+- addr: 0x0057ad0b
+  kind: call_redirect
+  source: widescreen
+  group: menu-sliders
+  setting: widescreen.hud
+  target: ws_display_slider
+  site: ws-ad5b7411
+  notes: "the menu slider is drawn 140 scaled units from the right edge, 100 wide with 3-unit notches; its minimum is the slider's left edge for mouse hit tests"
+
+- addr: 0x0057aeee
+  kind: call_redirect
+  source: widescreen
+  group: menu-sliders
+  setting: widescreen.hud
+  target: ws_display_slider
+  site: ws-ad5b7411
+  notes: "the menu slider is drawn 140 scaled units from the right edge, 100 wide with 3-unit notches; its minimum is the slider's left edge for mouse hit tests"
+
+- addr: 0x0057b122
+  kind: call_redirect
+  source: widescreen
+  group: menu-sliders
+  setting: widescreen.hud
+  target: ws_display_slider
+  site: ws-ad5b7411
+  notes: "the menu slider is drawn 140 scaled units from the right edge, 100 wide with 3-unit notches; its minimum is the slider's left edge for mouse hit tests"
+
+- addr: 0x0057a9ce
+  kind: call_redirect
+  source: widescreen
+  group: menu-sliders
+  setting: widescreen.hud
+  target: ws_slider_left
+  notes: "slider mouse hit test: the left edge is the drawn slider's"
+
+- addr: 0x0057abc9
+  kind: call_redirect
+  source: widescreen
+  group: menu-sliders
+  setting: widescreen.hud
+  target: ws_slider_left
+  notes: "slider mouse hit test: the left edge is the drawn slider's"
+
+- addr: 0x0057ae06
+  kind: call_redirect
+  source: widescreen
+  group: menu-sliders
+  setting: widescreen.hud
+  target: ws_slider_left
+  notes: "slider mouse hit test: the left edge is the drawn slider's"
+
+- addr: 0x0057afe9
+  kind: call_redirect
+  source: widescreen
+  group: menu-sliders
+  setting: widescreen.hud
+  target: ws_slider_left
+  notes: "slider mouse hit test: the left edge is the drawn slider's"
+
+- addr: 0x0057b219
+  kind: call_redirect
+  source: widescreen
+  group: menu-sliders
+  setting: widescreen.hud
+  target: ws_slider_left
+  notes: "slider mouse hit test: the left edge is the drawn slider's"
+
+- addr: 0x0057a983
+  kind: call_redirect
+  source: widescreen
+  group: menu-sliders
+  setting: widescreen.hud
+  target: ws_slider_right
+  notes: "slider mouse hit test: the right edge is the screen's"
+
+- addr: 0x0057ab7e
+  kind: call_redirect
+  source: widescreen
+  group: menu-sliders
+  setting: widescreen.hud
+  target: ws_slider_right
+  notes: "slider mouse hit test: the right edge is the screen's"
+
+- addr: 0x0057adbb
+  kind: call_redirect
+  source: widescreen
+  group: menu-sliders
+  setting: widescreen.hud
+  target: ws_slider_right
+  notes: "slider mouse hit test: the right edge is the screen's"
+
+- addr: 0x0057af9e
+  kind: call_redirect
+  source: widescreen
+  group: menu-sliders
+  setting: widescreen.hud
+  target: ws_slider_right
+  notes: "slider mouse hit test: the right edge is the screen's"
+
+- addr: 0x0057b1d2
+  kind: call_redirect
+  source: widescreen
+  group: menu-sliders
+  setting: widescreen.hud
+  target: ws_slider_right
+  notes: "slider mouse hit test: the right edge is the screen's"
+
+- addr: 0x0058c68a
+  kind: call_redirect
+  source: widescreen
+  group: subtitles
+  setting: widescreen.hud
+  target: ws_print_subtitles
+  notes: "CHud::DrawSubtitles' CFont::PrintString: subtitles that would reach past 6 units above the bottom edge move up, so larger subtitles stay on screen"
+
+- addr: 0x0058c603
+  kind: call_redirect
+  source: widescreen
+  group: subtitles
+  setting: widescreen.hud
+  target: ws_subtitle_centre_size
+  notes: "CHud::DrawSubtitles' CFont::SetCentreSize on gameplay's normal branch: both margins move inward with a narrower HUD aspect (widescreen.hud_aspect), so subtitles stay between the moved radar margins"
+
+- addr: 0x0058c536
+  kind: call_redirect
+  source: widescreen
+  group: subtitles
+  setting: widescreen.hud
+  target: ws_subtitle_centre_size_stats
+  notes: "the same on the vital-stats branch, whose width is scaled by 0.8"
+
+- addr: 0x005733e0
+  kind: func_replace
+  source: widescreen
+  group: width-640
+  setting: widescreen.hud
+  target: ws_stretch_x
+  notes: "CMenuManager::StretchX without its width == 640 shortcut: x × width × the shared 1/640, so a 640-wide non-4:3 mode is scaled too"
+
+- addr: 0x0057699d, 0x005769d4, 0x005740fb, 0x0057412e, 0x0057bcf4, 0x0057bd2b
+  kind: mid_hook
+  source: widescreen
+  group: width-640
+  setting: widescreen.hud
+  target: ws_width_640
+  resume: +5
+  notes: "cmp eax, 640 in the shared size conversion, the dialog text and the radio scan progress: the compare is made against a width that never matches, so 640-wide modes of any height scale"
+
+- addr: 0x0057bdaf, 0x0057bdde
+  kind: mid_hook
+  source: widescreen
+  group: width-640
+  setting: widescreen.hud
+  target: ws_width_640
+  len: 6
+  resume: +6
+  notes: "cmp ecx, 640 in the radio scan progress: the compare is made against a width that never matches, so 640-wide modes of any height scale"
+
+- addr: 0x005740a0, 0x005741ba, 0x005742df
+  kind: mid_hook
+  source: widescreen
+  group: width-640
+  setting: widescreen.hud
+  target: ws_width_640
+  len: 10
+  resume: +10
+  notes: "cmp RsGlobal.maximumWidth, 640 in the dialog window: the compare is made against a width that never matches, so 640-wide modes of any height scale"
+
+- addr: 0x0057bd70, 0x0057be2b
+  kind: call_redirect
+  source: widescreen
+  group: width-640
+  setting: widescreen.hud
+  target: ws_radio_scan_rect
+  notes: "the radio scan dialog's track and its moving segment (CSprite2d::DrawRect) move into the dialog's centered 4:3 canvas"
+
+- addr: 0x00743bca
+  kind: mid_hook
+  source: widescreen
+  group: coop-crosshair
+  setting: widescreen.hud
+  target: ws_coop_crosshair
+  resume: 0x00743bce
+  notes: "the co-op in-car crosshair's height multiplies by the same argument as its width, so it is a circle (the mod's byte patch at 0x743bcd, clippy95)"

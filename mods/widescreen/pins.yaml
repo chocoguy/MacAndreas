@@ -1,0 +1,660 @@
+pins:
+  - id: "ws-bdffad20"
+    group: "Aspect ratio and Hor+ field of view"
+    reason: "Draw.ixx and Main.ixx CameraSize work together: the real aspect ratio, a Hor+ field of view and the view window and aim that follow it"
+  - id: "ws-353095b6"
+    group: "Aspect ratio and Hor+ field of view"
+    reason: "Draw.ixx and Main.ixx CameraSize work together: the real aspect ratio, a Hor+ field of view and the view window and aim that follow it"
+  - id: "ws-7a7cb2e4"
+    group: "Aspect ratio and Hor+ field of view"
+    reason: "Draw.ixx and Main.ixx CameraSize work together: the real aspect ratio, a Hor+ field of view and the view window and aim that follow it"
+  - id: "ws-776b2cc7"
+    group: "Aspect ratio and Hor+ field of view"
+    reason: "Draw.ixx and Main.ixx CameraSize work together: the real aspect ratio, a Hor+ field of view and the view window and aim that follow it"
+  - id: "ws-99438dc1"
+    group: "Aspect ratio and Hor+ field of view"
+    reason: "Draw.ixx and Main.ixx CameraSize work together: the real aspect ratio, a Hor+ field of view and the view window and aim that follow it"
+  - id: "ws-e1519a41"
+    group: "Aspect ratio and Hor+ field of view"
+    reason: "Draw.ixx and Main.ixx CameraSize work together: the real aspect ratio, a Hor+ field of view and the view window and aim that follow it"
+  - id: "ws-d6d17bbe"
+    group: "Aspect ratio and Hor+ field of view"
+    reason: "Draw.ixx and Main.ixx CameraSize work together: the real aspect ratio, a Hor+ field of view and the view window and aim that follow it"
+  - id: "ws-69531083"
+    group: "Aspect ratio and Hor+ field of view"
+    reason: "Draw.ixx and Main.ixx CameraSize work together: the real aspect ratio, a Hor+ field of view and the view window and aim that follow it"
+  - id: "ws-5ebde94f"
+    group: "Aspect ratio and Hor+ field of view"
+    reason: "Draw.ixx and Main.ixx CameraSize work together: the real aspect ratio, a Hor+ field of view and the view window and aim that follow it"
+  - id: "ws-82ab1558"
+    group: "Aspect ratio and Hor+ field of view"
+    reason: "Draw.ixx and Main.ixx CameraSize work together: the real aspect ratio, a Hor+ field of view and the view window and aim that follow it"
+  - id: "ws-dfd5b0a4"
+    addrs:
+      - 0x0043cf59
+      - 0x004477cf
+      - 0x0045c257
+      - 0x0046e5aa
+      - 0x00483ecc
+      - 0x00483fd5
+      - 0x004e9f32
+      - 0x00573f95
+      - 0x00573ff2
+      - 0x005740be
+      - 0x00574112
+      - 0x00574145
+      - 0x00574763
+      - 0x005747a8
+      - 0x00574859
+      - 0x005748ac
+      - 0x005749a7
+      - 0x00574daa
+      - 0x00574e33
+      - 0x00574ece
+      - 0x00574f32
+      - 0x00575011
+      - 0x005750a3
+      - 0x00575104
+      - 0x0057538e
+      - 0x00575b86
+      - 0x00575ee1
+      - 0x00575f66
+      - 0x00576030
+      - 0x00576060
+      - 0x0057613d
+      - 0x005761bf
+      - 0x00576217
+      - 0x005763c2
+      - 0x005763f7
+      - 0x005764d0
+      - 0x005765c2
+      - 0x00576605
+      - 0x00576648
+      - 0x0057668b
+      - 0x00576731
+      - 0x00576774
+      - 0x005767b7
+      - 0x005767fa
+      - 0x005769b4
+      - 0x005769eb
+      - 0x00578fb5
+      - 0x00578fd3
+      - 0x00579043
+      - 0x00579156
+      - 0x005791b3
+      - 0x00579204
+      - 0x00579222
+      - 0x0057928e
+      - 0x005795d1
+      - 0x00579667
+      - 0x0057971a
+      - 0x00579865
+      - 0x00579983
+      - 0x00579a03
+      - 0x00579cc6
+      - 0x0057a1e5
+      - 0x0057a2a2
+      - 0x0057a31b
+      - 0x0057a370
+      - 0x0057a3ed
+      - 0x0057a47f
+      - 0x0057a4cd
+      - 0x0057a4f0
+      - 0x0057bd0b
+      - 0x0057bd42
+      - 0x0057c52b
+      - 0x00580f18
+      - 0x005810f1
+      - 0x0058115a
+      - 0x005811cf
+      - 0x0058148c
+      - 0x005814f9
+      - 0x005815b3
+      - 0x005815ed
+      - 0x00581635
+      - 0x005818d1
+      - 0x00582ddd
+      - 0x00582eb2
+      - 0x0058301b
+      - 0x0058312a
+      - 0x0058338b
+      - 0x005833a8
+      - 0x005834bc
+      - 0x005842e8
+      - 0x0058439e
+      - 0x00584436
+      - 0x00585652
+      - 0x00589157
+      - 0x0058922f
+      - 0x00589380
+      - 0x005894c7
+      - 0x005896da
+      - 0x005897c5
+      - 0x0058986f
+      - 0x0058990e
+      - 0x00589a18
+      - 0x00589b2f
+      - 0x00589c75
+      - 0x00589d63
+      - 0x00589e4b
+      - 0x00589f33
+      - 0x0058a015
+      - 0x0058a092
+      - 0x0058a136
+      - 0x0058a21f
+      - 0x0058a2c2
+      - 0x0058a443
+      - 0x0058a830
+      - 0x0058a984
+      - 0x0058ad3c
+      - 0x0058b0a1
+      - 0x0058b275
+      - 0x0058b7d8
+      - 0x0058ba64
+      - 0x0058bbdd
+      - 0x0058bd5a
+      - 0x0058be8f
+      - 0x0058bf80
+      - 0x0058bffe
+      - 0x0058c0de
+      - 0x0058c144
+      - 0x0058c397
+      - 0x0058c41f
+      - 0x0058c4a3
+      - 0x0058c4de
+      - 0x0058c865
+      - 0x0058cbc3
+      - 0x0058ccdd
+      - 0x0058cde8
+      - 0x0058cee4
+      - 0x0058d15e
+      - 0x0058d2dd
+      - 0x0058d92f
+      - 0x0058dcba
+      - 0x0058df73
+      - 0x0058e4ef
+      - 0x0058e7d0
+      - 0x0058e7fa
+      - 0x0058eb41
+      - 0x0058f55e
+      - 0x0058f92f
+      - 0x0058f9f7
+      - 0x0058fa90
+      - 0x007038bd
+      - 0x00705280
+      - 0x00719c0f
+      - 0x00719c70
+      - 0x00719d2f
+      - 0x00719d96
+      - 0x00719dd3
+      - 0x00719e10
+      - 0x00719e4d
+      - 0x00719e71
+      - 0x00719e99
+      - 0x0071e534
+      - 0x0071f335
+      - 0x0071f7ff
+      - 0x00721692
+      - 0x0072195d
+      - 0x007288f7
+      - 0x00728943
+      - 0x0073145e
+      - 0x007314fa
+      - 0x00854828
+      - 0x00854868
+    group: "HUD, text and menu scaling"
+    reason: "vHudScalePtrs: the fmul operands after fild RsGlobal.maximumWidth (the three patterns), the four extra sites and without the excluded sliders, map edges and message screen positions"
+  - id: "ws-1e5411ee"
+    addrs:
+      - 0x0057a1e5
+      - 0x0057a4f0
+      - 0x0057a4cd
+      - 0x0057a47f
+      - 0x0057639a
+    group: "HUD, text and menu scaling"
+    reason: "excludeResXInvAddrs: main menu and its entry sprite, and the briefs text scale keep 1/640"
+  - id: "ws-f07f9f0c"
+    addrs:
+      - 0x0058eb41
+      - 0x0058ec0e
+      - 0x0058f55e
+      - 0x0058f5f6
+      - 0x005892cc
+      - 0x00589380
+      - 0x0058ee80
+      - 0x0058eef6
+      - 0x00589157
+      - 0x0058ef52
+      - 0x0058efc7
+      - 0x0058922f
+      - 0x0058f118
+      - 0x0058f196
+      - 0x0058d92f
+      - 0x0058d8c5
+      - 0x0058f91e
+      - 0x0058f92f
+      - 0x005894c7
+      - 0x005894eb
+      - 0x0058f9d2
+      - 0x0058fa5f
+      - 0x0058f9f7
+      - 0x0058fa90
+      - 0x0058dcba
+      - 0x0058dd02
+      - 0x0058dd80
+      - 0x0058df73
+      - 0x0058dfe7
+      - 0x0058b0a1
+      - 0x0058b141
+      - 0x0058ad3c
+      - 0x0058ad67
+      - 0x0058ae4c
+      - 0x0058c397
+      - 0x0058c41f
+      - 0x0058c4de
+      - 0x005896da
+      - 0x00589705
+      - 0x0058990e
+      - 0x0058986f
+      - 0x005897c5
+      - 0x00589a18
+      - 0x00589b2f
+      - 0x00589c75
+      - 0x00589d63
+      - 0x00589e4b
+      - 0x00589f33
+      - 0x0058a015
+      - 0x0058a092
+      - 0x0058a136
+      - 0x0058c865
+      - 0x0058d2dd
+      - 0x0058d45b
+      - 0x0058cbc3
+      - 0x0058b275
+      - 0x0058b2a6
+      - 0x0058b3b1
+      - 0x0058b3fe
+      - 0x0058b56c
+      - 0x0058b5f0
+      - 0x0058b680
+      - 0x0058b771
+      - 0x0058b7d8
+      - 0x0058ba64
+      - 0x0058bac8
+      - 0x0058bbdd
+      - 0x0058bcb2
+      - 0x0058bd5a
+      - 0x0058be8f
+      - 0x0058bf80
+      - 0x0058bffe
+      - 0x00580f18
+      - 0x00580f97
+      - 0x005810f1
+      - 0x0058115a
+      - 0x005811cf
+      - 0x0058148c
+      - 0x005814f9
+      - 0x005815b3
+      - 0x005815ed
+      - 0x00581635
+      - 0x0047ad2c
+      - 0x005818d1
+      - 0x0058ccdd
+      - 0x0058cde8
+      - 0x0058cee4
+      - 0x0058d15e
+      - 0x0058a17a
+      - 0x0058a21f
+      - 0x0058a2c2
+      - 0x004e9f32
+      - 0x0043cf59
+      - 0x004477cf
+      - 0x004477f9
+    group: "HUD, text and menu scaling"
+    reason: "m_dwHUDWidth: the non-null entries, each the operand at +2"
+  - id: "ws-990c9305"
+    addrs:
+      - 0x0058eb2b
+      - 0x0058ebfb
+      - 0x0058f548
+      - 0x0058f5d0
+      - 0x00589348
+      - 0x0058ee62
+      - 0x00588b9e
+      - 0x0058eeca
+      - 0x00589140
+      - 0x0058ef34
+      - 0x0058ef9b
+      - 0x00589218
+      - 0x0058f0fa
+      - 0x0058f16a
+      - 0x0058d947
+      - 0x0058d884
+      - 0x0058f90d
+      - 0x005894b1
+      - 0x0058f9c2
+      - 0x0058fa4c
+      - 0x0058dca4
+      - 0x0058dd6a
+      - 0x0058ddf6
+      - 0x0058df57
+      - 0x0058df9d
+      - 0x0058dee6
+      - 0x0058b08b
+      - 0x0058b12f
+      - 0x0058ad26
+      - 0x0058ae0f
+      - 0x0058c381
+      - 0x0058c409
+      - 0x0058c4c8
+      - 0x005898f8
+      - 0x00589737
+      - 0x0058978d
+      - 0x00589815
+      - 0x00589841
+      - 0x005898bf
+      - 0x00589a01
+      - 0x00589a4d
+      - 0x00589b18
+      - 0x00589c5e
+      - 0x00589caa
+      - 0x00589d4c
+      - 0x00589d94
+      - 0x00589e34
+      - 0x00589e7c
+      - 0x00589f1c
+      - 0x00589f64
+      - 0x00589ffe
+      - 0x0058a042
+      - 0x0058a07c
+      - 0x0058c84f
+      - 0x0058d2c7
+      - 0x0058cbad
+      - 0x0058b265
+      - 0x0058b5e0
+      - 0x0058b7bf
+      - 0x0058ba4e
+      - 0x0058bba9
+      - 0x0058bd1b
+      - 0x0058be2d
+      - 0x0058bf1e
+      - 0x0058bfcd
+      - 0x00580e13
+      - 0x00580f87
+      - 0x005810ce
+      - 0x00581134
+      - 0x005811a3
+      - 0x0058147c
+      - 0x005814e9
+      - 0x0058169b
+      - 0x0058188b
+      - 0x0058ccc7
+      - 0x0058cdd2
+      - 0x0058cece
+      - 0x0058d148
+      - 0x004e9f1c
+      - 0x0043cf49
+      - 0x004477b9
+      - 0x004478ae
+    group: "HUD, text and menu scaling"
+    reason: "m_dwHUDHeight: the non-null entries, each the operand at +2"
+  - id: "ws-af20c578"
+    addrs:
+      - 0x0058e7e6
+      - 0x0058e810
+      - 0x0058e31b
+      - 0x0058e529
+      - 0x0058e2ca
+      - 0x0053e3e9
+      - 0x0053e40b
+      - 0x0058e775
+    group: "HUD, text and menu scaling"
+    reason: "m_dwCrosshairHeight: the non-null entries, each the operand at +2"
+  - id: "ws-200ebb24"
+    addrs:
+      - 0x00742e52
+      - 0x00742e63
+      - 0x00742ee0
+      - 0x00742ef1
+      - 0x00742fff
+      - 0x00743010
+      - 0x007430a4
+      - 0x007430b5
+    group: "HUD, text and menu scaling"
+    reason: "m_dwLockOnWidth: each operand at +2 points at 20.0 instead of 28.0"
+  - id: "ws-833da9c2"
+    group: "HUD, text and menu scaling"
+    reason: "Frontend.ixx HUD scaling: the scale values, radar size and subtitle layout set up together at game init"
+  - id: "ws-733ef3ed"
+    group: "HUD, text and menu scaling"
+    reason: "Frontend.ixx HUD scaling: the scale values, radar size and subtitle layout set up together at game init"
+  - id: "ws-b0e324fd"
+    group: "HUD, text and menu scaling"
+    reason: "Frontend.ixx HUD scaling: the scale values, radar size and subtitle layout set up together at game init"
+  - id: "ws-d1dd6200"
+    group: "HUD, text and menu scaling"
+    reason: "Frontend.ixx HUD scaling: the scale values, radar size and subtitle layout set up together at game init"
+  - id: "ws-48b85b86"
+    group: "HUD, text and menu scaling"
+    reason: "Frontend.ixx HUD scaling: the scale values, radar size and subtitle layout set up together at game init"
+  - id: "ws-677f461c"
+    group: "HUD, text and menu scaling"
+    reason: "Frontend.ixx HUD scaling: the scale values, radar size and subtitle layout set up together at game init"
+  - id: "ws-348ecd42"
+    group: "HUD, text and menu scaling"
+    reason: "Frontend.ixx HUD scaling: the scale values, radar size and subtitle layout set up together at game init"
+  - id: "ws-1279584a"
+    group: "HUD, text and menu scaling"
+    reason: "Frontend.ixx HUD scaling: the scale values, radar size and subtitle layout set up together at game init"
+  - id: "ws-7c732d09"
+    group: "HUD, text and menu scaling"
+    reason: "Frontend.ixx HUD scaling: the scale values, radar size and subtitle layout set up together at game init"
+  - id: "ws-d75c8f32"
+    group: "HUD, text and menu scaling"
+    reason: "Frontend.ixx HUD scaling: the scale values, radar size and subtitle layout set up together at game init"
+  - id: "ws-6cbcd945"
+    group: "HUD, text and menu scaling"
+    reason: "Frontend.ixx HUD scaling: the scale values, radar size and subtitle layout set up together at game init"
+  - id: "ws-708bd501"
+    group: "HUD, text and menu scaling"
+    reason: "Frontend.ixx HUD scaling: the scale values, radar size and subtitle layout set up together at game init"
+  - id: "ws-da2c3895"
+    group: "HUD, text and menu scaling"
+    reason: "Frontend.ixx HUD scaling: the scale values, radar size and subtitle layout set up together at game init"
+  - id: "ws-15e3dbac"
+    group: "HUD, text and menu scaling"
+    reason: "Frontend.ixx HUD scaling: the scale values, radar size and subtitle layout set up together at game init"
+  - id: "ws-96f9fd22"
+    group: "HUD, text and menu scaling"
+    reason: "Frontend.ixx HUD scaling: the scale values, radar size and subtitle layout set up together at game init"
+  - id: "ws-0d4b0f39"
+    group: "HUD, text and menu scaling"
+    reason: "Frontend.ixx HUD scaling: the scale values, radar size and subtitle layout set up together at game init"
+  - id: "ws-35bea54b"
+    group: "HUD, text and menu scaling"
+    reason: "Frontend.ixx HUD scaling: the scale values, radar size and subtitle layout set up together at game init"
+  - id: "ws-3df2273c"
+    group: "HUD, text and menu scaling"
+    reason: "Frontend.ixx HUD scaling: the scale values, radar size and subtitle layout set up together at game init"
+  - id: "ws-7366e38e"
+    group: "HUD, text and menu scaling"
+    reason: "Frontend.ixx HUD scaling: the scale values, radar size and subtitle layout set up together at game init"
+  - id: "ws-8bb6feaa"
+    group: "HUD, text and menu scaling"
+    reason: "Frontend.ixx HUD scaling: the scale values, radar size and subtitle layout set up together at game init"
+  - id: "ws-257a5702"
+    group: "HUD, text and menu scaling"
+    reason: "Frontend.ixx menu helper text: StretchX(610.0) anchored to the right edge once menu widths narrow"
+  - id: "ws-e03c0a40"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-17c80d70"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-a170eccb"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-11b0a1c2"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-e293ac5a"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-86216187"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-bd22f7de"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-f245a620"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-bf7554db"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-4e5f2f54"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-a6340297"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-23e8a088"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-b7c62d4c"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-9eb69cc0"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-69f1242b"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-ab19fbf6"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-c811139e"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-f1748044"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-2db6131f"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-134bb060"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-caed8074"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-319e75b1"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-22330b9b"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-4284aaf3"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-1016863c"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-bf617ddd"
+    group: "Script text, menus and HUD positions"
+    reason: "Hud.ixx: script texts, rectangles and menus move with the 4:3 canvas, and HUD elements and menu pages are drawn in offset scopes"
+  - id: "ws-2e747ef8"
+    addr: 0x0057c290
+    group: "Menu canvas"
+    reason: "MenuConstraint.ixx DrawSignature: CMenuManager::DrawFrontEnd"
+  - id: "ws-3d23eab5"
+    addr: 0x0057b440
+    group: "Menu canvas"
+    reason: "MenuConstraint.ixx InputSignature: CMenuManager::ProcessInput"
+  - id: "ws-39548f8b"
+    addr: 0x00580044
+    group: "Menu canvas"
+    reason: "MenuConstraint.ixx MouseSignature: after the native mouse clamp in the input path"
+  - id: "ws-7359caeb"
+    addr: 0x00745c70
+    group: "Menu canvas"
+    reason: "MenuConstraint.ixx VideoSignature: the video mode change"
+  - id: "ws-d1e2e61a"
+    addr: 0x0057c520
+    group: "Menu canvas"
+    reason: "MenuConstraint.ixx CentreSignature: CentreMousePointer"
+  - id: "ws-569cb148"
+    group: "Menu canvas"
+    reason: "MenuConstraint.ixx: the RwIm2D render functions read from the engine at run time; the port moves 2D vertices in the D3D9 layer instead"
+  - id: "ws-c38e5c46"
+    group: "Menu canvas"
+    reason: "MenuConstraint.ixx: the RwIm2D render functions read from the engine at run time; the port moves 2D vertices in the D3D9 layer instead"
+  - id: "ws-6a31d157"
+    group: "Menu canvas"
+    reason: "MenuConstraint.ixx: the RwIm2D render functions read from the engine at run time; the port moves 2D vertices in the D3D9 layer instead"
+  - id: "ws-5062e90e"
+    group: "Menu canvas"
+    reason: "MenuConstraint.ixx: the RwIm2D render functions read from the engine at run time; the port moves 2D vertices in the D3D9 layer instead"
+  - id: "ws-842daf59"
+    group: "Cutscene borders"
+    reason: "Sprite2d.ixx: DrawBordersForWideScreen called every frame, its replacement and the help text height under the top bar"
+  - id: "ws-09db8f7b"
+    group: "Cutscene borders"
+    reason: "Sprite2d.ixx: DrawBordersForWideScreen called every frame, its replacement and the help text height under the top bar"
+  - id: "ws-6fca45a9"
+    group: "Cutscene borders"
+    reason: "Sprite2d.ixx: DrawBordersForWideScreen called every frame, its replacement and the help text height under the top bar"
+  - id: "ws-46b30269"
+    group: "Cutscene borders"
+    reason: "Sprite2d.ixx: DrawBordersForWideScreen called every frame, its replacement and the help text height under the top bar"
+  - id: "ws-07603ba2"
+    group: "Cutscene borders"
+    reason: "Sprite2d.ixx: DrawBordersForWideScreen called every frame, its replacement and the help text height under the top bar"
+  - id: "ws-c6e36984"
+    group: "Cutscene borders"
+    reason: "Sprite2d.ixx: DrawBordersForWideScreen called every frame, its replacement and the help text height under the top bar"
+  - id: "ws-f5b65e3e"
+    group: "Script text, menus and HUD positions"
+    reason: "Sprite2d.ixx CFont::PrintChar: the cull edge follows the 4:3 inset so moved text is not cut"
+  - id: "ws-6211da90"
+    group: "Splash and loading screens"
+    reason: "Sprite2d.ixx Draw1 and LoadingBar: full-screen textured sprites keep their aspect ratio with black bars, and the loading bar follows the artwork"
+  - id: "ws-d992edef"
+    group: "Splash and loading screens"
+    reason: "Sprite2d.ixx Draw1 and LoadingBar: full-screen textured sprites keep their aspect ratio with black bars, and the loading bar follows the artwork"
+  - id: "ws-ad5b7411"
+    group: "Menu sliders"
+    reason: "Frontend.ixx DisplaySlider: right-anchored slider with its hit-test edges"
+  - id: "ws-d1c935e3"
+    group: "HUD, text and menu scaling"
+    reason: "Frontend.ixx Subtitles::PrintSubtitles: larger subtitles stay above the bottom edge, part of the subtitle scaling"
+  - id: "ws-635203bf"
+    addrs:
+      - 0x00575bf6
+      - 0x00575c40
+      - 0x00575c84
+      - 0x00575cce
+      - 0x00575d1f
+      - 0x00575d6f
+      - 0x00575dc2
+      - 0x00575e12
+    span: 5
+    reason: "MenuMap.ixx mapFrameCalls: the map frame's DrawRect calls, removed for the full-screen map and restored without it"
+  - id: "ws-97310368"
+    addrs:
+      - 0x00575bf6
+      - 0x00575c40
+      - 0x00575c84
+      - 0x00575cce
+      - 0x00575d1f
+      - 0x00575d6f
+      - 0x00575dc2
+      - 0x00575e12
+    span: 5
+    reason: "MenuMap.ixx mapFrameCalls: the map frame's DrawRect calls, removed for the full-screen map and restored without it"
+  - id: "ws-cbce869c"
+    addr: 0x005733e0
+    reason: "hbStretchX.fun is the call target of the menu helper text's StretchX call (0x57e3a5): CMenuManager::StretchX"
+  - id: "ws-6ccd03c7"
+    addr: 0x006e6e8c
+    reason: "InitWaterFrustum's pattern (D9 44 24 78 ...) matches at 0x6e6e78; the call at +20 goes to the water scan at 0x72cae0"

@@ -8,6 +8,8 @@
 #include "guest_memory.hpp"
 #include "thunks.hpp"
 
+#include "macandreas/manifest.hpp"
+
 #include <dlfcn.h>
 #include <mach/mach_time.h>
 
@@ -170,6 +172,64 @@ std::expected<size_t, std::string> load_function_table(void* dylib) {
 }
 
 void register_trace(uint32_t addr, TraceFn fn) { g_table.insert(addr, fn); }
+
+namespace {
+
+struct Redirect {
+    uint32_t original = 0;
+    TraceFn target = nullptr;
+};
+
+std::unordered_map<uint32_t, MidHookFn> g_mid_hooks;
+std::unordered_map<uint32_t, Redirect> g_redirects;
+thread_local uint32_t t_redirect_site = 0;
+
+Memory* redirect_trace(GuestState& s, uint32_t pc, Memory* m) {
+    uint32_t site = pc - manifest::kRedirectBase;
+    auto it = g_redirects.find(site);
+    if (it == g_redirects.end()) {
+        guest_fatal(s, "REDIRECT", site);
+    }
+    if (!it->second.target) {
+        request_jump(s, it->second.original);
+        return m;
+    }
+    uint32_t outer = t_redirect_site;
+    t_redirect_site = site;
+    try {
+        m = it->second.target(s, pc, m);
+    } catch (...) {
+        t_redirect_site = outer;
+        throw;
+    }
+    t_redirect_site = outer;
+    return m;
+}
+
+}
+
+void register_mid_hook(uint32_t addr, MidHookFn fn) { g_mid_hooks[addr] = fn; }
+
+void register_redirect(uint32_t site, uint32_t original, TraceFn target) {
+    g_redirects[site] = {original, target};
+    g_table.insert(manifest::redirect_address(site), redirect_trace);
+}
+
+uint32_t redirect_site() { return t_redirect_site; }
+
+uint32_t redirect_original() {
+    auto it = g_redirects.find(t_redirect_site);
+    return it == g_redirects.end() ? 0 : it->second.original;
+}
+
+uint32_t run_mid_hook(GuestState& s, uint32_t pc) {
+    auto it = g_mid_hooks.find(pc);
+    if (it == g_mid_hooks.end()) {
+        return pc;
+    }
+    eip(s) = pc;
+    return it->second(s, pc);
+}
 
 void force_interpret(uint32_t addr) { g_table.insert(addr, nullptr); }
 
@@ -373,6 +433,10 @@ __attribute__((visibility("default"))) Memory* __remill_function_call(GuestState
         ma::host::eip(s) = unwind.eip;
     }
     return m;
+}
+
+__attribute__((visibility("default"))) uint32_t __ma_mid_hook(GuestState& s, uint32_t pc) {
+    return ma::host::run_mid_hook(s, pc);
 }
 
 __attribute__((visibility("default"))) Memory* __remill_jump(GuestState& s, uint32_t pc, Memory* m) {

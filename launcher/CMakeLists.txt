@@ -12,6 +12,7 @@ add_executable(MacAndreas MACOSX_BUNDLE
     Sources/Stamp.swift
     Sources/Displays.swift
     Sources/Headless.swift
+    Sources/ModSettings.swift
 )
 set_target_properties(MacAndreas PROPERTIES
     MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in"
@@ -29,6 +30,7 @@ set(MA_BUNDLE_ARGS
     -DSA_HOST=$<TARGET_FILE:sa-host>
     -DSA_VERIFY=$<TARGET_FILE:sa-verify>
     -DMANIFEST_DIR=${CMAKE_SOURCE_DIR}/manifest
+    -DMOD_SETTINGS_SCHEMA=${CMAKE_SOURCE_DIR}/mods/settings.yaml
     -DICON=${CMAKE_CURRENT_SOURCE_DIR}/AppIcon.png
     -DANALYSIS_DIR=${CMAKE_SOURCE_DIR}/analysis/sa-1.0us)
 set(MA_BUNDLE_DEPENDS MacAndreas sa-host sa-verify)

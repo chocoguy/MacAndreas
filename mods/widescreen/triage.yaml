@@ -1,0 +1,1080 @@
+mod: widescreen
+commit: "d545cc29fc76b072590db0e6f91cb85932157eee"
+groups:
+  - group: "ButtonIcons::ButtonIcons"
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: controller button icons in text"
+    changelog: ""
+    sites:
+      - ws-b44bd44d
+      - ws-fec530d9
+      - ws-2462a3e0
+  - group: "CFont::GetStringWidth skips a token with no width: a picture's token counts its "
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: controller button icons in text"
+    changelog: ""
+    sites:
+      - ws-ab870d23
+  - group: "CFont::RenderFontBuffer moves on by 17 height units after a symbol: a wider pict"
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: controller button icons in text"
+    changelog: ""
+    sites:
+      - ws-174af627
+  - group: "CHud::SetHelpMessage and its buffers"
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: controller button icons in text"
+    changelog: ""
+    sites:
+      - ws-02d1f33c
+  - group: "CMenuManager::DisplayHelperText's CFont::PrintStringFromBottom (Misc.ixx calls t"
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: controller button icons and the menu helper text's drop shadow"
+    changelog: ""
+    sites:
+      - ws-fbef68cb
+  - group: "Aspect ratio and Hor+ field of view"
+    decision: keep
+    reason: "FOV/aspect math (ROADMAP M8): ported as manifest/widescreen.yaml group aspect-fov"
+    changelog: ""
+    sites:
+      - ws-bdffad20
+      - ws-353095b6
+      - ws-7a7cb2e4
+      - ws-776b2cc7
+      - ws-99438dc1
+      - ws-e1519a41
+      - ws-d6d17bbe
+      - ws-69531083
+      - ws-5ebde94f
+      - ws-82ab1558
+  - group: "replace CEntryExitManager::ms_visibleEntityList[32]"
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: the disappearing-doors fix (a larger visible entry-exit list)"
+    changelog: ""
+    sites:
+      - ws-3419e377
+      - ws-91df380d
+      - ws-92805052
+  - group: "InitCleoFix"
+    decision: drop
+    reason: "compatibility with CLEO, a Windows script mod that is not loaded"
+    changelog: ""
+    sites:
+      - ws-f3a7a7df
+      - ws-08069a26
+  - group: "HUD, text and menu scaling"
+    decision: keep
+    reason: "HUD/menu scaling (ROADMAP M8): ported as manifest/widescreen-hud.yaml, operand and data slots switched by widescreen.hud"
+    changelog: ""
+    sites:
+      - ws-d1c935e3
+      - ws-dfd5b0a4.0
+      - ws-dfd5b0a4.1
+      - ws-dfd5b0a4.2
+      - ws-dfd5b0a4.3
+      - ws-dfd5b0a4.4
+      - ws-dfd5b0a4.5
+      - ws-dfd5b0a4.6
+      - ws-dfd5b0a4.7
+      - ws-dfd5b0a4.8
+      - ws-dfd5b0a4.9
+      - ws-dfd5b0a4.10
+      - ws-dfd5b0a4.11
+      - ws-dfd5b0a4.12
+      - ws-dfd5b0a4.13
+      - ws-dfd5b0a4.14
+      - ws-dfd5b0a4.15
+      - ws-dfd5b0a4.16
+      - ws-dfd5b0a4.17
+      - ws-dfd5b0a4.18
+      - ws-dfd5b0a4.19
+      - ws-dfd5b0a4.20
+      - ws-dfd5b0a4.21
+      - ws-dfd5b0a4.22
+      - ws-dfd5b0a4.23
+      - ws-dfd5b0a4.24
+      - ws-dfd5b0a4.25
+      - ws-dfd5b0a4.26
+      - ws-dfd5b0a4.27
+      - ws-dfd5b0a4.28
+      - ws-dfd5b0a4.29
+      - ws-dfd5b0a4.30
+      - ws-dfd5b0a4.31
+      - ws-dfd5b0a4.32
+      - ws-dfd5b0a4.33
+      - ws-dfd5b0a4.34
+      - ws-dfd5b0a4.35
+      - ws-dfd5b0a4.36
+      - ws-dfd5b0a4.37
+      - ws-dfd5b0a4.38
+      - ws-dfd5b0a4.39
+      - ws-dfd5b0a4.40
+      - ws-dfd5b0a4.41
+      - ws-dfd5b0a4.42
+      - ws-dfd5b0a4.43
+      - ws-dfd5b0a4.44
+      - ws-dfd5b0a4.45
+      - ws-dfd5b0a4.46
+      - ws-dfd5b0a4.47
+      - ws-dfd5b0a4.48
+      - ws-dfd5b0a4.49
+      - ws-dfd5b0a4.50
+      - ws-dfd5b0a4.51
+      - ws-dfd5b0a4.52
+      - ws-dfd5b0a4.53
+      - ws-dfd5b0a4.54
+      - ws-dfd5b0a4.55
+      - ws-dfd5b0a4.56
+      - ws-dfd5b0a4.57
+      - ws-dfd5b0a4.58
+      - ws-dfd5b0a4.59
+      - ws-dfd5b0a4.60
+      - ws-dfd5b0a4.61
+      - ws-dfd5b0a4.62
+      - ws-dfd5b0a4.63
+      - ws-dfd5b0a4.64
+      - ws-dfd5b0a4.65
+      - ws-dfd5b0a4.66
+      - ws-dfd5b0a4.67
+      - ws-dfd5b0a4.68
+      - ws-dfd5b0a4.69
+      - ws-dfd5b0a4.70
+      - ws-dfd5b0a4.71
+      - ws-dfd5b0a4.72
+      - ws-dfd5b0a4.73
+      - ws-dfd5b0a4.74
+      - ws-dfd5b0a4.75
+      - ws-dfd5b0a4.76
+      - ws-dfd5b0a4.77
+      - ws-dfd5b0a4.78
+      - ws-dfd5b0a4.79
+      - ws-dfd5b0a4.80
+      - ws-dfd5b0a4.81
+      - ws-dfd5b0a4.82
+      - ws-dfd5b0a4.83
+      - ws-dfd5b0a4.84
+      - ws-dfd5b0a4.85
+      - ws-dfd5b0a4.86
+      - ws-dfd5b0a4.87
+      - ws-dfd5b0a4.88
+      - ws-dfd5b0a4.89
+      - ws-dfd5b0a4.90
+      - ws-dfd5b0a4.91
+      - ws-dfd5b0a4.92
+      - ws-dfd5b0a4.93
+      - ws-dfd5b0a4.94
+      - ws-dfd5b0a4.95
+      - ws-dfd5b0a4.96
+      - ws-dfd5b0a4.97
+      - ws-dfd5b0a4.98
+      - ws-dfd5b0a4.99
+      - ws-dfd5b0a4.100
+      - ws-dfd5b0a4.101
+      - ws-dfd5b0a4.102
+      - ws-dfd5b0a4.103
+      - ws-dfd5b0a4.104
+      - ws-dfd5b0a4.105
+      - ws-dfd5b0a4.106
+      - ws-dfd5b0a4.107
+      - ws-dfd5b0a4.108
+      - ws-dfd5b0a4.109
+      - ws-dfd5b0a4.110
+      - ws-dfd5b0a4.111
+      - ws-dfd5b0a4.112
+      - ws-dfd5b0a4.113
+      - ws-dfd5b0a4.114
+      - ws-dfd5b0a4.115
+      - ws-dfd5b0a4.116
+      - ws-dfd5b0a4.117
+      - ws-dfd5b0a4.118
+      - ws-dfd5b0a4.119
+      - ws-dfd5b0a4.120
+      - ws-dfd5b0a4.121
+      - ws-dfd5b0a4.122
+      - ws-dfd5b0a4.123
+      - ws-dfd5b0a4.124
+      - ws-dfd5b0a4.125
+      - ws-dfd5b0a4.126
+      - ws-dfd5b0a4.127
+      - ws-dfd5b0a4.128
+      - ws-dfd5b0a4.129
+      - ws-dfd5b0a4.130
+      - ws-dfd5b0a4.131
+      - ws-dfd5b0a4.132
+      - ws-dfd5b0a4.133
+      - ws-dfd5b0a4.134
+      - ws-dfd5b0a4.135
+      - ws-dfd5b0a4.136
+      - ws-dfd5b0a4.137
+      - ws-dfd5b0a4.138
+      - ws-dfd5b0a4.139
+      - ws-dfd5b0a4.140
+      - ws-dfd5b0a4.141
+      - ws-dfd5b0a4.142
+      - ws-dfd5b0a4.143
+      - ws-dfd5b0a4.144
+      - ws-dfd5b0a4.145
+      - ws-dfd5b0a4.146
+      - ws-dfd5b0a4.147
+      - ws-dfd5b0a4.148
+      - ws-dfd5b0a4.149
+      - ws-dfd5b0a4.150
+      - ws-dfd5b0a4.151
+      - ws-dfd5b0a4.152
+      - ws-dfd5b0a4.153
+      - ws-dfd5b0a4.154
+      - ws-dfd5b0a4.155
+      - ws-dfd5b0a4.156
+      - ws-dfd5b0a4.157
+      - ws-dfd5b0a4.158
+      - ws-dfd5b0a4.159
+      - ws-dfd5b0a4.160
+      - ws-dfd5b0a4.161
+      - ws-dfd5b0a4.162
+      - ws-dfd5b0a4.163
+      - ws-dfd5b0a4.164
+      - ws-dfd5b0a4.165
+      - ws-dfd5b0a4.166
+      - ws-dfd5b0a4.167
+      - ws-dfd5b0a4.168
+      - ws-dfd5b0a4.169
+      - ws-dfd5b0a4.170
+      - ws-1e5411ee.0
+      - ws-1e5411ee.1
+      - ws-1e5411ee.2
+      - ws-1e5411ee.3
+      - ws-1e5411ee.4
+      - ws-257a5702
+      - ws-677f461c
+      - ws-348ecd42
+      - ws-1279584a
+      - ws-7c732d09
+      - ws-d75c8f32
+      - ws-6cbcd945
+      - ws-708bd501
+      - ws-da2c3895
+      - ws-15e3dbac
+      - ws-96f9fd22
+      - ws-0d4b0f39
+      - ws-35bea54b
+      - ws-3df2273c
+      - ws-7366e38e
+      - ws-8bb6feaa
+      - ws-f07f9f0c.0
+      - ws-f07f9f0c.1
+      - ws-f07f9f0c.2
+      - ws-f07f9f0c.3
+      - ws-f07f9f0c.4
+      - ws-f07f9f0c.5
+      - ws-f07f9f0c.6
+      - ws-f07f9f0c.7
+      - ws-f07f9f0c.8
+      - ws-f07f9f0c.9
+      - ws-f07f9f0c.10
+      - ws-f07f9f0c.11
+      - ws-f07f9f0c.12
+      - ws-f07f9f0c.13
+      - ws-f07f9f0c.14
+      - ws-f07f9f0c.15
+      - ws-f07f9f0c.16
+      - ws-f07f9f0c.17
+      - ws-f07f9f0c.18
+      - ws-f07f9f0c.19
+      - ws-f07f9f0c.20
+      - ws-f07f9f0c.21
+      - ws-f07f9f0c.22
+      - ws-f07f9f0c.23
+      - ws-f07f9f0c.24
+      - ws-f07f9f0c.25
+      - ws-f07f9f0c.26
+      - ws-f07f9f0c.27
+      - ws-f07f9f0c.28
+      - ws-f07f9f0c.29
+      - ws-f07f9f0c.30
+      - ws-f07f9f0c.31
+      - ws-f07f9f0c.32
+      - ws-f07f9f0c.33
+      - ws-f07f9f0c.34
+      - ws-f07f9f0c.35
+      - ws-f07f9f0c.36
+      - ws-f07f9f0c.37
+      - ws-f07f9f0c.38
+      - ws-f07f9f0c.39
+      - ws-f07f9f0c.40
+      - ws-f07f9f0c.41
+      - ws-f07f9f0c.42
+      - ws-f07f9f0c.43
+      - ws-f07f9f0c.44
+      - ws-f07f9f0c.45
+      - ws-f07f9f0c.46
+      - ws-f07f9f0c.47
+      - ws-f07f9f0c.48
+      - ws-f07f9f0c.49
+      - ws-f07f9f0c.50
+      - ws-f07f9f0c.51
+      - ws-f07f9f0c.52
+      - ws-f07f9f0c.53
+      - ws-f07f9f0c.54
+      - ws-f07f9f0c.55
+      - ws-f07f9f0c.56
+      - ws-f07f9f0c.57
+      - ws-f07f9f0c.58
+      - ws-f07f9f0c.59
+      - ws-f07f9f0c.60
+      - ws-f07f9f0c.61
+      - ws-f07f9f0c.62
+      - ws-f07f9f0c.63
+      - ws-f07f9f0c.64
+      - ws-f07f9f0c.65
+      - ws-f07f9f0c.66
+      - ws-f07f9f0c.67
+      - ws-f07f9f0c.68
+      - ws-f07f9f0c.69
+      - ws-f07f9f0c.70
+      - ws-f07f9f0c.71
+      - ws-f07f9f0c.72
+      - ws-f07f9f0c.73
+      - ws-f07f9f0c.74
+      - ws-f07f9f0c.75
+      - ws-f07f9f0c.76
+      - ws-f07f9f0c.77
+      - ws-f07f9f0c.78
+      - ws-f07f9f0c.79
+      - ws-f07f9f0c.80
+      - ws-f07f9f0c.81
+      - ws-f07f9f0c.82
+      - ws-f07f9f0c.83
+      - ws-f07f9f0c.84
+      - ws-f07f9f0c.85
+      - ws-f07f9f0c.86
+      - ws-f07f9f0c.87
+      - ws-f07f9f0c.88
+      - ws-f07f9f0c.89
+      - ws-f07f9f0c.90
+      - ws-f07f9f0c.91
+      - ws-f07f9f0c.92
+      - ws-f07f9f0c.93
+      - ws-f07f9f0c.94
+      - ws-990c9305.0
+      - ws-990c9305.1
+      - ws-990c9305.2
+      - ws-990c9305.3
+      - ws-990c9305.4
+      - ws-990c9305.5
+      - ws-990c9305.6
+      - ws-990c9305.7
+      - ws-990c9305.8
+      - ws-990c9305.9
+      - ws-990c9305.10
+      - ws-990c9305.11
+      - ws-990c9305.12
+      - ws-990c9305.13
+      - ws-990c9305.14
+      - ws-990c9305.15
+      - ws-990c9305.16
+      - ws-990c9305.17
+      - ws-990c9305.18
+      - ws-990c9305.19
+      - ws-990c9305.20
+      - ws-990c9305.21
+      - ws-990c9305.22
+      - ws-990c9305.23
+      - ws-990c9305.24
+      - ws-990c9305.25
+      - ws-990c9305.26
+      - ws-990c9305.27
+      - ws-990c9305.28
+      - ws-990c9305.29
+      - ws-990c9305.30
+      - ws-990c9305.31
+      - ws-990c9305.32
+      - ws-990c9305.33
+      - ws-990c9305.34
+      - ws-990c9305.35
+      - ws-990c9305.36
+      - ws-990c9305.37
+      - ws-990c9305.38
+      - ws-990c9305.39
+      - ws-990c9305.40
+      - ws-990c9305.41
+      - ws-990c9305.42
+      - ws-990c9305.43
+      - ws-990c9305.44
+      - ws-990c9305.45
+      - ws-990c9305.46
+      - ws-990c9305.47
+      - ws-990c9305.48
+      - ws-990c9305.49
+      - ws-990c9305.50
+      - ws-990c9305.51
+      - ws-990c9305.52
+      - ws-990c9305.53
+      - ws-990c9305.54
+      - ws-990c9305.55
+      - ws-990c9305.56
+      - ws-990c9305.57
+      - ws-990c9305.58
+      - ws-990c9305.59
+      - ws-990c9305.60
+      - ws-990c9305.61
+      - ws-990c9305.62
+      - ws-990c9305.63
+      - ws-990c9305.64
+      - ws-990c9305.65
+      - ws-990c9305.66
+      - ws-990c9305.67
+      - ws-990c9305.68
+      - ws-990c9305.69
+      - ws-990c9305.70
+      - ws-990c9305.71
+      - ws-990c9305.72
+      - ws-990c9305.73
+      - ws-990c9305.74
+      - ws-990c9305.75
+      - ws-990c9305.76
+      - ws-990c9305.77
+      - ws-990c9305.78
+      - ws-990c9305.79
+      - ws-990c9305.80
+      - ws-990c9305.81
+      - ws-833da9c2
+      - ws-733ef3ed
+      - ws-b0e324fd
+      - ws-d1dd6200
+      - ws-48b85b86
+      - ws-af20c578.0
+      - ws-af20c578.1
+      - ws-af20c578.2
+      - ws-af20c578.3
+      - ws-af20c578.4
+      - ws-af20c578.5
+      - ws-af20c578.6
+      - ws-af20c578.7
+      - ws-200ebb24.0
+      - ws-200ebb24.1
+      - ws-200ebb24.2
+      - ws-200ebb24.3
+      - ws-200ebb24.4
+      - ws-200ebb24.5
+      - ws-200ebb24.6
+      - ws-200ebb24.7
+  - group: "Menu sliders"
+    decision: keep
+    reason: "Menu sliders (ROADMAP M8): ported in manifest/widescreen-hud.yaml group menu-sliders"
+    changelog: ""
+    sites:
+      - ws-ad5b7411
+  - group: "Slider rendering and mouse tests use exactly the same screen edges."
+    decision: keep
+    reason: "Menu sliders (ROADMAP M8): the hit-test edges, ported in manifest/widescreen-hud.yaml group menu-sliders"
+    changelog: ""
+    sites:
+      - ws-54c08c06.0
+      - ws-54c08c06.1
+      - ws-54c08c06.2
+      - ws-54c08c06.3
+      - ws-54c08c06.4
+      - ws-f6bfd84f.0
+      - ws-f6bfd84f.1
+      - ws-f6bfd84f.2
+      - ws-f6bfd84f.3
+      - ws-f6bfd84f.4
+  - group: "Remove the width==640 shortcut from the shared size conversion."
+    decision: keep
+    reason: "width-640 shortcuts (ROADMAP M8): ported as manifest/widescreen-hud.yaml group width-640, a func_replace of CMenuManager::StretchX and mid_hooks that compare the width against one that never matches"
+    changelog: ""
+    sites:
+      - ws-cbce869c
+      - ws-e6e6900b.0
+      - ws-e6e6900b.1
+  - group: "Dialog text/window and radio scan progress must also scale at 640-wide"
+    decision: keep
+    reason: "width-640 shortcuts (ROADMAP M8): manifest/widescreen-hud.yaml group width-640, compare mid_hooks and the radio scan bar's two DrawRect call_redirects"
+    changelog: ""
+    sites:
+      - ws-b0f3d73f.0
+      - ws-b0f3d73f.1
+      - ws-b0f3d73f.2
+      - ws-53f21db7.0
+      - ws-53f21db7.1
+      - ws-53f21db7.2
+      - ws-53f21db7.3
+      - ws-a82c5730.0
+      - ws-a82c5730.1
+      - ws-662ba1d7
+      - ws-1d7b331a
+  - group: "These calls belong to gameplay's normal and vital-stats branches."
+    decision: keep
+    reason: "subtitle widths with a narrower HUD aspect (ROADMAP M8): call_redirects in manifest/widescreen-hud.yaml group subtitles"
+    changelog: ""
+    sites:
+      - ws-e0cb63e1
+      - ws-e0fb671e
+  - group: "Make co-op in-car crosshair circular rather than an ellipse (clippy95)"
+    decision: keep
+    reason: "crosshair (ROADMAP M8): a mid_hook does the patched fmul, so it follows widescreen.hud (manifest/widescreen-hud.yaml group coop-crosshair)"
+    changelog: ""
+    sites:
+      - ws-687ae238
+  - group: "Intro videos play before game initialization."
+    decision: replace
+    reason: "intro video placement; the host's movie player fits the whole movie at its own aspect into the screen, like the mod's default Fill mode (the Original 4:3 mode is not offered)"
+    changelog: ""
+    sites:
+      - ws-59ea7d84
+      - ws-4c3d9543
+  - group: "Redirect"
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: high frame rate timing"
+    changelog: ""
+    sites:
+      - ws-19457cdb
+  - group: "RedirectMillisecondTimers"
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: high frame rate timing"
+    changelog: ""
+    sites:
+      - ws-d6fb9172
+  - group: "The steps in milliseconds: fld; fmul 0.02; fmul 1000.0; jmp __ftol2"
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: high frame rate timing"
+    changelog: ""
+    sites:
+      - ws-46c8a6d3
+      - ws-dce06937
+  - group: "CDarkel::DrawMessages: the rampage counter's flashing"
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: high frame rate timing"
+    changelog: ""
+    sites:
+      - ws-c23b15ba
+  - group: "CWeather::Update: the lightning's burst end and start, and its length in frames"
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: high frame rate timing"
+    changelog: ""
+    sites:
+      - ws-61aaece5
+      - ws-383785ce
+      - ws-b8931ca4
+      - ws-15de6fac
+  - group: "parameters are read; the script is in esi"
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: high frame rate timing"
+    changelog: ""
+    sites:
+      - ws-89d18474
+      - ws-a8af60d9
+  - group: "Script text, menus and HUD positions"
+    decision: keep
+    reason: "HUD positions (ROADMAP M8): ported in manifest/widescreen-hud.yaml with a 2D offset in the D3D9 layer, which also moves the weapon icon and leaves DrawRect's rectangle alone, so those two hooks need no port"
+    changelog: ""
+    sites:
+      - ws-e03c0a40
+      - ws-17c80d70
+      - ws-a170eccb
+      - ws-11b0a1c2
+      - ws-bf617ddd
+      - ws-e293ac5a
+      - ws-86216187
+      - ws-bd22f7de
+      - ws-f245a620
+      - ws-bf7554db
+      - ws-4e5f2f54
+      - ws-a6340297
+      - ws-23e8a088
+      - ws-b7c62d4c
+      - ws-9eb69cc0
+      - ws-4284aaf3
+      - ws-1016863c
+      - ws-69f1242b
+      - ws-ab19fbf6
+      - ws-c811139e
+      - ws-f1748044
+      - ws-2db6131f
+      - ws-134bb060
+      - ws-caed8074
+      - ws-319e75b1
+      - ws-22330b9b
+      - ws-f5b65e3e
+  - group: "Process inlines ProcessOneCommand. Hook the native handlers:"
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: the text outline option (GetScriptLetterSize); the ScriptTextDictionary read is a binding the ported script text widths use"
+    changelog: ""
+    sites:
+      - ws-a3c8379b
+      - ws-f32b1275
+  - group: "InitWaterFrustum"
+    decision: keep
+    reason: "FOV follow-up (ROADMAP M8): the water scan's call_redirect in manifest/widescreen.yaml group water-frustum, so the Hor+ view has no missing water at its edges"
+    changelog: ""
+    sites:
+      - ws-6ccd03c7
+  - group: "Main::Main"
+    decision: replace
+    reason: "the video-mode list's aspect checks; the native GetVideoModeList replacement (0x745af0, M6) and the launcher own the mode list"
+    changelog: ""
+    sites:
+      - ws-e910658b.0
+      - ws-e910658b.1
+  - group: "Advanced Display Options (GetVideoModeList): width, height, aspect ratio and vid"
+    decision: replace
+    reason: "the video-mode list's checks; the native GetVideoModeList replacement (0x745af0, M6) owns the mode list"
+    changelog: ""
+    sites:
+      - ws-b3b84fe4
+      - ws-d1607941
+      - ws-e1d6d451
+  - group: "Resolution selection dialog: width, height and aspect ratio checks"
+    decision: replace
+    reason: "the Windows resolution dialog is not shown; the launcher picks the mode"
+    changelog: ""
+    sites:
+      - ws-b804bf21
+      - ws-df9c2e91
+  - group: "default res"
+    decision: replace
+    reason: "the default resolution; the launcher picks the mode"
+    changelog: ""
+    sites:
+      - ws-e25d625a
+      - ws-b73d5eab
+  - group: "Fix sky multitude"
+    decision: keep
+    reason: "FOV/aspect math (ROADMAP M8): ported as manifest/widescreen.yaml group sky-spread"
+    changelog: ""
+    sites:
+      - ws-5b3844a5
+      - ws-41d9f067
+  - group: "CCam::Process_WheelCam"
+    decision: keep
+    reason: "Wheel camera FOV (ROADMAP M8): mid_hook in manifest/widescreen.yaml group aspect-fov"
+    changelog: ""
+    sites:
+      - ws-23ca888f
+      - ws-67ba8c59
+  - group: "Full screen used the lowest refresh rate of 60 Hz or more for the resolution, wh"
+    decision: replace
+    reason: "the native mode list and Metal presentation own resolutions, refresh rate and monitors (M6 display-mode)"
+    changelog: ""
+    sites:
+      - ws-23644a7c
+      - ws-447d0469
+      - ws-6877e03b
+  - group: "The game has read gta_sa.set: the .cfg's values replace its two"
+    decision: replace
+    reason: "the menu's Widescreen and Frame Limiter rows relabelled for the fix's settings; the launcher owns those settings (widescreen.cutscene_borders)"
+    changelog: ""
+    sites:
+      - ws-868fc1a6
+      - ws-a0cd4235
+      - ws-329f4fa5
+  - group: "The values of the fix's own rows (Options.ixx)"
+    decision: replace
+    reason: "the fix's in-game settings rows; the launcher owns the settings (mods/settings.yaml)"
+    changelog: ""
+    sites:
+      - ws-7f92e34f
+      - ws-b1a79a39
+      - ws-389716b5
+      - ws-439ea351
+      - ws-9fe68cd3
+      - ws-9f5af3b2
+      - ws-b682f220
+      - ws-d4eea333
+      - ws-dd7f811a
+  - group: "Menu canvas"
+    decision: keep
+    reason: "Menu aspect ratio (ROADMAP M8): ported in manifest/widescreen-hud.yaml as call wrappers that narrow RsGlobal's width and move 2D through the D3D9 layer's offset, setting widescreen.menu_aspect"
+    changelog: ""
+    sites:
+      - ws-2e747ef8
+      - ws-3d23eab5
+      - ws-39548f8b
+      - ws-7359caeb
+      - ws-d1e2e61a
+      - ws-569cb148
+      - ws-c38e5c46
+      - ws-6a31d157
+      - ws-5062e90e
+  - group: "Prepare every hook before enabling any of them so drawing and input"
+    decision: drop
+    reason: "the menu canvas's transition and preview hooks: Locate() finds no 1.0 US target for either"
+    changelog: ""
+    sites:
+      - ws-d89e2cbc
+      - ws-19a6d06b
+  - group: "UpdateMapFrame"
+    decision: keep
+    reason: "Full-screen map (ROADMAP M8): ported in manifest/widescreen-map.yaml, setting widescreen.fullscreen_map"
+    changelog: ""
+    sites:
+      - ws-635203bf.0
+      - ws-635203bf.1
+      - ws-635203bf.2
+      - ws-635203bf.3
+      - ws-635203bf.4
+      - ws-635203bf.5
+      - ws-635203bf.6
+      - ws-635203bf.7
+      - ws-97310368.0
+      - ws-97310368.1
+      - ws-97310368.2
+      - ws-97310368.3
+      - ws-97310368.4
+      - ws-97310368.5
+      - ws-97310368.6
+      - ws-97310368.7
+  - group: "PrintMap initializes a map centered on the player."
+    decision: keep
+    reason: "Full-screen map (ROADMAP M8): ported in manifest/widescreen-map.yaml, setting widescreen.fullscreen_map"
+    changelog: ""
+    sites:
+      - ws-8d26f4af
+      - ws-b35b7979
+  - group: "Opening the map recenters on the player through CRadar as well."
+    decision: keep
+    reason: "Full-screen map (ROADMAP M8): ported in manifest/widescreen-map.yaml, setting widescreen.fullscreen_map"
+    changelog: ""
+    sites:
+      - ws-915c4e3f
+  - group: "Zoom around the selected world point for mouse, keyboard and pad."
+    decision: keep
+    reason: "Full-screen map (ROADMAP M8): ported in manifest/widescreen-map.yaml, setting widescreen.fullscreen_map"
+    changelog: ""
+    sites:
+      - ws-da266b6d
+  - group: "Panning uses the viewport midpoint."
+    decision: keep
+    reason: "Full-screen map (ROADMAP M8): ported in manifest/widescreen-map.yaml, setting widescreen.fullscreen_map"
+    changelog: ""
+    sites:
+      - ws-c1b58065.0
+      - ws-c1b58065.1
+      - ws-c1b58065.2
+      - ws-c1b58065.3
+  - group: "Rendering, tile streaming and input share these virtual bounds."
+    decision: keep
+    reason: "Full-screen map (ROADMAP M8): ported in manifest/widescreen-map.yaml, setting widescreen.fullscreen_map"
+    changelog: ""
+    sites:
+      - ws-35c5341f.0
+      - ws-35c5341f.1
+      - ws-35c5341f.2
+      - ws-35c5341f.3
+      - ws-2d890997.0
+      - ws-2d890997.1
+      - ws-2d890997.2
+      - ws-2d890997.3
+      - ws-2d890997.4
+      - ws-2d890997.5
+      - ws-2d890997.6
+      - ws-2d890997.7
+      - ws-006443ba.0
+      - ws-006443ba.1
+      - ws-006443ba.2
+      - ws-006443ba.3
+      - ws-49690246.0
+      - ws-49690246.1
+      - ws-49690246.2
+      - ws-49690246.3
+      - ws-49690246.4
+      - ws-49690246.5
+      - ws-49690246.6
+      - ws-49690246.7
+      - ws-49690246.8
+      - ws-49690246.9
+      - ws-49690246.10
+      - ws-41a155ac.0
+      - ws-41a155ac.1
+      - ws-41a155ac.2
+      - ws-41a155ac.3
+      - ws-41a155ac.4
+      - ws-4c032d25.0
+      - ws-4c032d25.1
+      - ws-4c032d25.2
+      - ws-4c032d25.3
+      - ws-4c032d25.4
+      - ws-42adfd81
+      - ws-2a7d6d35
+      - ws-c862f73d
+      - ws-396cd1d8
+  - group: "Mouse hit tests and dragging use the same bounds as drawing."
+    decision: keep
+    reason: "Full-screen map (ROADMAP M8): ported in manifest/widescreen-map.yaml, setting widescreen.fullscreen_map"
+    changelog: ""
+    sites:
+      - ws-db17553d
+      - ws-aa193aa1
+      - ws-01ec6fac
+      - ws-917867a2
+      - ws-968efbf1.0
+      - ws-968efbf1.1
+      - ws-968efbf1.2
+  - group: "Replace only the map-origin clamp, before it loads the x87 stack."
+    decision: keep
+    reason: "Full-screen map (ROADMAP M8): ported in manifest/widescreen-map.yaml, setting widescreen.fullscreen_map"
+    changelog: ""
+    sites:
+      - ws-80606f0f
+      - ws-0c8d0225
+  - group: "Zoom input bypasses the native pan clamp. Center before both"
+    decision: keep
+    reason: "Full-screen map (ROADMAP M8): ported in manifest/widescreen-map.yaml, setting widescreen.fullscreen_map"
+    changelog: ""
+    sites:
+      - ws-9b9f2880
+      - ws-0c36418c
+  - group: "Start after the native overview has chosen its center and zoom."
+    decision: keep
+    reason: "Full-screen map (ROADMAP M8): ported in manifest/widescreen-map.yaml, setting widescreen.fullscreen_map"
+    changelog: ""
+    sites:
+      - ws-34ac6be0
+      - ws-f12b776d
+      - ws-8812669d
+      - ws-94febfe6
+      - ws-5c384479
+      - ws-d6dca367
+      - ws-3bae0dc3
+      - ws-8da55126
+  - group: "Run the native blip clamp in its original X space, then return to"
+    decision: keep
+    reason: "Full-screen map (ROADMAP M8): ported in manifest/widescreen-map.yaml, setting widescreen.fullscreen_map"
+    changelog: ""
+    sites:
+      - ws-83b5ccb0
+      - ws-0cfbfa2b
+      - ws-ddd9830c
+  - group: "Retain the previous fullscreen map's zoom and pan speed."
+    decision: keep
+    reason: "Full-screen map (ROADMAP M8): ported in manifest/widescreen-map.yaml, setting widescreen.fullscreen_map"
+    changelog: ""
+    sites:
+      - ws-1bbad938.0
+      - ws-1bbad938.1
+      - ws-1bbad938.2
+      - ws-1bbad938.3
+      - ws-1bbad938.4
+      - ws-1bbad938.5
+  - group: "Width alone is not enough to identify the original resolution."
+    decision: keep
+    reason: "width-640 shortcuts on the map (ROADMAP M8): manifest/widescreen-map.yaml group map-width-640"
+    changelog: ""
+    sites:
+      - ws-7a2a4d87.0
+      - ws-7a2a4d87.1
+      - ws-7a2a4d87.2
+      - ws-7a2a4d87.3
+      - ws-7a2a4d87.4
+      - ws-7a2a4d87.5
+      - ws-7a2a4d87.6
+      - ws-7a2a4d87.7
+      - ws-7a2a4d87.8
+      - ws-7a2a4d87.9
+      - ws-7a2a4d87.10
+      - ws-7a2a4d87.11
+      - ws-7a2a4d87.12
+      - ws-7a2a4d87.13
+      - ws-7a2a4d87.14
+      - ws-4aa674a4.0
+      - ws-4aa674a4.1
+      - ws-e40b0201.0
+      - ws-e40b0201.1
+      - ws-e30fb742.0
+      - ws-e30fb742.1
+  - group: "The legend is a centered dialog over the full-width map. Move its"
+    decision: keep
+    reason: "Full-screen map (ROADMAP M8): ported in manifest/widescreen-map.yaml, setting widescreen.fullscreen_map"
+    changelog: ""
+    sites:
+      - ws-81a69c9d
+      - ws-954e6a44
+  - group: "InstallVCSCamShake"
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: the VCS-style camera shake at speed"
+    changelog: ""
+    sites:
+      - ws-f47cc689
+  - group: "The helper text's CFont::PrintString call, after its x (StretchX(610.0)). Menu m"
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: the text outline option and the helper text's drop shadow"
+    changelog: ""
+    sites:
+      - ws-ce7287f1
+      - ws-8113d928
+  - group: "Disable MENU AFTER alt + tab"
+    decision: replace
+    reason: "focus loss is handled by the native window (sa-host focus handling)"
+    changelog: ""
+    sites:
+      - ws-77681c4a
+  - group: "ALLOW ALT+TABBING WITHOUT PAUSING"
+    decision: replace
+    reason: "focus loss is handled by the native window (sa-host focus handling)"
+    changelog: ""
+    sites:
+      - ws-992df2c7
+      - ws-c72f2463
+      - ws-950e3af8
+  - group: "Right 1px"
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: the text outline option (SetDropShadowPosition and the menu's PrintString)"
+    changelog: ""
+    sites:
+      - ws-66e9dd46
+      - ws-5a2fe048
+  - group: "Controller setup text outlines"
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: the text outline option"
+    changelog: ""
+    sites:
+      - ws-f7ede154
+      - ws-556debcc
+  - group: "The fix's rows on Display Setup and Advanced, reset by the game's Restore Defaul"
+    decision: replace
+    reason: "the fix's in-game settings rows; the launcher owns the settings (mods/settings.yaml)"
+    changelog: ""
+    sites:
+      - ws-f7b1dacb
+      - ws-81c3c3ba
+      - ws-8944f86b
+  - group: "Menu mods that hide the page title replace its print call with NOPs; it stays hi"
+    decision: replace
+    reason: "the fix's in-game settings pages; the launcher owns the settings (mods/settings.yaml)"
+    changelog: ""
+    sites:
+      - ws-b8a1891f
+      - ws-966cc8ee
+      - ws-776c73b6
+      - ws-67ef52ec
+      - ws-95d6f810
+      - ws-6c769a28
+      - ws-6ea9abcc
+  - group: "The restart line: CText::Get of the label's key in DrawStandardMenus (before y ="
+    decision: replace
+    reason: "the fix's in-game settings pages; the launcher owns the settings (mods/settings.yaml)"
+    changelog: ""
+    sites:
+      - ws-fb7304b6
+  - group: "(StretchX(610.0)), and CFont's right-justify wrap (SetRightJustifyWrap(10.0) aft"
+    decision: replace
+    reason: "helper text for the fix's in-game settings pages; the launcher owns the settings (mods/settings.yaml)"
+    changelog: ""
+    sites:
+      - ws-ff2fcaa3
+      - ws-57ddc17e
+  - group: "The Options screen has no helper text of its own: the fix's pages get theirs bef"
+    decision: replace
+    reason: "helper text for the fix's in-game settings pages; the launcher owns the settings (mods/settings.yaml)"
+    changelog: ""
+    sites:
+      - ws-c0286962
+  - group: "CKeyboardState::esc of CPad::TempKeyState"
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: gamepad support (modern aim, vibration, camera style)"
+    changelog: ""
+    sites:
+      - ws-42b684f0
+  - group: "InstallConsoleGamma"
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: console gamma post effect"
+    changelog: ""
+    sites:
+      - ws-7e1382d3
+  - group: "Resolve the buffer initializer from CPostEffects::Update; the"
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: post effects (back buffer setup for SMAA and gamma)"
+    changelog: ""
+    sites:
+      - ws-dc016beb
+  - group: "Skip only the speed overlay when it's off. Keep the caller's state reset"
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: post effects (speed overlay and motion blur switches)"
+    changelog: ""
+    sites:
+      - ws-61304b6e
+      - ws-5f933034
+  - group: "Radardisc::Radardisc"
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: a 256 px radar disc texture"
+    changelog: ""
+    sites:
+      - ws-90a06049
+  - group: "Sprite::Sprite"
+    decision: keep
+    reason: "FOV/aspect math (ROADMAP M8): ported as manifest/widescreen.yaml group sprite-size; the cutscene sprite scale waits for the cutscene border port"
+    changelog: ""
+    sites:
+      - ws-a604b011
+      - ws-6c6fa9a5
+  - group: "Splash and loading screens"
+    decision: keep
+    reason: "Splash screens (ROADMAP M8): ported in manifest/widescreen-hud.yaml group splash-screens"
+    changelog: ""
+    sites:
+      - ws-d992edef
+      - ws-6211da90
+  - group: "The fld after the call is left out: limit adjusters jump from there to draw thei"
+    decision: replace
+    reason: "CSprite2d vertex setup: the hooks add the HUD scope's x offset (CorrectX is the identity at this commit); the D3D9 layer's 2D offset moves everything drawn in a scope, and the splash content rect is the CSprite2d::Draw mid_hook"
+    changelog: ""
+    sites:
+      - ws-7843a237
+      - ws-4bf063c0
+      - ws-47876e22
+      - ws-7314c269
+      - ws-ae41d67a
+      - ws-5e0ae54b
+  - group: "728420"
+    decision: replace
+    reason: "CSprite2d::Draw and DrawRect wrappers that mark full-screen draws and add the HUD scope's x offset; replaced by the D3D9 2D offset and the CSprite2d::Draw mid_hook (Splash and loading screens)"
+    changelog: ""
+    sites:
+      - ws-e3dda479
+      - ws-9d312a83
+      - ws-31935dcb
+      - ws-b88d6b43
+      - ws-24ae8048
+  - group: "727C50"
+    decision: replace
+    reason: "AddToBuffer, RenderOneXLUSprite_Rotate_Aspect and ShowRadarTraceWithHeight add the HUD scope's x offset; the D3D9 layer's 2D offset does this for every pretransformed vertex"
+    changelog: ""
+    sites:
+      - ws-11aa2215
+      - ws-6dd52faf
+      - ws-8fa44579
+  - group: "Cutscene borders"
+    decision: keep
+    reason: "Cutscene borders (ROADMAP M8): ported in manifest/widescreen.yaml (group cutscene-borders), mode and animation from widescreen.cutscene_borders and widescreen.cutscene_border_animation instead of the menu's Widescreen row"
+    changelog: ""
+    sites:
+      - ws-842daf59
+      - ws-09db8f7b
+      - ws-6fca45a9
+      - ws-46b30269
+      - ws-07603ba2
+      - ws-c6e36984
+  - group: "TransparentMenu::TransparentMenu"
+    decision: pending
+    reason: "FusionFix feature outside the widescreen port; moved to ROADMAP M11: the transparent pause menu"
+    changelog: ""
+    sites:
+      - ws-13d38907
+      - ws-6807fa24
+      - ws-0106eac7
+  - group: "Init"
+    decision: replace
+    reason: "the mod's own event dispatch (WinMain, main loop, device reset, EndScene); the host runs the natives from its own startup, frame and reset paths"
+    changelog: ""
+    sites:
+      - ws-ed9c9f6a
+      - ws-3b39672f
+      - ws-2678ead0
+      - ws-5e3a0b16
+  - group: "Replace the native relative packet before its invert-axis handling."
+    decision: replace
+    reason: "raw mouse input; the host's input layer delivers relative mouse motion"
+    changelog: ""
+    sites:
+      - ws-9455767e

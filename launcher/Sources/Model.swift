@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import SwiftUI
 
 @MainActor
 final class LauncherModel: ObservableObject {
@@ -14,11 +15,14 @@ final class LauncherModel: ObservableObject {
     @Published var running = false
     @Published var status = ""
     @Published var displays: [DisplayChoice] = []
+    let modSpecs = ModSettingsSchema.load()
+    @Published var modValues = ModSettingValues()
 
     private var host: Process?
 
     init(config initial: LauncherConfig = LauncherConfig.load()) {
         config = initial
+        modValues = ModSettingValues.load(specs: modSpecs)
         displays = availableDisplays()
         if config.display >= displays.count { config.display = 0 }
         if config.width == 0 || config.height == 0 {
@@ -55,6 +59,16 @@ final class LauncherModel: ObservableObject {
     }
 
     func save() { config.save() }
+
+    func saveModSettings() { modValues.save(specs: modSpecs) }
+
+    func modBinding(_ spec: ModSettingSpec) -> Binding<String> {
+        Binding(get: { self.modValues.value(spec) },
+                set: { value in
+                    guard spec.accepts(value) else { return }
+                    self.modValues.values[spec.key] = value
+                })
+    }
 
     func refresh() {
         verify = nil

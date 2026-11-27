@@ -23,6 +23,14 @@ struct Settings {
     bool skip_intro = false;
     bool ignore_focus_loss = false;
     std::vector<uint32_t> watch;
+    std::vector<std::vector<uint32_t>> watch_chains;
+    struct CameraPin {
+        uint64_t frame;
+        bool restore;
+        float position[3];
+        float target[3];
+    };
+    std::vector<CameraPin> camera_pins;
     struct MemoryDump {
         uint64_t frame;
         uint32_t addr;

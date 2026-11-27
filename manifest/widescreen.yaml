@@ -1,0 +1,193 @@
+- addr: 0x006ff420
+  kind: func_replace
+  source: widescreen
+  group: aspect-fov
+  setting: widescreen.aspect_fov
+  target: ws_calculate_aspect_ratio
+  notes: "CDraw::CalculateAspectRatio: the window's width/height instead of 4:3, 16:9 from the Widescreen menu option or 5:4 under cutscene borders"
+
+- addr: 0x006ff410
+  kind: func_replace
+  source: widescreen
+  group: aspect-fov
+  setting: widescreen.aspect_fov
+  target: ws_set_fov
+  notes: "CDraw::SetFOV: stores the game's FOV and keeps a Hor+ copy (the 4:3 vertical angle widened to the screen) outside cutscenes"
+
+- addr: 0x0072fc70
+  kind: mid_hook
+  source: widescreen
+  group: aspect-fov
+  setting: widescreen.aspect_fov
+  target: ws_camera_size
+  notes: "CameraSize entry: the view window and aspect arguments become tan(Hor+ FOV / 2) and the real aspect ratio"
+
+- addr: 0x00514d63
+  kind: mid_hook
+  source: widescreen
+  group: aspect-fov
+  setting: widescreen.aspect_fov
+  target: ws_frustum_fov
+  resume: 0x00514d70
+  notes: "CCamera::CalculateFrustumPlanes: loads the Hor+ half angle instead of ms_fFOV * pi/360, does the push esi it skips and resumes after the fmul"
+
+- addr: 0x005149a6
+  kind: mid_hook
+  source: widescreen
+  group: aspect-fov
+  setting: widescreen.aspect_fov
+  target: ws_target_vector_aspect
+  notes: "CCamera::Find3rdPersonCamTargetVector: the crosshair's horizontal offset is scaled by the aspect ratio"
+
+- addr: 0x0050ad59
+  kind: mid_hook
+  source: widescreen
+  group: aspect-fov
+  setting: widescreen.aspect_fov
+  target: ws_aim_width_a
+  resume: 0x0050ad5f
+  notes: "Aim width: multiplies by 0.01403292 instead of the degrees-to-radians constant"
+
+- addr: 0x0050ad79
+  kind: mid_hook
+  source: widescreen
+  group: aspect-fov
+  setting: widescreen.aspect_fov
+  target: ws_aim_skip_aspect_divide
+  resume: 0x0050ad7f
+  notes: "Aim width: skips the fdiv by ms_fAspectRatio (the Widescreen Fix NOPs it), so the setting can restore it"
+
+- addr: 0x0051498d
+  kind: mid_hook
+  source: widescreen
+  group: aspect-fov
+  setting: widescreen.aspect_fov
+  target: ws_aim_width_b
+  resume: 0x00514993
+  notes: "Second aim width multiply, same constant"
+
+- addr: 0x00714841
+  kind: mid_hook
+  source: widescreen
+  group: sky-spread
+  setting: widescreen.aspect_fov
+  target: ws_sky_spread_a
+  resume: 0x00714847
+  notes: "Sky gradient: its's horizontal spread is 1.4 times aspect/(4:3) instead of 1.4, so the sky matches the wider view"
+
+- addr: 0x0071485e
+  kind: mid_hook
+  source: widescreen
+  group: sky-spread
+  setting: widescreen.aspect_fov
+  target: ws_sky_spread_b
+  resume: 0x00714864
+  notes: "Second use of the sky spread constant"
+
+- addr: 0x0070ced8
+  kind: mid_hook
+  source: widescreen
+  group: sprite-size
+  setting: widescreen.aspect_fov
+  target: ws_sprite_width_a
+  site: ws-a604b011
+  resume: 0x0070cede
+  notes: "CSprite::CalcScreenCoors (6 arguments): the sprite's width is the screen height over z, like its height, instead of the screen width over z, so coronas keep their shape at any aspect ratio"
+
+- addr: 0x0071da6d
+  kind: mid_hook
+  source: widescreen
+  group: sprite-size
+  setting: widescreen.aspect_fov
+  target: ws_sprite_width_b
+  site: ws-6c6fa9a5
+  resume: 0x0071da73
+  notes: "CSprite::CalcScreenCoors (4 arguments): same change"
+
+- addr: 0x00514860
+  kind: func_replace
+  source: widescreen
+  group: cutscene-borders
+  setting: widescreen.aspect_fov
+  target: ws_draw_borders
+  notes: "CCamera::DrawBordersForWideScreen: bars that keep the vanilla cutscene window's framing (letterbox on narrow screens, pillarbox on wide ones, per widescreen.cutscene_borders), sliding in and out over 0.35 s and cleared by sudden fades; the cutscene camera zoom that keeps the framing feeds SetFOV and the sprite scale"
+
+- addr: 0x0053e2a4
+  kind: mid_hook
+  source: widescreen
+  group: cutscene-borders
+  setting: widescreen.aspect_fov
+  target: ws_skip_border_condition_a
+  resume: 0x0053e2af
+  notes: "the render loop calls DrawBordersForWideScreen every frame, not only when the camera is in widescreen and the menu's Widescreen option is off, so the bars can slide out"
+
+- addr: 0x005af8b9
+  kind: mid_hook
+  source: widescreen
+  group: cutscene-borders
+  setting: widescreen.aspect_fov
+  target: ws_skip_border_condition_b
+  resume: 0x005af8bb
+  notes: "the second call site calls DrawBordersForWideScreen every frame as well"
+
+- addr: 0x0058bb88
+  kind: mid_hook
+  source: widescreen
+  group: cutscene-borders
+  setting: widescreen.aspect_fov
+  target: ws_help_text_border
+  resume: 0x0058bb94
+  notes: "CHud::DrawHelpText moves down by the visible top bar instead of vanilla's fixed 56 when the menu's Widescreen option is off"
+
+- addr: 0x0070cef6
+  kind: operand_slot
+  source: widescreen
+  group: sprite-size
+  setting: widescreen.aspect_fov
+  target: ws_sprite_fov_scale
+  site: ws-a604b011
+  notes: "CSprite::CalcScreenCoors: the 70/FOV sprite size is multiplied by the cutscene sprite scale (aspect/(4/3)/zoom), so coronas keep their size next to the zoomed cutscene picture; 1 outside cutscenes"
+
+- addr: 0x0070cf08
+  kind: operand_slot
+  source: widescreen
+  group: sprite-size
+  setting: widescreen.aspect_fov
+  target: ws_sprite_fov_scale
+  site: ws-a604b011
+  notes: "CSprite::CalcScreenCoors: the 70/FOV sprite size is multiplied by the cutscene sprite scale (aspect/(4/3)/zoom), so coronas keep their size next to the zoomed cutscene picture; 1 outside cutscenes"
+
+- addr: 0x0071da8b
+  kind: operand_slot
+  source: widescreen
+  group: sprite-size
+  setting: widescreen.aspect_fov
+  target: ws_sprite_fov_scale
+  site: ws-6c6fa9a5
+  notes: "CSprite::CalcScreenCoors: the 70/FOV sprite size is multiplied by the cutscene sprite scale (aspect/(4/3)/zoom), so coronas keep their size next to the zoomed cutscene picture; 1 outside cutscenes"
+
+- addr: 0x0071da9d
+  kind: operand_slot
+  source: widescreen
+  group: sprite-size
+  setting: widescreen.aspect_fov
+  target: ws_sprite_fov_scale
+  site: ws-6c6fa9a5
+  notes: "CSprite::CalcScreenCoors: the 70/FOV sprite size is multiplied by the cutscene sprite scale (aspect/(4/3)/zoom), so coronas keep their size next to the zoomed cutscene picture; 1 outside cutscenes"
+
+- addr: 0x00512122
+  kind: mid_hook
+  source: widescreen
+  group: aspect-fov
+  setting: widescreen.aspect_fov
+  target: ws_wheel_cam_fov
+  resume: 0x0051212c
+  notes: "CCam::Process_WheelCam: the fixed 70 degree FOV becomes its 4:3-to-screen inverse, so after the Hor+ conversion the wheel camera looks as in vanilla"
+
+- addr: 0x006e6e8c
+  kind: call_redirect
+  source: widescreen
+  group: water-frustum
+  setting: widescreen.aspect_fov
+  target: ws_scan_water
+  notes: "the water renderer's scan of the camera footprint (0x72cae0): every water cell the footprint's convex hull touches is drawn, even at a corner, so the wider Hor+ view has no missing water at its edges"

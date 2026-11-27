@@ -1,0 +1,64 @@
+{
+  "silentpatch": {
+    "prefix": "sp",
+    "repo": "https://github.com/CookiePLMonster/SilentPatch",
+    "commit": "74976544adc196fa664831ddc59778e684cf6af0",
+    "changelog": "CHANGELOG-SA.md",
+    "files": [
+      "SilentPatchSA/AudioHardwareSA.cpp",
+      "SilentPatchSA/EventsSA.cpp",
+      "SilentPatchSA/FireManagerSA.cpp",
+      "SilentPatchSA/FLACDecoderSA.cpp",
+      "SilentPatchSA/GeneralSA.cpp",
+      "SilentPatchSA/ModelInfoSA.cpp",
+      "SilentPatchSA/PedSA.cpp",
+      "SilentPatchSA/PlayerInfoSA.cpp",
+      "SilentPatchSA/PNGFile.cpp",
+      "SilentPatchSA/PoolsSA.cpp",
+      "SilentPatchSA/ScriptSA.cpp",
+      "SilentPatchSA/SilentPatchSA.cpp",
+      "SilentPatchSA/TimerSA.cpp",
+      "SilentPatchSA/VehicleSA.cpp",
+      "SilentPatchSA/WaveDecoderSA.cpp",
+      "SilentPatch/Desktop.cpp",
+      "SilentPatch/FriendlyMonitorNames.cpp",
+      "SilentPatch/ParseUtils.cpp",
+      "SilentPatch/SVF.cpp",
+      "SilentPatch/TheFLAUtils.cpp"
+    ],
+    "defines": ["_GTA_SA", "NDEBUG", "PATTERNS_USE_HINTS"],
+    "versions": [
+      {"scope": "_10$", "version": "1.0"},
+      {"scope": "_11$", "version": "1.01"},
+      {"scope": "Steam$", "version": "steam"},
+      {"scope": "NewBinaries", "version": "newsteam"}
+    ]
+  },
+  "widescreen": {
+    "prefix": "ws",
+    "repo": "https://github.com/ThirteenAG/WidescreenFixesPack",
+    "commit": "d545cc29fc76b072590db0e6f91cb85932157eee",
+    "changelog": "",
+    "files": [
+      "source/GTASA.FusionFix/*.ixx",
+      "source/GTASA.FusionFix/*.cpp",
+      "source/GTASA.FusionFix/*.hpp",
+      "source/Shared/RWGTA/*.hpp"
+    ],
+    "defines": ["NDEBUG"],
+    "versions": []
+  },
+  "project2dfx": {
+    "prefix": "p2",
+    "repo": "https://github.com/ThirteenAG/III.VC.SA.IV.Project2DFX",
+    "commit": "16509fcac44f0d0ea9eccc25d047055877c020b8",
+    "changelog": "",
+    "files": [
+      "source/SALodLights/*.ixx",
+      "source/SALodLights/*.cpp",
+      "source/SALodLights/*.hpp"
+    ],
+    "defines": ["NDEBUG"],
+    "versions": []
+  }
+}

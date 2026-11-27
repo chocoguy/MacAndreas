@@ -1,0 +1,13 @@
+- addr: 0x0053e923
+  kind: byte_patch
+  source: silentpatch
+  group: seeded-no-framedelay
+  bytes: "eb43"
+  notes: "Seeded conflict for CI: overlaps the widescreen nop below by one byte"
+
+- addr: 0x0053e924
+  kind: nop
+  source: widescreen
+  group: seeded-overlap
+  len: 2
+  notes: "Seeded conflict for CI; manifest-check must reject this directory"

@@ -21,6 +21,8 @@ copy_tool("${SA_VERIFY}")
 
 file(REMOVE_RECURSE "${resources}/manifest")
 file(COPY "${MANIFEST_DIR}/" DESTINATION "${resources}/manifest")
+file(MAKE_DIRECTORY "${resources}/mods")
+file(COPY_FILE "${MOD_SETTINGS_SCHEMA}" "${resources}/mods/settings.yaml" ONLY_IF_DIFFERENT)
 
 if(EXISTS "${ANALYSIS_DIR}/functions.json")
     file(REMOVE_RECURSE "${resources}/analysis")

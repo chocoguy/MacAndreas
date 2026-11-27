@@ -715,7 +715,8 @@ std::string ff_vertex(const ShaderKey& k) {
     s += "  float4 vpos = float4(0.0, 0.0, 0.0, 1.0);\n  float3 N = float3(0.0);\n";
     if (k.pretransformed) {
         s += "  float w = P.w != 0.0 ? 1.0 / P.w : 1.0;\n";
-        s += "  float2 ndc = (P.xy + 0.5 - u.viewport.xy) / u.viewport.zw * float2(2.0, -2.0) + float2(-1.0, 1.0);\n";
+        s += "  float2 ndc = (P.xy + float2(u.depth_range.z, 0.0) + 0.5 - u.viewport.xy) / u.viewport.zw * "
+             "float2(2.0, -2.0) + float2(-1.0, 1.0);\n";
         s += "  float zr = u.depth_range.y - u.depth_range.x;\n";
         s += "  float z = zr != 0.0 ? (P.z - u.depth_range.x) / zr : P.z;\n";
         s += "  o.pos = float4(ndc * w, z * w, w);\n";

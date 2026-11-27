@@ -7,6 +7,7 @@
 #include <vector>
 
 namespace llvm {
+class Function;
 class Module;
 }
 
@@ -34,6 +35,10 @@ void strip_x86_function_attributes(llvm::Module& module);
 
 void relax_intrinsic_memory_attributes(llvm::Module& module);
 void enable_guest_unwinding(llvm::Module& module);
+void wrap_mid_hook(llvm::Module& module, llvm::Function& body, uint32_t addr);
+size_t route_mid_hook_bodies(llvm::Module& module);
+size_t keep_traces_separate(llvm::Module& module);
+size_t allow_trace_inlining(llvm::Module& module);
 size_t route_calls_through_dispatch(llvm::Module& module);
 size_t insert_tso_fences(llvm::Module& module, const std::vector<uint32_t>& functions);
 

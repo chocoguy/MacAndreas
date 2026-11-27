@@ -44,12 +44,16 @@ std::string trace_name(uint64_t addr) { return std::format("sub_{:08x}", guest_a
 
 class Manager final : public remill::TraceManager {
 public:
-    Manager(const remill::Arch* arch, llvm::Module* semantics, const GuestImage& image, const Analysis& analysis)
+    Manager(const remill::Arch* arch, llvm::Module* semantics, const GuestImage& image, const Analysis& analysis,
+            const std::vector<uint32_t>& extra_heads)
         : arch_(arch), semantics_(semantics), image_(image) {
         for (const auto& f : analysis.functions) {
             if (image.is_exec(f.entry)) {
                 heads_.insert(f.entry);
             }
+        }
+        for (uint32_t addr : extra_heads) {
+            heads_.insert(addr);
         }
     }
 
@@ -180,7 +184,8 @@ std::expected<void, std::string> write_functable(const std::filesystem::path& pa
 
 std::expected<size_t, std::string> apply_manifest(const std::filesystem::path& dir, GuestImage& image,
                                                   const Analysis& analysis, const remill::Arch& arch,
-                                                  std::vector<uint32_t>& tso) {
+                                                  std::vector<uint32_t>& tso, std::vector<uint32_t>& mid_hooks,
+                                                  std::vector<uint32_t>& resume_heads) {
     auto loaded = ma::manifest::load_directory(dir);
     std::string report;
     if (!loaded) {
@@ -245,9 +250,64 @@ std::expected<size_t, std::string> apply_manifest(const std::filesystem::path& d
         if (e.tso) {
             tso.push_back(e.addr);
         }
-        if (e.kind == ma::manifest::Kind::call_redirect || e.kind == ma::manifest::Kind::mid_hook) {
-            report += std::format("{}:{}: {} lowering is not implemented yet\n", e.file, e.line,
-                                  ma::manifest::to_string(e.kind));
+        if (e.kind == ma::manifest::Kind::mid_hook) {
+            if (!image.is_exec(e.addr)) {
+                report += std::format("{}:{}: mid_hook 0x{:08x} is not in executable code\n", e.file, e.line, e.addr);
+                continue;
+            }
+            mid_hooks.push_back(e.addr);
+            for (uint32_t r : e.resume) {
+                if (!image.is_exec(r)) {
+                    report += std::format("{}:{}: resume 0x{:08x} is not in executable code\n", e.file, e.line, r);
+                    continue;
+                }
+                resume_heads.push_back(r);
+            }
+            ++applied;
+            continue;
+        }
+        if (e.kind == ma::manifest::Kind::call_redirect) {
+            uint8_t opcode = 0;
+            uint8_t modrm = 0;
+            image.read_exec(e.addr, opcode);
+            image.read_exec(e.addr + 1, modrm);
+            if (opcode != 0xE8 && !(opcode == 0xFF && modrm == 0x15)) {
+                report += std::format("{}:{}: call_redirect 0x{:08x} is not a call rel32 or call [mem]\n", e.file,
+                                      e.line, e.addr);
+                continue;
+            }
+            uint32_t rel = ma::manifest::redirect_address(e.addr) - (e.addr + 5);
+            std::vector<uint8_t> call = {0xE8, static_cast<uint8_t>(rel), static_cast<uint8_t>(rel >> 8),
+                                         static_cast<uint8_t>(rel >> 16), static_cast<uint8_t>(rel >> 24)};
+            if (opcode == 0xFF) {
+                call.push_back(0x90);
+            }
+            if (!image.patch(e.addr, call)) {
+                report += std::format("{}:{}: 0x{:08x} is not backed by file data\n", e.file, e.line, e.addr);
+                continue;
+            }
+            ++applied;
+            continue;
+        }
+        if (e.kind == ma::manifest::Kind::operand_slot) {
+            uint8_t opcode = 0;
+            uint8_t modrm = 0;
+            image.read_exec(e.addr, opcode);
+            image.read_exec(e.addr + 1, modrm);
+            if (!ma::manifest::is_operand_slot_instruction(opcode, modrm)) {
+                report += std::format("{}:{}: operand_slot 0x{:08x} is not an x87 load or arithmetic from an "
+                                      "absolute m32 operand\n",
+                                      e.file, e.line, e.addr);
+                continue;
+            }
+            uint32_t slot = ma::manifest::operand_slot_address(e.addr);
+            std::vector<uint8_t> disp = {static_cast<uint8_t>(slot), static_cast<uint8_t>(slot >> 8),
+                                         static_cast<uint8_t>(slot >> 16), static_cast<uint8_t>(slot >> 24)};
+            if (!image.patch(e.addr + 2, disp)) {
+                report += std::format("{}:{}: 0x{:08x} is not backed by file data\n", e.file, e.line, e.addr);
+                continue;
+            }
+            ++applied;
             continue;
         }
         if (e.kind != ma::manifest::Kind::byte_patch && e.kind != ma::manifest::Kind::nop) {
@@ -300,7 +360,8 @@ std::expected<LiftResult, std::string> lift_program(const LiftOptions& options) 
 
     LiftResult result;
     if (!options.manifest_dir.empty()) {
-        auto applied = apply_manifest(options.manifest_dir, *image, *analysis, *arch, result.tso);
+        auto applied = apply_manifest(options.manifest_dir, *image, *analysis, *arch, result.tso, result.mid_hooks,
+                                      result.resume_heads);
         if (!applied) {
             return std::unexpected("manifest:\n" + applied.error());
         }
@@ -308,7 +369,9 @@ std::expected<LiftResult, std::string> lift_program(const LiftOptions& options) 
     }
 
     remill::IntrinsicTable intrinsics(semantics.get());
-    Manager manager(arch.get(), semantics.get(), *image, *analysis);
+    std::vector<uint32_t> extra_heads = result.mid_hooks;
+    extra_heads.insert(extra_heads.end(), result.resume_heads.begin(), result.resume_heads.end());
+    Manager manager(arch.get(), semantics.get(), *image, *analysis, extra_heads);
     remill::TraceLifter lifter(arch.get(), manager);
 
     std::vector<uint32_t> roots;
@@ -401,6 +464,7 @@ std::expected<LiftResult, std::string> lift_program(const LiftOptions& options) 
             }
         }
     }
+    roots.insert(roots.end(), extra_heads.begin(), extra_heads.end());
     std::ranges::sort(roots);
     roots.erase(std::unique(roots.begin(), roots.end()), roots.end());
     if (options.limit != 0 && roots.size() > options.limit) {
@@ -419,6 +483,7 @@ std::expected<LiftResult, std::string> lift_program(const LiftOptions& options) 
             return {};
         }
         relax_intrinsic_memory_attributes(*semantics);
+        keep_traces_separate(*semantics);
         remill::OptimizeBareModule(semantics.get());
 
         auto shard_name = std::format("shard_{:04}", shard_index++);
@@ -431,6 +496,11 @@ std::expected<LiftResult, std::string> lift_program(const LiftOptions& options) 
             defined.insert(static_cast<uint32_t>(addr));
         }
         batch.clear();
+        for (uint32_t addr : result.mid_hooks) {
+            if (llvm::Function* fn = shard.getFunction(trace_name(addr)); fn && !fn->isDeclaration()) {
+                wrap_mid_hook(shard, *fn, addr);
+            }
+        }
         for (auto& fn : shard) {
             if (fn.isDeclaration() && fn.getName().starts_with("sub_")) {
                 referenced.insert(parse_trace_name(fn.getName()));

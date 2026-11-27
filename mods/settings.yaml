@@ -1,0 +1,125 @@
+- key: silentpatch.units
+  type: choice
+  default: locale
+  choices: [locale, metric, imperial]
+  title: "Units"
+  notes: "Distances and speeds follow the Mac's region unless forced to metric or imperial"
+  replaces: "SilentPatchSA.ini [SilentPatch] Units"
+
+- key: silentpatch.jetpack_keyboard_hover
+  type: bool
+  default: true
+  title: "Jetpack hover with keyboard and mouse"
+  notes: "The look-behind key hovers the jetpack, as the controller's does"
+
+- key: widescreen.aspect_fov
+  type: bool
+  default: true
+  title: "Widescreen aspect ratio and field of view"
+  notes: "Renders at the window's real aspect ratio with a Hor+ field of view: wider screens see more at the sides instead of a stretched 4:3 picture."
+  replaces: "always on in the Widescreen Fix"
+
+- key: widescreen.fov_factor
+  type: number
+  default: 1.0
+  min: 0.5
+  max: 2.0
+  step: 0.05
+  title: "Field of view"
+  notes: "Widens or narrows the gameplay view: 2.0 shows twice as much width as 1.0, up to a 150 degree view. Cutscenes keep their own field of view. Used when the widescreen aspect ratio is on."
+  replaces: "the Widescreen Fix setting MAIN.FOVFactor"
+
+- key: widescreen.cutscene_borders
+  type: choice
+  default: both
+  choices: [off, letterbox, pillarbox, both]
+  title: "Cutscene borders"
+  notes: "Black bars in cutscenes, sized so the picture keeps the original cutscene framing: bars above and below on narrow screens (letterbox), at the sides on wide ones (pillarbox), or either. Used when the widescreen aspect ratio is on."
+  replaces: "the Widescreen Fix setting MAIN.CutsceneBorders, which it shows as the game's Widescreen row"
+
+- key: widescreen.cutscene_border_animation
+  type: bool
+  default: true
+  title: "Animated cutscene borders"
+  notes: "The cutscene bars slide in and out instead of appearing at once."
+  replaces: "the Widescreen Fix setting MAIN.AnimatedCutsceneBorders"
+
+- key: widescreen.hud
+  type: bool
+  default: true
+  title: "Widescreen HUD, text and menus"
+  notes: "The HUD, text and menus keep their 4:3 proportions on wider screens instead of stretching. Gameplay subtitles are centered between the radar's margins, as in the Widescreen Fix."
+  replaces: "always on in the Widescreen Fix"
+
+- key: widescreen.hud_aspect
+  type: choice
+  default: auto
+  choices: [auto, 4:3, 16:9, 21:9, 32:9]
+  title: "HUD aspect ratio"
+  notes: "Keeps the HUD inside a centered area of this shape on wider screens. Auto puts it at the screen's edges. Used when the widescreen HUD is on."
+  replaces: "the Widescreen Fix setting MAIN.HudAspectRatioConstraint"
+
+- key: widescreen.menu_aspect
+  type: choice
+  default: 16:9
+  choices: [auto, 4:3, 16:9, 21:9, 32:9]
+  title: "Menu aspect ratio"
+  notes: "On screens wider than this, the menus are drawn in a centered area of this shape with black bars at the sides. Auto uses the whole screen. Used when the widescreen HUD is on."
+  replaces: "the Widescreen Fix setting MAIN.MenuAspectRatioConstraint"
+
+- key: widescreen.fullscreen_map
+  type: bool
+  default: true
+  title: "Full-screen map"
+  notes: "The pause menu map fills the whole screen, without its frame, instead of sitting in a framed box. Map zoom and panning are twice as fast, as in the Widescreen Fix. Used when the widescreen HUD is on."
+  replaces: "the Widescreen Fix setting MISC.FullscreenMap"
+
+- key: widescreen.hud_width
+  type: number
+  default: 0.8
+  min: 0.5
+  max: 1.5
+  step: 0.05
+  title: "HUD width"
+  notes: "Width of the HUD elements relative to their 4:3 size. Used when the widescreen HUD is on."
+  replaces: "the Widescreen Fix setting MAIN.HudWidthScale"
+
+- key: widescreen.hud_height
+  type: number
+  default: 0.8
+  min: 0.5
+  max: 1.5
+  step: 0.05
+  title: "HUD height"
+  notes: "Height of the HUD elements relative to their 4:3 size. Used when the widescreen HUD is on."
+  replaces: "the Widescreen Fix setting MAIN.HudHeightScale"
+
+- key: widescreen.radar_width
+  type: number
+  default: 85.5
+  min: 60
+  max: 140
+  step: 0.5
+  title: "Radar width"
+  notes: "Radar width in HUD units (vanilla 94). Gameplay subtitles keep clear of it. Used when the widescreen HUD is on."
+  replaces: "the Widescreen Fix setting MAIN.RadarWidth"
+
+- key: widescreen.radar_height
+  type: number
+  default: 78.0
+  min: 60
+  max: 140
+  step: 0.5
+  title: "Radar height"
+  notes: "Radar height in HUD units (vanilla 76). Used when the widescreen HUD is on."
+  replaces: "the Widescreen Fix setting MAIN.RadarHeight"
+
+- key: widescreen.subtitles_scale
+  type: number
+  default: 1.0
+  min: 0.5
+  max: 2.0
+  step: 0.05
+  title: "Subtitle size"
+  notes: "Size of gameplay subtitles. Larger subtitles stay above the bottom edge of the screen. Used when the widescreen HUD is on."
+  replaces: "the Widescreen Fix setting MAIN.SubtitlesScale"

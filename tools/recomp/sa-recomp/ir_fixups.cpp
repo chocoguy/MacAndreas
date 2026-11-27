@@ -779,6 +779,122 @@ void strip_x86_function_attributes(llvm::Module& module) {
     }
 }
 
+size_t route_self_loops(llvm::Function& body, llvm::Function& wrapper, uint32_t addr) {
+    llvm::BasicBlock& entry = body.getEntryBlock();
+    auto* br = llvm::dyn_cast<llvm::BranchInst>(entry.getTerminator());
+    if (!br || br->isConditional()) {
+        return 0;
+    }
+    llvm::BasicBlock* head = br->getSuccessor(0);
+    llvm::PHINode* memory = nullptr;
+    for (auto& phi : head->phis()) {
+        if (phi.getBasicBlockIndex(&entry) >= 0 && phi.getIncomingValueForBlock(&entry) == body.getArg(2)) {
+            memory = &phi;
+            break;
+        }
+    }
+    std::vector<llvm::BasicBlock*> loops;
+    for (auto* pred : llvm::predecessors(head)) {
+        if (pred != &entry && std::ranges::find(loops, pred) == loops.end()) {
+            loops.push_back(pred);
+        }
+    }
+    auto* i32 = llvm::Type::getInt32Ty(body.getContext());
+    for (auto* pred : loops) {
+        llvm::Value* mem = memory ? memory->getIncomingValueForBlock(pred) : body.getArg(2);
+        auto* target = llvm::BasicBlock::Create(body.getContext(), "mid_hook_loop", &body);
+        llvm::IRBuilder<> b(target);
+        auto* call = b.CreateCall(&wrapper, {body.getArg(0), llvm::ConstantInt::get(i32, addr), mem});
+        call->setTailCall(true);
+        b.CreateRet(call);
+        pred->getTerminator()->replaceSuccessorWith(head, target);
+        for (auto& phi : head->phis()) {
+            while (phi.getBasicBlockIndex(pred) >= 0) {
+                phi.removeIncomingValue(pred, false);
+            }
+        }
+    }
+    return loops.size();
+}
+
+void wrap_mid_hook(llvm::Module& m, llvm::Function& body, uint32_t addr) {
+    auto& ctx = m.getContext();
+    auto* type = body.getFunctionType();
+    auto* i32 = llvm::Type::getInt32Ty(ctx);
+    auto* ptr = llvm::PointerType::getUnqual(ctx);
+    std::string name = body.getName().str();
+    body.setName(name + "_body");
+    auto* wrapper = llvm::Function::Create(type, llvm::GlobalValue::ExternalLinkage, name, m);
+    wrapper->copyAttributesFrom(&body);
+    body.replaceAllUsesWith(wrapper);
+    auto hook = m.getOrInsertFunction("__ma_mid_hook", llvm::FunctionType::get(i32, {ptr, i32}, false));
+    auto jump = m.getOrInsertFunction("__remill_jump", type);
+    auto* entry = llvm::BasicBlock::Create(ctx, "", wrapper);
+    auto* cont = llvm::BasicBlock::Create(ctx, "continue", wrapper);
+    auto* redirect = llvm::BasicBlock::Create(ctx, "resume", wrapper);
+    llvm::IRBuilder<> b(entry);
+    auto* site = llvm::ConstantInt::get(i32, addr);
+    auto* resume = b.CreateCall(hook, {wrapper->getArg(0), site});
+    b.CreateCondBr(b.CreateICmpEQ(resume, site), cont, redirect);
+    b.SetInsertPoint(cont);
+    auto* call = b.CreateCall(&body, {wrapper->getArg(0), wrapper->getArg(1), wrapper->getArg(2)});
+    call->setTailCall(true);
+    b.CreateRet(call);
+    b.SetInsertPoint(redirect);
+    auto* jumped = b.CreateCall(jump, {wrapper->getArg(0), resume, wrapper->getArg(2)});
+    jumped->setTailCall(true);
+    b.CreateRet(jumped);
+    route_self_loops(body, *wrapper, addr);
+}
+
+size_t route_mid_hook_bodies(llvm::Module& module) {
+    size_t routed = 0;
+    for (auto& body : module) {
+        llvm::StringRef name = body.getName();
+        if (!name.starts_with("sub_") || !name.ends_with("_body")) {
+            continue;
+        }
+        llvm::Function* wrapper = module.getFunction(name.drop_back(5));
+        if (!wrapper || wrapper->isDeclaration()) {
+            continue;
+        }
+        std::vector<llvm::Use*> uses;
+        for (auto& use : body.uses()) {
+            auto* inst = llvm::dyn_cast<llvm::Instruction>(use.getUser());
+            if (!inst || inst->getFunction() != wrapper) {
+                uses.push_back(&use);
+            }
+        }
+        for (auto* use : uses) {
+            use->set(wrapper);
+            ++routed;
+        }
+    }
+    return routed;
+}
+
+size_t keep_traces_separate(llvm::Module& module) {
+    size_t marked = 0;
+    for (auto& fn : module) {
+        if (fn.getName().starts_with("sub_") && !fn.hasFnAttribute(llvm::Attribute::NoInline)) {
+            fn.addFnAttr(llvm::Attribute::NoInline);
+            ++marked;
+        }
+    }
+    return marked;
+}
+
+size_t allow_trace_inlining(llvm::Module& module) {
+    size_t cleared = 0;
+    for (auto& fn : module) {
+        if (fn.getName().starts_with("sub_") && fn.hasFnAttribute(llvm::Attribute::NoInline)) {
+            fn.removeFnAttr(llvm::Attribute::NoInline);
+            ++cleared;
+        }
+    }
+    return cleared;
+}
+
 size_t route_calls_through_dispatch(llvm::Module& module) {
     llvm::Function* dispatcher = nullptr;
     size_t routed = 0;

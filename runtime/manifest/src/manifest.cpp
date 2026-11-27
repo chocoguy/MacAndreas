@@ -16,7 +16,7 @@ namespace {
 constexpr std::pair<std::string_view, Kind> kKinds[] = {
     {"byte_patch", Kind::byte_patch},       {"nop", Kind::nop},           {"data_poke", Kind::data_poke},
     {"call_redirect", Kind::call_redirect}, {"mid_hook", Kind::mid_hook}, {"func_replace", Kind::func_replace},
-    {"marker", Kind::marker},
+    {"operand_slot", Kind::operand_slot}, {"data_slot", Kind::data_slot},       {"marker", Kind::marker},
 };
 
 constexpr std::pair<std::string_view, Source> kSources[] = {
@@ -26,8 +26,8 @@ constexpr std::pair<std::string_view, Source> kSources[] = {
     {"native", Source::native},
 };
 
-constexpr std::string_view kKeys[] = {"addr", "kind", "source", "group", "target", "bytes",
-                                      "len",  "tso",  "setting", "notes"};
+constexpr std::string_view kKeys[] = {"addr", "kind",    "source", "group", "target", "bytes",
+                                      "len",  "tso",     "setting", "resume", "site", "notes"};
 
 std::string_view trim(std::string_view s) {
     while (!s.empty() && (s.front() == ' ' || s.front() == '\t')) {
@@ -104,6 +104,19 @@ std::optional<std::vector<uint8_t>> parse_bytes(std::string_view v) {
     return out;
 }
 
+std::vector<std::string> split_list(std::string_view list) {
+    std::vector<std::string> out;
+    while (!list.empty()) {
+        auto comma = list.find(',');
+        std::string item(trim(list.substr(0, comma)));
+        if (!item.empty() || comma != std::string_view::npos) {
+            out.push_back(std::move(item));
+        }
+        list = comma == std::string_view::npos ? std::string_view{} : list.substr(comma + 1);
+    }
+    return out;
+}
+
 struct Pending {
     Entry entry;
     std::map<std::string, std::string> fields;
@@ -123,12 +136,18 @@ void finish_entry(Pending& p, std::vector<Diagnostic>& errors, Manifest& manifes
     };
     size_t before = errors.size();
 
+    std::vector<uint32_t> addrs;
     if (auto* v = field("addr")) {
-        auto n = parse_integer(*v);
-        if (!n || *n > 0xffffffffull) {
-            add(errors, f, line, std::format("addr \"{}\" is not a 32-bit address", *v));
-        } else {
-            e.addr = static_cast<uint32_t>(*n);
+        for (const auto& item : split_list(*v)) {
+            auto n = parse_integer(item);
+            if (!n || *n > 0xffffffffull) {
+                add(errors, f, line, std::format("addr \"{}\" is not a 32-bit address", item));
+                break;
+            }
+            addrs.push_back(static_cast<uint32_t>(*n));
+        }
+        if (addrs.empty() && errors.size() == before) {
+            add(errors, f, line, "entry has no addr");
         }
     } else {
         add(errors, f, line, "entry has no addr");
@@ -187,6 +206,23 @@ void finish_entry(Pending& p, std::vector<Diagnostic>& errors, Manifest& manifes
     if (auto* v = field("setting")) {
         e.setting = *v;
     }
+    std::vector<uint32_t> resume_offsets;
+    if (auto* v = field("resume")) {
+        for (const auto& item : split_list(*v)) {
+            std::string_view text = item;
+            bool relative = text.starts_with('+');
+            auto n = parse_integer(relative ? text.substr(1) : text);
+            if (!n || *n > 0xffffffffull || (relative && (*n == 0 || *n > 15))) {
+                add(errors, f, line,
+                    std::format("resume \"{}\" is not a 32-bit address or an offset +1 to +15", item));
+                break;
+            }
+            (relative ? resume_offsets : e.resume).push_back(static_cast<uint32_t>(*n));
+        }
+    }
+    if (auto* v = field("site")) {
+        e.site = *v;
+    }
     if (auto* v = field("notes")) {
         e.notes = *v;
     }
@@ -196,6 +232,15 @@ void finish_entry(Pending& p, std::vector<Diagnostic>& errors, Manifest& manifes
 
     bool has_bytes = !e.bytes.empty();
     bool has_target = !e.target.empty();
+    if ((!e.resume.empty() || !resume_offsets.empty()) && e.kind != Kind::mid_hook) {
+        add(errors, f, line, std::format("{} takes no resume addresses", to_string(e.kind)));
+    }
+    if (addrs.size() > 1 && !e.resume.empty()) {
+        add(errors, f, line, "an entry with several addresses takes no resume addresses");
+    }
+    if (addrs.size() > 1 && !e.site.empty()) {
+        add(errors, f, line, "an entry with several addresses takes no site");
+    }
     switch (e.kind) {
     case Kind::byte_patch:
     case Kind::data_poke:
@@ -230,6 +275,20 @@ void finish_entry(Pending& p, std::vector<Diagnostic>& errors, Manifest& manifes
             add(errors, f, line, "call_redirect len must be 5 (call rel32) or 6 (call [mem])");
         }
         break;
+    case Kind::operand_slot:
+    case Kind::data_slot:
+        if (!has_target) {
+            add(errors, f, line, std::format("{} needs a target slot", to_string(e.kind)));
+        }
+        if (has_bytes || e.len != 0) {
+            add(errors, f, line, std::format("{} takes no bytes or len", to_string(e.kind)));
+        }
+        for (uint32_t a : addrs) {
+            if (e.kind == Kind::operand_slot && a >= kOperandSlotLimit) {
+                add(errors, f, line, std::format("operand_slot 0x{:08x} is above 0x{:08x}", a, kOperandSlotLimit));
+            }
+        }
+        break;
     case Kind::marker:
         if (has_bytes || has_target || e.len != 0) {
             add(errors, f, line, "marker takes no bytes, target or len");
@@ -240,7 +299,14 @@ void finish_entry(Pending& p, std::vector<Diagnostic>& errors, Manifest& manifes
         break;
     }
     if (errors.size() == before) {
-        manifest.entries.push_back(std::move(e));
+        for (uint32_t a : addrs) {
+            Entry copy = e;
+            copy.addr = a;
+            for (uint32_t offset : resume_offsets) {
+                copy.resume.push_back(a + offset);
+            }
+            manifest.entries.push_back(std::move(copy));
+        }
     }
 }
 
@@ -272,13 +338,16 @@ uint32_t Entry::span() const {
     case Kind::call_redirect:
     case Kind::mid_hook: return len ? len : 5;
     case Kind::func_replace: return 1;
+    case Kind::operand_slot: return 6;
+    case Kind::data_slot: return 4;
     case Kind::marker: return 0;
     }
     return 1;
 }
 
 bool Entry::lift_time() const {
-    return kind == Kind::byte_patch || kind == Kind::nop || kind == Kind::call_redirect || kind == Kind::mid_hook;
+    return kind == Kind::byte_patch || kind == Kind::nop || kind == Kind::call_redirect || kind == Kind::mid_hook ||
+           kind == Kind::operand_slot;
 }
 
 std::string Diagnostic::text() const { return std::format("{}:{}: {}", file, line, message); }
@@ -287,6 +356,7 @@ std::expected<Manifest, std::vector<Diagnostic>> parse(std::string_view text, co
     Manifest manifest;
     std::vector<Diagnostic> errors;
     std::optional<Pending> current;
+    std::string last_key;
     int line_no = 0;
     size_t pos = 0;
     while (pos <= text.size()) {
@@ -313,6 +383,7 @@ std::expected<Manifest, std::vector<Diagnostic>> parse(std::string_view text, co
                 finish_entry(*current, errors, manifest);
             }
             current.emplace();
+            last_key.clear();
             current->entry.file = file;
             current->entry.line = line_no;
             body = trim(body.substr(1));
@@ -324,6 +395,11 @@ std::expected<Manifest, std::vector<Diagnostic>> parse(std::string_view text, co
             continue;
         } else if (indent == 0) {
             add(errors, file, line_no, "entry fields must be indented");
+            continue;
+        }
+        if (!starts_entry && !last_key.empty() && current->fields[last_key].ends_with(',')) {
+            current->fields[last_key] += " ";
+            current->fields[last_key] += body;
             continue;
         }
         size_t colon = body.find(':');
@@ -344,6 +420,7 @@ std::expected<Manifest, std::vector<Diagnostic>> parse(std::string_view text, co
         if (!current->fields.emplace(key, *value).second) {
             add(errors, file, line_no, std::format("duplicate key \"{}\"", key));
         }
+        last_key = key;
     }
     if (current) {
         finish_entry(*current, errors, manifest);
@@ -410,7 +487,7 @@ std::vector<Diagnostic> check(const Manifest& manifest, const CheckContext& cont
     }
     for (const auto& e : manifest.entries) {
         bool code_patch = e.kind == Kind::byte_patch || e.kind == Kind::nop || e.kind == Kind::call_redirect ||
-                          e.kind == Kind::mid_hook;
+                          e.kind == Kind::mid_hook || e.kind == Kind::operand_slot;
         if (code_patch && context.is_instruction_start && !context.is_instruction_start(e.addr)) {
             add(out, e.file, e.line,
                 std::format("{} at 0x{:08x} does not start on an instruction boundary", to_string(e.kind), e.addr));
@@ -420,6 +497,39 @@ std::vector<Diagnostic> check(const Manifest& manifest, const CheckContext& cont
         }
         if (e.kind == Kind::func_replace && context.is_function_entry && !context.is_function_entry(e.addr)) {
             add(out, e.file, e.line, std::format("func_replace at 0x{:08x} is not a known function entry", e.addr));
+        }
+    }
+    std::map<std::string, const Entry*> group_owner;
+    for (const auto& e : manifest.entries) {
+        auto [it, inserted] = group_owner.emplace(e.group, &e);
+        if (inserted) {
+            continue;
+        }
+        const Entry& first = *it->second;
+        if (first.source != e.source) {
+            add(out, e.file, e.line,
+                std::format("group {} mixes sources: {} here, {} at {}:{}", e.group, to_string(e.source),
+                            to_string(first.source), first.file, first.line));
+        }
+        if (first.setting != e.setting) {
+            add(out, e.file, e.line,
+                std::format("group {} mixes settings: \"{}\" here, \"{}\" at {}:{}", e.group, e.setting, first.setting,
+                            first.file, first.line));
+        }
+    }
+    for (const auto& e : manifest.entries) {
+        if (!e.setting.empty() && (e.kind == Kind::byte_patch || e.kind == Kind::nop)) {
+            add(out, e.file, e.line,
+                std::format("{} at 0x{:08x} has setting \"{}\", but lift-time patches cannot switch at run time; "
+                            "use data_poke, func_replace, call_redirect or mid_hook",
+                            to_string(e.kind), e.addr, e.setting));
+        }
+    }
+    if (context.is_known_setting) {
+        for (const auto& e : manifest.entries) {
+            if (!e.setting.empty() && !context.is_known_setting(e.setting)) {
+                add(out, e.file, e.line, std::format("setting \"{}\" is not a known settings key", e.setting));
+            }
         }
     }
     if (context.function_end) {

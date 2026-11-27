@@ -282,7 +282,7 @@ YAML, one entry per patch, as in the original plan, plus these fields:
 
 ```yaml
 - addr: 0x00000000
-  kind: byte_patch | nop | data_poke | call_redirect | mid_hook | func_replace
+  kind: byte_patch | nop | data_poke | call_redirect | mid_hook | func_replace | operand_slot | data_slot
   source: silentpatch | widescreen | project2dfx | native
   group: <fix-name>
   target: <native symbol>
@@ -290,6 +290,8 @@ YAML, one entry per patch, as in the original plan, plus these fields:
   len: <n>
   tso: <bool, lifter memory-ordering marker; applies to the function at addr>
   setting: <settings key that enables this group, optional>
+  resume: <addresses a mid_hook may resume at, or +N offsets from each addr; lifted as trace heads, optional>
+  site: <inventory row id this entry ports, when it hooks a different instruction, optional>
   notes: <intent / upstream changelog ref>
 ```
 
@@ -301,6 +303,18 @@ Build-time checks:
 - `mid_hook` targets inside a block the lifter can't split.
 - Settings-gated groups compile to runtime checks for `data_poke`/`func_replace`. For
   lift-time `byte_patch`, the lifter generates both variants and selects one at startup.
+
+`addr` may list several addresses, separated by commas. A list may continue on more-indented
+lines after a trailing comma. Each address becomes its own entry with the other fields shared.
+
+`operand_slot` gives an x87 load or arithmetic instruction with an absolute m32 operand (`fld`,
+`fadd`, `fmul` and so on, from a constant) its own value. The lifter points the operand at a
+per-instruction slot (`0xE8000000 + 4 * addr`). The host fills the slot from the native slot
+function `target`, which is given the constant's value at startup. When the entry's setting is
+off, the slot copies the original constant. `data_slot` sets a float in the game's data to the
+value of a slot function, when its setting is on. The host refreshes both kinds once per frame.
+The Widescreen Fix uses them to change the HUD's scale constants per instruction, as the mod
+does by pointing each operand at its own variable.
 
 `mid_hook` targets receive `GuestCtx&`. Naked asm stubs from the mods are hand-translated
 into functions that take `GuestCtx&`.
@@ -1052,6 +1066,171 @@ Exit criteria:
 
 Goal: tooling that turns upstream mod source into verified manifest entries.
 
+Status: **complete.** The comparison against a Wine/CrossOver reference moved to M11 (see
+"Reference check" there); the ported fixes were checked in scripted runs against the behaviour
+expected from the mods on Windows. The inventory, pinning, triage records, the CI conflict check, unified
+settings and `call_redirect`/`mid_hook` lowering are in place. Four SilentPatch groups are ported,
+one for each manifest kind, and checked in a scripted run, which also captures a camera-pinned view.
+The rule-based triage pass is done; fix-by-fix decisions belong to M8–M10.
+
+What is in place:
+- **Inventory** (`tools/mod-inventory/mod_inventory.py`, Python stdlib only).
+  - `fetch` clones the commits pinned in `mods.json`, the same ones as `THIRD_PARTY_NOTICES.md`, with
+    their submodules, into `.cache/mods/`.
+  - `scan` reads the files each mod's own project compiles. It strips comments, evaluates `#if` with
+    that project's defines, and tracks functions, lambdas and `if` blocks. It records ModUtils calls
+    (`Patch`, `Nop`, `InjectHook`, `InterceptCall`, `ReadCall`, the displacement helpers), `injector::*`,
+    `safetyhook::create_mid/inline`, `AddressByVersion`/`External*` bindings and literal data reads.
+  - Each row has a stable id, op, 1.0 US address, span, how it was pinned, version, fix group
+    (the nearest heading comment), scope, `if` condition, target and source line.
+  - The output is `mods/<mod>/inventory.yaml`. Pattern text is redacted, so rows hold addresses only.
+- **Pinning.**
+  - SilentPatch's version-specific functions decide the version (`*_10` keeps; `*_11`, `*_Steam` and
+    `*_NewBinaries*` drop). `AddressByRegion_10` and `AddressByVersion` take the 1.0 US address.
+  - Pattern scans (`hook::pattern`, `get_pattern`, `get_first`, `count(n).get(i)`, `PatternAndOffset`)
+    are resolved against the local exe's code range, or against an explicit `{{ lo, hi }}` range in any
+    section. `GetFunctionAddrIfRerouted` follows a leading `jmp` within the image, as SilentPatch does,
+    which matters for functions the DRM moved into `.HOODLUM`. `GetBranchDestination` and pointer reads are
+    resolved from the exe as well.
+  - Loop counters expand to every match. Range-for address lists and helper parameters (through the
+    helper's callers in the same file) are followed.
+  - Anything left over is `pin: unresolved` with a reason. `mods/<mod>/pins.yaml` pins it by hand,
+    with one `addr` or a list of `addrs` (a helper called for several sites becomes `<id>.0`, `<id>.1`, …).
+- **Triage** (`mods/<mod>/triage.yaml`): one record per fix group with `decision`
+  (pending/keep/replace/drop), `reason` and `changelog` (`CHANGELOG-SA.md:<line>`, matched by words
+  for SilentPatch). Keyword hints suggest replace/drop for FLAC, INI, frame limiter, D3D9/DInput/DSound,
+  display-mode/window-message and other-mod compatibility groups. Decisions survive a rescan.
+- **Checks.**
+  - `manifest-check DIR...` (C++, on the manifest library) runs the strict checks that need no game
+    data. The library gained two: a group must not mix sources or settings, and a `setting` must be a
+    known key (through `CheckContext::is_known_setting`, for when unified settings land).
+  - `mod_inventory.py check --manifest manifest` validates inventory and triage and lists cross-mod
+    overlaps. It requires every mod entry in the manifest to port a site whose group is `keep`.
+  - CI runs both. `tests/manifest/seeded/overlap.yaml` is a seeded overlap that must fail (CTest
+    `manifest.check_rejects_seeded_overlap` and `manifest.seeded_overlap_reported`, plus a CI step).
+
+- **Unified settings** (`runtime/settings`, `MacAndreas::settings`).
+  - `mods/settings.yaml` is the schema: key (`<mod>.<name>`), `bool`/`int`/`number`/`choice`, default, title,
+    notes, and the INI entry it `replaces`.
+  - The launcher bundles it, shows the settings in a Fixes section and writes
+    `~/Library/Application Support/MacAndreas/mods.conf` (`key = value`). `sa-host` reads it with
+    `--settings`, takes `--set KEY=VALUE` overrides, and natives read values through
+    `mod_settings()`.
+  - `manifest-check --schema` and `sa-host` reject a `setting` that is not in the schema. An entry's
+    `setting` must be a bool; when it is false at launch the entry is not registered.
+  - `byte_patch` and `nop` can't take a `setting`: they are lifted in, so switching them would mean
+    lifting both variants. That is left until a group needs it.
+- **Lowering in `sa-recomp`, with matching `sa-host` runtime.**
+  - `call_redirect`: the `call rel32` or `call [mem]` at the site is rewritten, both in the lifted
+    image and in guest memory, to call `0xE0000000 + site`. The host registers that address to a
+    trampoline. It calls the native target, which can read `redirect_original()`, or jumps to the
+    original callee when the entry's setting is off.
+  - `mid_hook`: the address becomes a trace head. Its lifted trace is renamed `sub_<addr>_body` and
+    wrapped. The wrapper calls `__ma_mid_hook`, which runs the native hook on the guest state. The
+    hook returns where to resume: the site to continue, or another address, reached through
+    `__remill_jump`. Fallthrough, jumps and the interpreter all enter through the wrapper.
+  - Host runtime tests cover the trampoline (on, off, `redirect_original`) and mid-hook resume.
+    `recomp.mid_hook_wrapper` builds small modules and checks that `wrap_mid_hook` sends same-module
+    callers through the wrapper, and that `route_mid_hook_bodies` repairs older shards.
+- **First SilentPatch ports** (`manifest/silentpatch.yaml`, natives in
+  `host/src/native/silentpatch.cpp`; their groups are triaged `keep`):
+  - `byte_patch` *Fixed ammo for melee weapons in cheats*. SilentPatch patches the immediate inside
+    `push 0`, which fails the instruction-boundary check, so the entries rewrite whole instructions
+    (`push 1`, and the katana's two pushes swapped).
+  - `func_replace` *Locale based metric/imperial system* (`0x56d220`, `sp_is_metric`):
+    `kCFLocaleUsesMetricSystem`, or `silentpatch.units` = `metric`/`imperial`, which replaces the
+    SilentPatch INI's `Units`.
+  - `mid_hook` *Jetpack hover with keyboard and mouse* (`0x67ed2d`): when look-behind is pressed it
+    resumes at the hover path (`0x67edaf`). `silentpatch.jetpack_keyboard_hover` switches it.
+  - `call_redirect` *Display a fallback string if the resolution string is absent* (`0x57a071`,
+    `sp_ascii_to_gxt_null_check`): Advanced Display Options passes the mode string through the native,
+    which substitutes `"-"` for a null pointer and calls the original `AsciiToGxtChar`. The native
+    mode list makes the null case unlikely here, so this is a safety net and the `call_redirect` proof.
+- **Harness pieces.**
+  - `--watch-chain ADDR>OFF>…` follows pointers, for player and vehicle state.
+  - `tools/verify/image_diff.py` compares a capture against a reference with a per-channel tolerance,
+    an allowed fraction, ignored rectangles and a magenta diff image.
+  - **Camera pinning.** `sa-host --pin-camera FRAME:X,Y,Z:TX,TY,TZ` calls
+    `CCamera::SetCamPositionForFixedMode` (`0x50bec0`) and `CCamera::TakeControlNoEntity` (`0x50c8b0`,
+    jump cut, script control) on `TheCamera` (`0xb6f028`) from the guest thread at that frame;
+    `FRAME:restore` calls `CCamera::Restore` (`0x50b930`). These are the functions behind the script
+    commands `SET_FIXED_CAMERA_POSITION`, `POINT_CAMERA_AT_POINT` and `RESTORE_CAMERA`: the handlers
+    at `0x47c540` and `0x47c598` load `ecx` with `TheCamera` and pass the script parameters
+    (`0xa43c78`) to them. So a CLEO script on the reference can produce the same view.
+  - `tools/route/m7_silentpatch.py` runs the ports: a main-menu run into Advanced Display Options,
+    then the New Game route. The route pins the camera on each view in `VIEWS`, captures it and
+    restores the camera; `--reference DIR` diffs those captures against another run's (clock ignored). `Route.new_game()` clicks through the intro cutscene, so CJ is in control
+    at frame 1800 instead of 6450.
+
+Scripted results on this Mac (`tools/route/m7_silentpatch.py`, converted with the manifest):
+- **Melee cheat ammo:** after the second weapon cheat, the melee slot holds the knife with total
+  ammo 1 (vanilla gives 0).
+- **Jetpack hover:** with the jetpack cheat and Left Shift (thrust) held, holding Q+E (look behind)
+  freezes the height at about 56.6, as hovering does. With `--set
+  silentpatch.jetpack_keyboard_hover=false` the hook is not registered and CJ climbs about 100 units
+  through the same window, as in vanilla.
+- **Units:** the game calls `CLocalisation::Metric` on the Misc stats page. The native answers
+  imperial for this Mac's US region by default, and metric with `--set silentpatch.units=metric`.
+- **Pinned view:** the camera pins behind CJ at the first-control spot and restores 40 frames later.
+  Two runs of the route match within 0.005–0.17% of pixels (distant traffic, foliage); the threshold
+  is 0.5%.
+- **Resolution string:** in Advanced Display Options the call at `0x57a071` reaches the redirect with
+  `"1280 X 720 X 32"`, returns through the original `AsciiToGxtChar`, and the row draws unchanged.
+
+None of this has been compared against a Wine/CrossOver reference; that check is in M11.
+
+Inventory after hand pins and the rule-based triage pass (sites per decision):
+
+| Mod | Sites | Unresolved | Fix groups | Keep | Replace | Drop | Pending | Other versions dropped |
+|---|---|---|---|---|---|---|---|---|
+| SilentPatch | 661 | 0 | 207 | 12 | 61 | 15 | 573 | 707 (1.01: 178, Steam: 215, newsteam: 314) |
+| Widescreen Fix | 325 | 32 | 84 | 0 | 9 | 2 | 314 | none (pattern-based) |
+| Project2DFX | 52 | 0 | 12 | 0 | 0 | 0 | 52 | none (pattern-based) |
+
+The rule-based pass follows §5 step 3: Windows display-mode, window-message, DirectInput, frame
+limiter, file-flag and semaphore fixes are `replace` (the native layer already owns them), and ASI,
+INI, FLAC, DirectPlay, single-instance and CLEO code is `drop`. Game logic, HUD and renderer groups
+stay `pending` for the milestone that ports them (M8, M9, M10). Bindings groups (`bindings: <file>`)
+are reads of game functions, not patches, and are decided with the groups that use them.
+
+Findings:
+- At the pinned commit, the SA Widescreen Fix is `source/GTASA.FusionFix` in WidescreenFixesPack. It
+  covers more than widescreen, so its triage needs to separate the widescreen groups from the rest.
+- SilentPatch and the Widescreen Fix both patch the same sites:
+  - HUD scaling at `0x58c387`–`0x58c4e4`;
+  - the video-mode list and resolution dialog at `0x74596c`–`0x746368`, next to the native
+    `GetVideoModeList` replacement (`0x745af0`), which now owns that code;
+  - the frame limiter call at `0x748d9b`.
+
+  Triage has to pick one owner for each.
+- The unresolved Widescreen sites come from three things:
+  - lookups kept in a struct (`MenuConstraint`'s `Locate()`);
+  - subscripted address tables (`m_dwHUDWidth[i]`);
+  - six patterns that do not occur in the 1.0 US exe (`EntryExit.ixx`, `Frontend.ixx:119`, `Draw.ixx:114`).
+
+  The Widescreen ones are left for M8, which ports that code. Eight of the nine SilentPatch ones are
+  hand pinned: vtable slots read through an instruction operand (`CVehicleModelInfo` `0x85c5c8`,
+  `CAutomobile` `0x871120`, `CPlane` `0x871948`, `CTrailer` `0x871c28`), the cheat jump table
+  (`0x8a5cc8`) and the six rotor/propeller render sites.
+- `0x41bfa0` (*Cancel the Drive By task of biker cops*) and `0x45c4b0` (*PlayerPedDataAssignment*)
+  are DRM thunks: each is a `jmp` into `.HOODLUM` (`0x15612e0`, `0x1561cf0`). SilentPatch follows
+  the jump through `GetFunctionAddrIfRerouted`, but the scanner treated that as identity. It put the
+  five *PlayerPedDataAssignment* rows at `0x45c50d` (in the thunk's padding) instead of `0x1561d4d`,
+  and couldn't find the biker-cop pattern. Both now resolve (`0x1561366` for the biker cops).
+- The first keyword hints were wrong for three groups. `InjectDelayedPatches_10` (22 sites of 1.0
+  fixes) was hinted "other versions", and credits and dialog text scaling were hinted "window and
+  mode handling" because they mention resolution or windows. The other-versions hint is gone (the
+  version rules already drop those rows) and the display hint now needs specific terms; a unit test
+  covers these cases.
+- The first `mid_hook` build skipped the hook. Renaming the lifted trace to `sub_<addr>_body` left
+  calls in the same shard pointing at the renamed function, so callers bypassed the wrapper.
+  `sa-recomp` now redirects those uses at lift time. The compile step does the same
+  (`route_mid_hook_bodies`), so shards lifted before the fix are corrected by `recompile`.
+- `--probe` reported no calls to the jetpack control function (`0x67eb90`) even while it ran. Its
+  only caller is a `jmp` thunk at `0x4075eb`, which lifts to a direct tail call and never goes
+  through the function table that the probe hooks.
+- Vehicle look-behind on a keyboard is Q and E together, which is what `GetLookBehindForCar` reads.
+
 Work:
 - `tools/mod-inventory`: scans each pinned upstream commit for `InjectHook`, `Patch`, `Nop`,
   `ReadCall`, `MakeInline`, `injector::*`, pattern scans and memory writes. Output is one YAML
@@ -1070,7 +1249,8 @@ Exit criteria:
 - Inventory YAML exists for all three mods at pinned upstream commits.
 - The conflict check runs in CI and fails on a seeded overlap.
 - One `byte_patch`, one `mid_hook` and one `func_replace` taken from SilentPatch are each
-  verified against the reference.
+  verified in a scripted run against the behaviour expected from the mod on Windows. Met, with a
+  `call_redirect` as well. The comparison against a Wine/CrossOver reference moved to M11.
 
 ### M8 — Widescreen Fix
 
@@ -1083,8 +1263,319 @@ Work:
 - Drop: INI parsing, code for other games.
 
 Exit criteria:
-- HUD, radar, menus, crosshair, FOV and cutscenes match the reference at 4:3, 16:9, 16:10 and
-  21:9 on fixed saves and cameras, within a pixel tolerance.
+- HUD, radar, menus, crosshair, FOV and cutscenes are correct at 4:3, 16:9, 16:10 and 21:9 on fixed
+  saves and cameras, checked in scripted runs against the Widescreen Fix's behaviour on Windows. The
+  comparison against a Wine/CrossOver reference is part of M11's reference check.
+
+Status: **in progress.** The base layer is ported: the real aspect ratio, a Hor+ field of view and
+the sky spread that follows it (`manifest/widescreen.yaml`, natives in
+`host/src/native/widescreen.cpp`, switched by `widescreen.aspect_fov`). The HUD, text and menu
+scale layer follows (`manifest/widescreen-hud.yaml`, switched by `widescreen.hud`), with script text,
+menu and HUD positions and the 16:9 menu canvas. Cutscene borders, the cutscene FOV and the wheel
+camera FOV are in place, and so are splash screens, menu sliders, decimal settings, the full-screen
+map, the width-640 shortcuts and the water scan for the wider view. Every widescreen group of the fix
+is decided; the FusionFix features outside M8's scope and a HUD misalignment reported at 2560×1440 move
+to M11.
+
+What is in place:
+- **Aspect ratio and Hor+ FOV** (group *Aspect ratio and Hor+ field of view*, regrouped in
+  `mods/widescreen/pins.yaml` from `Draw.ixx` and `Main.ixx`'s `CameraSize` hook):
+  - `func_replace` `CDraw::CalculateAspectRatio` (`0x6ff420`): `RsGlobal` width/height
+    (`0xc17044`/`0xc17048`) into `ms_fAspectRatio` (`0xc3efa4`), instead of 4:3, 16:9 from the
+    Widescreen menu option or 5:4 under cutscene borders.
+  - `func_replace` `CDraw::SetFOV` (`0x6ff410`): stores `ms_fFOV` (`0x8d5038`) and a Hor+ copy (the
+    4:3 vertical angle widened to the screen) outside cutscenes and borders
+    (`CCutsceneMgr::ms_running` `0xb5f851`, `TheCamera.m_bWideScreenOn` `0xb6f065`).
+  - `mid_hook`s: `CameraSize` (`0x72fc70`) gets the Hor+ view window and the real aspect ratio;
+    `CalculateFrustumPlanes` (`0x514d63`) loads the Hor+ half angle; `Find3rdPersonCamTargetVector`
+    (`0x5149a6`) scales the crosshair offset by the aspect ratio; the two aim-width multiplies
+    (`0x50ad59`, `0x51498d`) use the Widescreen Fix's 0.01403292 and the `fdiv` by the aspect ratio
+    (`0x50ad79`) is skipped.
+- **Sky spread** (*Fix sky multitude*): the two multiplies by 1.4 (`0x714841`, `0x71485e`) become
+  1.4 × aspect/(4:3).
+- **Sprite size** (*Sprite::Sprite*): both `CSprite::CalcScreenCoors` overloads (`0x70ce30`,
+  `0x71da00`) size a sprite's width from the screen width and its height from the screen height, so
+  coronas, the sun's glow and similar sprites stretch with the window. The Widescreen Fix uses the
+  height for both. The port pushes the screen height at the width's `fild` (`0x70ced8`, `0x71da6d`).
+  In cutscenes, the four 70/FOV multiplies (`0x70cef6`, `0x70cf08`, `0x71da8b`, `0x71da9d`) are
+  operand slots scaled by the cutscene sprite scale (aspect/(4/3)/zoom), as the mod's `CalcScreenCoors`
+  does.
+- **`site:`.** A manifest entry can name the inventory row it ports when it hooks a different
+  instruction than the mod does (the Widescreen Fix replaces `CalcScreenCoors` at its entry; the port
+  changes one instruction inside). `mod_inventory.py check` then checks that row's triage instead of
+  an address overlap.
+- The Widescreen Fix writes a pointer to its own float into an instruction operand at several of
+  these sites. The port does the arithmetic in a `mid_hook` and resumes after the instruction
+  instead, so no guest-side constant is needed and every entry can take the setting.
+- **`mid_hook` resume addresses.** A `mid_hook` entry can list `resume:` addresses. `sa-recomp`
+  makes them trace heads, so resuming there stays in lifted code. Before this, the jetpack hook's
+  resume (`0x67edaf`) ran through the interpreter.
+- **Scanner.** Pattern scans now cover the image from its base to the end of the last executable
+  section, as Hooking.Patterns does. That includes the DRM-moved code in `.HOODLUM`, where
+  `CDraw::SetFOV`'s caller and the `EntryExit` patterns are (Widescreen unresolved: 32 → 28).
+- **FOV factor.** `widescreen.fov_factor` (0.5–2.0, default 1.0; the mod's `FOVFactor`) multiplies
+  the tangent of the gameplay half angle in `ws_set_fov`, capped at a 150° view as in the mod.
+  Cutscenes keep their field of view.
+- **HUD, text and menu scaling** (group *HUD, text and menu scaling*, regrouped from `Frontend.ixx`).
+  The mod points each scaled instruction's operand at its own float. The port does the same with two
+  new manifest kinds (§3.10): `operand_slot` (the lifter points the operand at a per-instruction slot
+  that the host fills each frame) and `data_slot` (a float in the game's data set by a native).
+  - 107 scale factors after `fild RsGlobal.maximumWidth` keep their startup value divided by
+    aspect/(4/3) (`ws_hud_scale`; the mod's `vHudScalePtrs`, from the same three patterns, its four
+    extra sites and without its excluded sliders, map edges and message-screen positions).
+  - The mod's HUD element lists: 92 widths become (1/640)/(aspect/(4/3)) and 82 heights 1/448, each
+    times `widescreen.hud_width`/`widescreen.hud_height` (0.5–1.5, default 0.8 as in the mod); the
+    weapon icon and ammo widths 0.17343046/(aspect/(4/3)); the weapon icon's x 47 instead of 58.
+  - The shared 1/640 (`0x859520`) narrows for its remaining users, and the shared 640 (`0x85951c`)
+    becomes 480 × aspect; the main menu, its entry sprite and the briefs text keep 1/640.
+  - Crosshairs use 1/480 for their height. One listed site (`0x58e2c8`) is an `fadd` of 1.0 on 1.0 US;
+    the mod points it at 1/480 too, and the port does the same. Rocket launcher and Hydra lock-ons use
+    20 instead of 28, so they are circles.
+  - Radar `widescreen.radar_width` × `widescreen.radar_height` (85.5 × 78 by default, as in the mod),
+    with `CHud::DrawPlayerInfo`'s bars kept at x 94; gameplay subtitles at 1.2 × 0.58 times
+    `widescreen.subtitles_scale`, centered between the radar's margins, and moved up when they would
+    reach the bottom edge (`0x58c68a`); other languages keep the English letter width.
+  - The menu helper text (`StretchX(610)` at `0x57e3a5`) is anchored to the right edge.
+  - The co-op in-car crosshair is a circle: the mod's byte patch at `0x743bcd` points an `fmul` at
+    the width argument. The port does that multiply in a `mid_hook` at `0x743bca`, so it follows
+    `widescreen.hud`.
+- **Decimal settings.** The settings schema has a `number` type (`min`, `max`, `step`), read with
+  `Values::number` and shown by the launcher as a stepper. The Widescreen Fix's settings keep the mod's
+  units: `widescreen.fov_factor`, `hud_width`, `hud_height`, `radar_width`, `radar_height` and
+  `subtitles_scale`.
+- **Cutscene borders** (group *Cutscene borders*, from `Sprite2d.ixx`):
+  - `func_replace` `CCamera::DrawBordersForWideScreen` (`0x514860`). It computes bars that keep the
+    vanilla cutscene window's framing: pillarbox on screens wider than (4/3)/0.7167 ≈ 1.86, letterbox
+    otherwise, with the mod's center fudge and minimum top bar. The bars slide in and out over 0.35 s,
+    and sudden fades clear them.
+  - The zoom that keeps that framing feeds `ws_set_fov`'s cutscene branch (2·atan(tan(FOV/2)·zoom))
+    and the sprite scale. The camera's motion blur alpha is set to 80 as in vanilla.
+  - Settings: `widescreen.cutscene_borders` (off, letterbox, pillarbox, both; default both) and
+    `widescreen.cutscene_border_animation` (default on). The mod keeps the mode in the menu's
+    Widescreen row and relabels that row; the port takes it from the launcher, so the in-game row has
+    no effect while the fix is on. The vanilla row only chose a 16:9 aspect ratio, which the real
+    aspect ratio replaces.
+  - Two `mid_hook`s skip the conditions around the two calls (`0x53e2a4`, `0x5af8b9`), so the
+    function runs every frame and can animate the bars out. Vanilla only calls it while the camera is
+    in widescreen and the menu's Widescreen option is off.
+  - A `mid_hook` at `CHud::DrawHelpText` (`0x58bb88`) moves the help text down by the visible top bar
+    instead of vanilla's fixed 56.
+  - `CFont::PrintChar`'s left cull edge (`0x718a41`) becomes the 4:3 inset, so text moved into the
+    centered canvas is not cut.
+- **Splash and loading screens** (group *Splash and loading screens*, from `Sprite2d.ixx`). A
+  `mid_hook` at `CSprite2d::Draw` (`0x728350`) catches full-screen textured sprites (not the map).
+  It points the rectangle argument at a copy that is centered at the texture's aspect ratio (4:3 for
+  square and 2:1 rasters), so the caller's rectangle stays as it was, as the mod requires for splash
+  fades. It then paints black bars beside it at the sprite's alpha. `tvcorn` and `backbet` get black
+  4:3 pillar bars. A `mid_hook` on the loading screen's `DrawBarChart` call (`0x590480`) moves the
+  bar into the centered splash, or under the logo of widescreen LOADSCS art.
+- **Menu sliders** (groups *Menu sliders* and *Slider rendering…*, from `Frontend.ixx`). The five
+  `DisplaySlider` calls draw the slider 140 scaled units from the right edge, 100 wide with 3-unit
+  notches, returning at least its left edge for mouse hit tests. The ten hit-test calls to `StretchX`
+  return the slider's left edge and the screen's right edge.
+- **Full-screen map** (`manifest/widescreen-map.yaml`, from `MenuMap.ixx`;
+  `widescreen.fullscreen_map`, default on as in the mod's `MISC.FullscreenMap`):
+  - The map works in a virtual canvas 480 × aspect units wide: the screen's aspect for the full-screen
+    map, the menu canvas's for the framed one. 49 operand slots replace the map's constants with that
+    canvas's center, inset (0 full-screen, 60 framed), right and bottom edges, cursor limits and edge
+    fractions; the origin moves with the center when it changes. Zoom and pan speed is 14 instead of
+    7, as on the mod's map.
+  - `mid_hook`s: the map opens centered on the canvas; zoom keeps the world point under the cursor in
+    place (through the game's own map projection, `0x583530`); the origin clamp shrinks the pan range
+    with zoom and runs before tile streaming and drawing too; the zoomed-out overview widens its
+    square texture, frame, unrevealed zones and blips by 480/448; the area name moves up 40 units on
+    the full-screen map; the legend window and its entries are centered.
+  - The seven hit-test calls use the drawn map's edges and center. The full-screen map skips the
+    frame's eight `DrawRect` calls (setting-gated `call_redirect`s that return at once).
+  - The full-screen map is drawn outside the menu canvas. In the framed map at 21:9, the frame's black
+    masks are full-height quads drawn in canvas space; as in the mod's menu canvas, the D3D9 layer
+    widens black full-height quads to the physical screen edges while the canvas is active (in both
+    the vertex-buffer and UP draw paths), so map tiles don't show in the bars. That also replaced the
+    bar painting the menu canvas used before.
+- **Width-640 shortcuts** (groups *Remove the width==640 shortcut…*, *Dialog text/window…* and
+  *Width alone is not enough…*, from `Frontend.ixx` and `MenuMap.ixx`). Vanilla skips its scaling
+  when the window is exactly 640 wide, which is only right at 640×480. The mod points 32 compares at
+  -1, so the scale branch always runs:
+  - `CMenuManager::StretchX` (`0x5733e0`, a DRM-moved stub) becomes a `func_replace`: x × width ×
+    the shared 1/640, without the shortcut.
+  - 32 compares (`cmp eax/reg/[RsGlobal.maximumWidth], 640` and two `mov esi, 640`) get one
+    `mid_hook`, `ws_width_640`. It decodes the instruction, sets the flags as a compare against a
+    width that never matches and resumes after it, so the shortcut follows `widescreen.hud`.
+  - The radio scan dialog's track and moving segment (two `DrawRect` calls, `0x57bd70`, `0x57be2b`)
+    move into the dialog's centered 4:3 canvas.
+  - **`resume: +N`.** A `mid_hook` entry with several addresses can name its resume as an offset from
+    each one (`+5`, `+6`, `+10`), so the 32 sites are seven entries.
+- **Subtitle width with a narrower HUD** (*These calls belong to gameplay's normal and vital-stats
+  branches*): the two `CFont::SetCentreSize` calls in `CHud::DrawSubtitles` (`0x58c603`, `0x58c536`)
+  move both margins inward by the HUD offset when `widescreen.hud_aspect` is narrower than the screen
+  (0.8 of it on the vital-stats branch).
+- **Water at the edges of the wider view** (*InitWaterFrustum*, from `Main.ixx`): a `call_redirect`
+  on the water renderer's scan of the camera footprint (`0x6e6e8c` → `0x72cae0`) draws every water
+  cell the footprint's convex hull touches, even at a corner, as the mod does. Other shapes and
+  out-of-range footprints go to the game's scan. It follows `widescreen.aspect_fov`.
+- **Wheel camera** (*CCam::Process_WheelCam*): its fixed 70° FOV (`0x512122`) becomes the inverse of
+  the Hor+ conversion, so the view matches vanilla once widened.
+- **2D offset in the D3D9 layer.** The mod moves 2D by hooking every `CSprite2d` vertex setup and
+  the RwIm2D render functions. The port adds a host-wide x offset to pretransformed vertices in the
+  fixed-function vertex shader (`depth_range.z`, set by `d3d9::set_offset_2d_x`). Natives set it
+  around the calls that draw a moved element and flush `CFont`'s buffered text on both sides, as the
+  mod does. Everything drawn in that call moves, so the mod's separate weapon-icon and `DrawRect`
+  hooks are not needed.
+- **Script text, menus and HUD positions** (group *Script text, menus and HUD positions*, from
+  `Hud.ixx`). The hooked functions' epilogues are DRM-moved, so the port wraps their call sites:
+  `call_redirect` for calls, and a `mid_hook` that makes the call and returns to the caller for tail
+  jumps.
+  - `CHud::DrawScriptText` (`0x58c080`, both calls): script texts and rectangles move by the 4:3
+    pillar width before drawing and are restored afterwards; the left and right panels of the mod's
+    listed minigames (pool, lowrider, Wheel of Fortune, triathlon, races and so on) go to the HUD edges,
+    blackjack and roulette windows by their side, and pool and track-betting labels shrink to fit.
+    Which script made each record comes from `mid_hook`s on the nine opcode handlers the mod hooks
+    (records added since the last command belong to the script that ran it).
+  - Script menus (`0x580e00`, `0x5816e0`; six calls and two tail jumps): the panel's x moves the
+    same way, and not on the map.
+  - The menu's stats, briefs and radio list pages draw moved right by the 4:3 pillar width.
+  - The HUD element calls (player info, radar, vital stats, help text, area and vehicle names,
+    timers, trip skip) move toward the center to fit `widescreen.hud_aspect` (`auto`, 4:3, 16:9,
+    21:9, 32:9; the mod's `HudAspectRatioConstraint`). Under `auto` nothing moves and the calls go
+    straight through.
+- **Menu canvas** (group *Menu canvas*, from `MenuConstraint.ixx`). On screens wider than
+  `widescreen.menu_aspect` (default 16:9, the mod's `MenuAspectRatioConstraint`), the menu is drawn
+  in a centered canvas of that shape. Around `CMenuManager::DrawFrontEnd` (`0x57c290`) and
+  `ProcessInput` (`0x57b440`) the port narrows `RsGlobal`'s width to the canvas, refreshes the operand
+  slots for it, moves 2D by the inset and moves the mouse fields into canvas space; a `mid_hook`
+  after the native mouse clamp (`0x580044`) lets the cursor reach the physical edges. The video mode
+  change and `CentreMousePointer` see the physical screen. The mod keeps the bars black by widening
+  the menu's black full-height quads; the port paints them with `CSprite2d::DrawRect` before the menu
+  draws.
+- `tools/route/m8_widescreen.py` plays New Game at 960×720, 1152×720, 1280×720 and 1680×720, pins the
+  camera on the same view and checks:
+  - the reported aspect ratio, and that the middle of each wider picture matches the 4:3 one (Hor+);
+  - that the health bar and the money are the same size in pixels at every ratio, at the same
+    distance from the right edge (plus the inset that `widescreen.hud_aspect` asks for);
+  - that at 1680×720 the Display Setup menu leaves 200-px black bars beside a 16:9 canvas;
+  - the cutscene bars at 4:3, 16:9 and 21:9 in the intro cutscene (frame 3000), against the mod's
+    geometry.
+  - that the New Game loading screen (frame 1240) is pillarboxed to 4:3 at every ratio;
+  - that at 1680×720 the pause menu's map fills the screen, or with `widescreen.fullscreen_map=false`
+    sits framed in the 16:9 canvas with black bars, and that a held cursor key pans it.
+
+  `--set widescreen.aspect_fov=false` expects the vanilla stretch instead, and
+  `--set widescreen.hud=false` expects HUD widths that grow with the window.
+
+Scripted results (`tools/route/m8_widescreen.py`, the camera pinned behind CJ at first control):
+- The game reports 1.3333, 1.6000, 1.7778 and 2.3333 for the four windows.
+- The middle 960 columns of the 16:10, 16:9 and 21:9 pictures match the 4:3 picture within 0.39–0.42%
+  of pixels (compared scene 560×410, HUD left out; threshold 1%). CJ, the walls and the bike are the
+  same size at every ratio, and the wider windows show more at the sides.
+- With `widescreen.aspect_fov=false` the same comparison differs by 44–61%: vanilla renders 4:3 and
+  stretches it.
+- Before the sprite port the comparison differed by 2–4%, all in the sun's glow (a corona sprite
+  that widened with the window).
+- With the HUD layer the middles match within 0.02–0.03%. The health bar is 68 px wide and the money
+  127 px at all four ratios (80% of vanilla's 86 and 160 at 4:3). With `widescreen.hud=false` they
+  grow with the window (86/104/115/151 and 160/192/213/279 px), as in vanilla. At 21:9 the radar is
+  round and the subtitles are centered.
+- Menus at 16:9 and 21:9 keep 4:3 letter proportions, and centered items stay centered. At 21:9 the
+  menu sits in a 16:9 canvas with black bars (100% of the side bars dark; before the canvas, the
+  background art and helper text reached into them). Menu navigation works inside the canvas.
+- The stats page's panel sits 160 px further right at 16:9 than at 4:3, the 4:3 pillar width.
+- With `widescreen.hud_aspect=16:9` the 21:9 HUD moves 200 px inward on both sides (health bar and
+  money 242/241 px from the right edge instead of 42/41); 4:3, 16:10 and 16:9 are unchanged.
+- The scene-middle comparison now differs by 0.11–0.13% between runs, in the animated marker cone,
+  the bike and leaves (animation phase), not in the layout.
+- Intro cutscene bars (expected from the mod's formula): 4:3 letterbox 75/129 px (75/129), 16:9
+  letterbox 17/81 px (16/81), 21:9 pillarbox 171/170 px (170). The picture between the bars shows the
+  same shot at each ratio. The wheel camera is not reached by a route yet.
+- Loading screen side bars 0/96/160/360 px at 4:3/16:10/16:9/21:9, as expected for its 4:3 art; the
+  loading bar sits under the logo (x 235, 270 px wide at 16:9, the mod's 50/640 and 180/640 of the
+  splash). The 21:9 Display Setup slider spans x 1270–1420, right-aligned with the value column (it
+  was 1200–1395 before).
+- Map at 1680×720: the full-screen map fills the screen (10% of the side 200 px dark, all map
+  colours) and the framed one sits in the 16:9 canvas with black bars (284/238 dark columns against
+  200-px bars, the frame's masks included). Holding a cursor key moves the map cursor to its limit and
+  then pans the map at 14 units a frame (34 and 72 frames of origin movement in the route). The legend
+  is centered with its two columns at x 600 and 885 (240 and 525 plus the 360 offset); before the
+  lifter fix the second column drew at 537, without the offset.
+- Width-640 shortcuts: the host accepts heights of 480 and up, so the 640-wide modes it can have that
+  are not 640×480 are taller than 4:3. The route compares the Display Setup page at 640×512 with the
+  page at 1280×1024 (both 5:4): its white text spans x 279–604 against 558–1208, exactly half. With
+  only the new hooks switched off (a scratch manifest), the 640×512 text starts at x 300 and the check
+  fails. With `widescreen.hud=false` both sizes stretch alike, as in vanilla, so the check runs only
+  with the HUD layer on.
+- Water at 3200×900 (32:9, camera pinned low over the sea at Santa Maria pier): with the game's own
+  scan, a water cell next to the camera at the left edge is not drawn, and the seabed shows under the
+  pier behind a hard line. With the port's scan the water is continuous. A view over the bay is
+  identical both ways. The scan tests about 20 cells and calls back for about 15 per frame.
+- With the width-640 hooks, the subtitle widths, the co-op crosshair and the water scan, M5's, M7's
+  and M8's routes pass, and M4's passes with no interpreter entries (24,450 frames, mean 42.5 ms, p99
+  79.2 ms). The slower frames are all in the flying and day-and-night stretch (frames 8,000–16,000).
+  That stretch is not repeatable: game time follows real time, so runs fly the jetpack to different
+  places (09:29 among sidewalk boxes in one run, 09:06 against a dark building in another). A run with
+  only the water scan off measured 39.8 ms, but its jetpack flew elsewhere. A 3-minute run over the
+  same inputs with the scan on measured 40–43 ms per 1,000 frames in that stretch.
+- With the map and the lifter fix, M5's, M7's and M8's routes pass, and M4's passes with no
+  interpreter entries (24,450 frames, mean 38.6 ms, p99 52.4 ms).
+- With splash screens, sliders and decimal settings, M5's, M7's and M8's routes pass, and M4's passes
+  with no interpreter entries (24,450 frames, mean 38.8 ms, p99 53.7 ms). One earlier M4 run was ended
+  by an outside SIGTERM at frame 7,273 with nothing wrong in its log; the rerun passed.
+- With the cutscene borders, M5's route (intro cutscene with its audio stream) and M7's pass, and
+  M4's passes with no interpreter entries (24,450 frames, mean 39.2 ms, p99 58.8 ms).
+- With the position hooks and the menu canvas, M7's route passes and M4's passes with no interpreter
+  entries (24,450 frames, mean 40.8 ms, p99 62.1 ms).
+- With the HUD layer (326 operand slots, 4 data slots), M7's route passes and M4's passes with no
+  interpreter entries (24,450 frames, mean 39.2 ms, p99 56.7 ms).
+- M7's route still passes, and the jetpack's resume no longer enters the interpreter.
+
+Findings:
+- **`mid_hook`s in loops ran only once.** Remill splits a trace at a known head only when the head is
+  not the trace's own start. A loop that jumps back to a `mid_hook`'s own address (the map legend's
+  entry loop, `0x5761e0` → `0x5761eb`) branched to the hooked trace's first block and skipped the
+  hook after the first pass, so the legend's second column lost its offset. `wrap_mid_hook` now
+  redirects such back-edges in the body to a tail call of the wrapper, carrying the loop's memory
+  value, as remill does for jumps into other heads (`recomp.mid_hook_wrapper` covers it).
+- **A mid-function hook that calls guest code must keep the guest's flags.** The map's zoom-reference
+  hook sits on a `jge` and calls the game's map projection, which changed the flags that `jge` tests,
+  so map panning stopped. The hook now restores the whole guest state after the call; the mod's
+  trampolines save the flags the same way.
+- **Lift-time inlining broke call routing.** Remill's per-shard optimizer inlined small traces into
+  their callers before the compile step routes guest calls through the dispatcher, so an inlined
+  call lost the dispatcher's return-address check, and a trace's tail jump into another trace head
+  became an ordinary call. Routing then sent that jump through `__remill_function_call`, which read a
+  stack value as the return address (`[RET] return to 0x00515140 while 0xc5281df8 was expected`) and
+  left every caller up the stack to the interpreter. New mid-hook heads (`0x514d63`) made it visible;
+  the same pattern explains most of the hundreds of `[RET]` lines in earlier logs. `sa-recomp` now
+  marks traces `noinline` while lifting (`keep_traces_separate`) and clears it after routing
+  (`allow_trace_inlining`), so the compile step can still inline tail jumps. After the change a New
+  Game run has no interpreter entries and 57 `[RET]` lines (all DRM thunks returning through
+  `0xf00000xx`), down from 920.
+  The M4 route still passes with no interpreter entries (24,450 frames, mean 40.2 ms, p99 68 ms,
+  against 41.6 ms and 94 ms in M6), so keeping traces apart while lifting costs nothing measurable.
+  M6's note that `--shadow` sees "calls that enter a trace in the middle of a function" is most
+  likely this bug and should be rechecked.
+- Remill's `MoveFunctionIntoModule` clears instruction metadata, so a marker on call instructions
+  does not survive from lifting to the compile step; function attributes do.
+- Widescreen Fix's `hook::pattern` scans to the end of the last executable section. The scanner used
+  `SizeOfCode`, which stops before `.HOODLUM`.
+
+Triage of the rest of `GTASA.FusionFix`:
+- Every widescreen group is now decided. The CSprite2d vertex, `Draw`, `DrawRect`, `AddToBuffer` and
+  radar-trace hooks are `replace`: they add the HUD scope's x offset (the mod's `CorrectX` is the
+  identity at this commit), which the D3D9 2D offset does. The mode list, default resolution, the
+  fix's in-game settings pages and rows, its event dispatch, raw mouse input and intro video placement
+  are `replace` too (native mode list, launcher, host input and movie player). The canvas's
+  transition and preview hooks are `drop`: they have no 1.0 US target.
+- 13 rows stay unresolved, all in groups that are dropped, replaced or outside M8: CLEO (2), the
+  RwIm2D render functions the D3D9 offset replaces (4), the canvas's transition and preview hooks
+  (2), the mod's event hooks (2), the fix's settings rows (1) and the high frame rate timers (2).
+- 23 groups are `pending` as FusionFix features outside M8's widescreen scope, moved to M11, each with
+  a reason:
+  controller button icons in text, the text outline option and the helper text's drop shadow,
+  gamepad support, console gamma and other post effects, the transparent menu, a 256 px radar disc,
+  the VCS camera shake, the disappearing-doors fix (a larger entry-exit list) and the high frame rate
+  timing fixes.
+
+Moved to M11: the HUD misalignment reported at 2560×1440 with 16:9 forced, and the FusionFix
+features outside the widescreen port.
 
 ### M9 — SilentPatch
 
@@ -1151,6 +1642,59 @@ Work:
   Still to do: test with real Xbox and DualSense controllers (drive, walk, aim, menus),
   unplug/replug mid-game, decide whether the controller should be enumerated when none is
   connected, and rumble.
+- **Reference check (moved from M7).** Set up the Wine/CrossOver reference: 1.0 US, an ASI loader and
+  the three mods at the commits pinned in `tools/mod-inventory/mods.json`. Pin the same camera views
+  with a CLEO script (`SET_FIXED_CAMERA_POSITION`, `POINT_CAMERA_AT_POINT`, `RESTORE_CAMERA`, the
+  coordinates in `VIEWS` of each route), capture them and diff with `--reference DIR`
+  (`tools/verify/image_diff.py`). Confirm the ported fixes from M7–M10 behave as on Windows; this
+  needs a person to play the reference and a Windows-side way to read the same watch values.
+- **HUD misaligned at 2560×1440 with 16:9 forced (moved from M8).** Reported from a playthrough:
+  2560×1440 with 16:9 forced. The top-right HUD is out of place:
+  - the clock and the fist icon sit high;
+  - there is a large gap between the clock and the health bar;
+  - the money text runs far left of the health bar, under the weapon icon.
+
+  Right edges still line up (clock, health bar and money end together). The M8 route checks the health
+  bar and money only at 720 high and with `widescreen.hud_aspect` at 16:9 on a 21:9 window, so
+  1440-high windows and the clock and weapon icon are not covered. To do:
+  - Reproduce at 2560×1440 and confirm which setting "16:9 forced" was (`widescreen.hud_aspect`,
+    `widescreen.menu_aspect` or the window).
+  - Compare against the Widescreen Fix on Windows.
+  - Fix it, and extend `tools/route/m8_widescreen.py` with a 1440-high run that checks the clock and
+    weapon icon too.
+- **FusionFix features outside the widescreen port (moved from M8).** `GTASA.FusionFix` covers more
+  than widescreen. These 23 groups stay `pending` in `mods/widescreen/triage.yaml` until each is
+  ported or dropped:
+  - controller button icons in text (5 groups);
+  - the text outline option and the menu helper text's drop shadow (4);
+  - gamepad support: modern aim, vibration, camera style (1), with the controller work above;
+  - the high frame rate timing fixes (6), with the high-frame-rate audit above;
+  - console gamma and other post effects (3);
+  - the transparent pause menu (1);
+  - a 256 px radar disc texture (1);
+  - the VCS camera shake (1);
+  - the disappearing-doors fix, a larger visible entry-exit list (1).
+- **Basic trainer.** Native host code, off by default: `--trainer` on `sa-host` and a launcher
+  toggle (the launcher config gains a key, so its decoding must tolerate configs without it).
+  It runs once per presented frame on the game thread (from `dev_present`), reads hotkeys with
+  `input::vk_down` edge detection, and does nothing while the player ped is missing or the
+  frontend menu is open (`FrontEndMenuManager.m_bMenuActive`, `0xBA67A4`). Scope:
+  - F1 refills health (`CPed` +0x540 to the max at +0x544) and armour (+0x548).
+  - F2 adds $100,000 to `CPlayerInfo::m_nMoney` (`0xB7CE50`), capped at 999,999,999.
+  - F3 clears the wanted level with `CWanted::SetWantedLevel(0)` (`0x562470`, thiscall), the
+    `CWanted*` reached through player ped +0x444 → `CPlayerPedData` +0.
+  - F4 repairs the current vehicle (`CPed` +0x58C while the in-vehicle flag, bit 8 of +0x46C,
+    is set) by setting `CVehicle` health (+0x4C0) to 1000.
+  - F5 toggles god mode (F1 and F4 applied every frame); F6 toggles never wanted (F3 applied
+    whenever the level is above 0).
+  - Feedback through `CHud::SetHelpMessage` (`0x588BE0`, cdecl) from a persistent guest buffer.
+  - Player ped from `CWorld::Players[0].m_pPed` (`0xB7CD98`).
+
+  Out of scope for the basic version: weapons and vehicle spawning (they need model streaming),
+  teleport to the map marker (needs scene loading and ground height), and full damage repair
+  through the vehicle vtable. The struct offsets are from the community SA 1.0 US layout and the
+  function entries are confirmed in `analysis/functions.json`; each action still needs a scripted
+  check (`--keys` with `--watch`, starting from the M4 New Game route).
 
 Exit criteria:
 - 1080p at 60 fps with 99th-percentile frame time under 20 ms on base M1, across the fixed
@@ -1158,6 +1702,10 @@ Exit criteria:
 - No `[INTERP]` hits in normal gameplay.
 - Xbox and DualSense controllers drive, walk, aim and navigate menus. Unplugging and
   replugging mid-game works.
+- With `--trainer`, each trainer hotkey has its effect in a scripted run, and without it the
+  F-keys change nothing.
+- The top-right HUD lines up at 2560×1440 with 16:9 forced, checked in a scripted run.
+- Every FusionFix group in `mods/widescreen/triage.yaml` is kept, replaced or dropped.
 
 ### M12 — Release
 

@@ -7,6 +7,8 @@
 #include "sm.hpp"
 
 #include "../audio/output.hpp"
+#include "../camera_pin.hpp"
+#include "../manifest_runtime.hpp"
 #include "../perf.hpp"
 #include "../input/keys.hpp"
 #include "../platform/window.hpp"
@@ -33,6 +35,50 @@
 namespace ma::host::d3d9 {
 
 namespace {
+
+float g_offset_2d_x = 0.0f;
+float g_mask_inset = 0.0f;
+float g_mask_right = 0.0f;
+float g_mask_height = 0.0f;
+
+bool widen_black_mask(const gfx::VertexLayout& layout, const uint8_t* data, uint32_t vertices, uint32_t stride,
+                      std::vector<uint8_t>& out) {
+    if (g_mask_inset == 0.0f || !layout.pretransformed || vertices != 4 || stride < 16) {
+        return false;
+    }
+    const gfx::VertexElement* color = gfx::find_element(layout, gfx::d3d::declusage::color, 0);
+    if (!color || color->offset + 4u > stride) {
+        return false;
+    }
+    float top = 1e30f;
+    float bottom = -1e30f;
+    for (uint32_t i = 0; i < vertices; ++i) {
+        uint32_t argb = 0;
+        std::memcpy(&argb, data + i * stride + color->offset, 4);
+        if ((argb & 0x00ffffffu) != 0) {
+            return false;
+        }
+        float y = 0.0f;
+        std::memcpy(&y, data + i * stride + 4, 4);
+        top = std::min(top, y);
+        bottom = std::max(bottom, y);
+    }
+    if (top > 0.5f || bottom < g_mask_height - 0.5f) {
+        return false;
+    }
+    out.assign(data, data + vertices * stride);
+    for (uint32_t i = 0; i < vertices; ++i) {
+        float x = 0.0f;
+        std::memcpy(&x, out.data() + i * stride, 4);
+        if (x <= 0.5f) {
+            x -= g_mask_inset;
+        } else if (x >= g_mask_right - 0.5f) {
+            x += g_mask_inset;
+        }
+        std::memcpy(out.data() + i * stride, &x, 4);
+    }
+    return true;
+}
 
 void dump_memory(uint64_t frame) {
     for (const auto& d : settings().memory_dumps) {
@@ -147,6 +193,42 @@ void log_watched(uint64_t frame) {
             std::fprintf(stderr, "[WATCH] frame %llu 0x%08x = 0x%08x (%d)\n", static_cast<unsigned long long>(frame),
                          watch[i], v, static_cast<int32_t>(v));
             last[i] = v;
+        }
+    }
+    static std::vector<uint32_t> last_chain;
+    const auto& chains = settings().watch_chains;
+    last_chain.resize(chains.size(), 0xdeadbeef);
+    for (size_t i = 0; i < chains.size(); ++i) {
+        const auto& chain = chains[i];
+        uint32_t addr = chain[0];
+        bool valid = true;
+        for (size_t k = 1; k < chain.size(); ++k) {
+            uint32_t base = mem::read<uint32_t>(addr);
+            if (base < 0x10000) {
+                valid = false;
+                break;
+            }
+            addr = base + chain[k];
+        }
+        uint32_t v = valid ? mem::read<uint32_t>(addr) : 0;
+        if (!valid) {
+            v = 0xdeadbeef;
+        }
+        if (v == last_chain[i]) {
+            continue;
+        }
+        last_chain[i] = v;
+        std::string name = std::format("0x{:x}", chain[0]);
+        for (size_t k = 1; k < chain.size(); ++k) {
+            name += std::format(">{:x}", chain[k]);
+        }
+        float f;
+        std::memcpy(&f, &v, sizeof(f));
+        if (valid) {
+            std::fprintf(stderr, "[WATCH] frame %llu %s = 0x%08x (%d, %g)\n", static_cast<unsigned long long>(frame),
+                         name.c_str(), v, static_cast<int32_t>(v), static_cast<double>(f));
+        } else {
+            std::fprintf(stderr, "[WATCH] frame %llu %s = null\n", static_cast<unsigned long long>(frame), name.c_str());
         }
     }
 }
@@ -986,6 +1068,7 @@ bool prepare_draw(Device& d, DrawCall& call, const VertexLayout& layout,
         call.ps_const_bytes = static_cast<uint32_t>(offsetof(PixelConstants, c) + regs * 16);
     }
     build_uniforms(d.st, call.vs, call.fs);
+    call.vs.depth_range[2] = g_offset_2d_x;
     call.viewport = d.st.viewport;
     call.scissor_enable = d.st.rs[D::rs::scissortestenable] != 0;
     call.scissor = d.st.scissor;
@@ -1100,6 +1183,10 @@ uint32_t dev_draw_primitive(uint32_t self, uint32_t type, uint32_t start, uint32
     if (!prepare_draw(*d, *call, layout, strides) || !gather_streams(*d, layout, start, n, *call)) {
         return D::kOk;
     }
+    std::vector<uint8_t> widened;
+    if (call->streams[0].data && widen_black_mask(layout, call->streams[0].data, n, strides[0], widened)) {
+        call->streams[0] = StreamData{widened.data(), static_cast<uint32_t>(widened.size())};
+    }
     call->primitive = static_cast<uint8_t>(type);
     call->vertex_count = n;
     d->renderer->draw(*call);
@@ -1144,6 +1231,10 @@ uint32_t dev_draw_indexed_primitive(uint32_t self, uint32_t type, int32_t base, 
         !gather_streams(*d, layout, static_cast<uint32_t>(first), hi - lo + 1, *call)) {
         return D::kOk;
     }
+    std::vector<uint8_t> widened;
+    if (call->streams[0].data && widen_black_mask(layout, call->streams[0].data, hi - lo + 1, strides[0], widened)) {
+        call->streams[0] = StreamData{widened.data(), static_cast<uint32_t>(widened.size())};
+    }
     call->primitive = static_cast<uint8_t>(type);
     call->indices = rebased.data();
     call->index_count = n;
@@ -1177,7 +1268,12 @@ uint32_t dev_draw_primitive_up(uint32_t self, uint32_t type, uint32_t count, uin
     if (!prepare_draw(*d, *call, layout, strides)) {
         return D::kOk;
     }
-    call->streams[0] = StreamData{mem::ptr(data), n * stride};
+    std::vector<uint8_t> widened;
+    if (widen_black_mask(layout, mem::ptr(data), n, stride, widened)) {
+        call->streams[0] = StreamData{widened.data(), n * stride};
+    } else {
+        call->streams[0] = StreamData{mem::ptr(data), n * stride};
+    }
     call->primitive = static_cast<uint8_t>(type);
     call->vertex_count = n;
     d->renderer->draw(*call);
@@ -1212,7 +1308,12 @@ uint32_t dev_draw_indexed_primitive_up(uint32_t self, uint32_t type, uint32_t mi
     if (!prepare_draw(*d, *call, layout, strides)) {
         return D::kOk;
     }
-    call->streams[0] = StreamData{mem::ptr(data + lo * stride), (hi - lo + 1) * stride};
+    std::vector<uint8_t> widened;
+    if (widen_black_mask(layout, mem::ptr(data + lo * stride), hi - lo + 1, stride, widened)) {
+        call->streams[0] = StreamData{widened.data(), (hi - lo + 1) * stride};
+    } else {
+        call->streams[0] = StreamData{mem::ptr(data + lo * stride), (hi - lo + 1) * stride};
+    }
     call->primitive = static_cast<uint8_t>(type);
     call->indices = rebased.data();
     call->index_count = n;
@@ -1392,6 +1493,8 @@ uint32_t dev_present(uint32_t self, uint32_t src, uint32_t dst, uint32_t hwnd, u
                      static_cast<unsigned long long>(d->skipped_shader_draws));
     }
     log_watched(frame);
+    camera::apply_pins(frame);
+    refresh_operand_slots();
     shadow::note_frame(frame);
     input::run_key_script(false, frame);
     platform::pump_events();
@@ -2722,5 +2825,15 @@ constexpr ApiDef kD3d9[] = {
 std::span<const ApiDef> apis() { return kD3d9; }
 
 gfx::Renderer* active_renderer() { return g_device ? g_device->renderer.get() : nullptr; }
+
+void set_offset_2d_x(float x) { g_offset_2d_x = x; }
+
+float offset_2d_x() { return g_offset_2d_x; }
+
+void set_mask_widening(float inset, float canvas_width, float height) {
+    g_mask_inset = inset;
+    g_mask_right = canvas_width;
+    g_mask_height = height;
+}
 
 }

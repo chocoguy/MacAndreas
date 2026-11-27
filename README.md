@@ -145,6 +145,17 @@ Display and debugging options:
   suspected lifting bug. Direct calls between lifted functions bypass it.
 - `--trap-nan` logs the first time each interpreted instruction puts a NaN on the x87 stack.
 - `--watch ADDR,…` logs a guest 32-bit value whenever it changes, once per presented frame.
+- `--watch-chain ADDR>OFF>…,…` follows pointers before watching: `B7CD98>5C8` reads the player ped
+  pointer at `0xB7CD98` and watches the 32-bit value at ped+`0x5C8`. Each change is logged as an
+  integer and as a float, or as `null` while a pointer in the chain is null.
+- `--pin-camera FRAME:X,Y,Z:TX,TY,TZ` fixes the game camera at a world position looking at a point,
+  starting at that frame (the same calls as the `SET_FIXED_CAMERA_POSITION` and
+  `POINT_CAMERA_AT_POINT` script commands). `--pin-camera FRAME:restore` hands it back. Repeatable.
+- `--settings FILE` reads mod settings (`key = value` lines, written by the launcher as
+  `~/Library/Application Support/MacAndreas/mods.conf`). `--set KEY=VALUE` overrides one setting for
+  this run. Keys, types and defaults come from `mods/settings.yaml` (`--settings-schema FILE`; by
+  default the one next to the `--manifest` directory). Entries with a `setting:` are skipped when that
+  bool is false.
 - `--shadow LO-HI,…` compares lifted code with the interpreter on real game state. On a call to a
   lifted function in the range, two forked children run it, one lifted and one interpreted, with
   guest memory write-protected so that every page written is recorded. Registers, the x87 stack
@@ -258,6 +269,42 @@ build/dev/host/sa-host --game "gamefiles/Grand Theft Auto San Andreas" --native 
 - `pe-inspect [--json] <file.exe>` prints headers, sections and imports.
 - `tools/recomp/ghidra/export.sh <gta_sa.exe>` regenerates `analysis/sa-1.0us/`.
 - `tools/repo-guard/repo_guard.py` blocks game files, lifted code and binaries from commits.
+- `manifest-check DIR...` runs the manifest's strict checks (schema, overlaps, group consistency, patches
+  inside native replacements) without game data. CI runs it on `manifest/` and on a seeded overlap that
+  must fail.
+- `tools/mod-inventory/mod_inventory.py` turns the pinned upstream mods into `mods/<mod>/inventory.yaml`
+  (one row per patch site, as a 1.0 US address) and `mods/<mod>/triage.yaml` (keep, replace or drop per
+  fix group):
+  - `fetch` clones the commits pinned in `tools/mod-inventory/mods.json` into `.cache/mods/`.
+  - `scan --exe <gta_sa.exe>` rescans them. The exe resolves pattern scans and branch targets; only
+    addresses are written, never pattern bytes. Triage decisions survive a rescan, and sites the
+    scanner can't resolve can be pinned by hand in `mods/<mod>/pins.yaml` (`id`, `addr` or a list of `addrs`, `reason`).
+  - `check [--strict] [--manifest manifest]` validates both files, lists sites that two mods both
+    patch, and requires every mod entry in the manifest to port a site whose group is triaged `keep`.
+- `tools/verify/image_diff.py CAPTURE REFERENCE [--tolerance N] [--max-fraction F] [--ignore X,Y,W,H]
+  [--diff OUT.png]` compares a capture against a reference screenshot and exits 1 when more pixels
+  than allowed differ.
+- `tools/route/m8_widescreen.py` plays New Game at 4:3, 16:10, 16:9 and 21:9 (720 high), pins the
+  camera on the same view and checks:
+  - the reported aspect ratio, and that the middle of each wider picture matches the 4:3 one (Hor+);
+  - that the health bar and the money are the same size in pixels at every ratio, at the same
+    distance from the right edge (plus the inset `--set widescreen.hud_aspect=16:9` asks for);
+  - that at 1680×720 the Display Setup menu sits in a 16:9 canvas with black bars;
+  - the intro cutscene's letterbox and pillarbox bars at 4:3, 16:9 and 21:9;
+  - that the New Game loading screen is pillarboxed to 4:3 at every ratio;
+  - that at 1680×720 the pause menu's map fills the screen (or, with `widescreen.fullscreen_map=false`,
+    sits framed in the 16:9 canvas with black bars), and pans with a cursor key;
+  - that the Display Setup page at 640×512 is the 1280×1024 page at half size (no width-640
+    shortcut), with the HUD layer on.
+
+  `--set widescreen.aspect_fov=false` checks the vanilla stretch, and `--set widescreen.hud=false`
+  checks HUD widths that grow with the window.
+- `tools/route/m7_silentpatch.py` checks the first SilentPatch ports in two runs. From the main menu it
+  opens Advanced Display Options, whose resolution string goes through the `call_redirect`. Then it
+  plays the New Game route, clicking through the intro cutscene: the knife from the weapon cheat gets
+  1 ammo, the jetpack hovers on the look-behind key, and the units function is replaced. It pins the
+  camera for each reference view and captures it; `--reference DIR` diffs those captures against
+  another run.
 
 ### License
 

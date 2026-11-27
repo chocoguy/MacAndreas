@@ -128,6 +128,9 @@ func hostArguments(_ config: LauncherConfig) -> [String] {
         args += ["--resolution", config.resolution]
     }
     if config.skipIntro { args.append("--skip-intro") }
+    if Paths.exists(Paths.modSettingsSchema) {
+        args += ["--settings-schema", Paths.modSettingsSchema.path, "--settings", Paths.modSettings.path]
+    }
     return args
 }
 

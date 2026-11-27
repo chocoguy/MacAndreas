@@ -22,7 +22,29 @@ Memory* native_trace(GuestState& s, uint32_t, Memory* m) {
     return m;
 }
 
+struct MidHookSymbol {
+    std::string_view name;
+    MidHookFn fn;
+};
+
+using SlotFn = float (*)(float original);
+
+struct SlotSymbol {
+    std::string_view name;
+    SlotFn fn;
+};
+
 std::span<const NativeSymbol> builtin_symbols();
 TraceFn find_symbol(std::string_view name);
+std::span<const NativeSymbol> silentpatch_symbols();
+std::span<const MidHookSymbol> silentpatch_mid_hooks();
+std::span<const NativeSymbol> widescreen_symbols();
+std::span<const MidHookSymbol> widescreen_mid_hooks();
+std::span<const NativeSymbol> widescreen_hud_symbols();
+std::span<const MidHookSymbol> widescreen_hud_mid_hooks();
+MidHookFn find_mid_hook(std::string_view name);
+std::span<const SlotSymbol> widescreen_slots();
+std::span<const SlotSymbol> widescreen_hud_slots();
+SlotFn find_slot(std::string_view name);
 
 }

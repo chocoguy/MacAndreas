@@ -1,0 +1,1700 @@
+mod: silentpatch
+commit: "74976544adc196fa664831ddc59778e684cf6af0"
+groups:
+  - group: "bindings: AudioHardwareSA.cpp"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-f24a659c
+  - group: "bindings: GeneralSA.cpp"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-28137bc3
+      - sp-f7c20252
+      - sp-7c1b5df8
+      - sp-4656f55b
+  - group: "bindings: ModelInfoSA.cpp"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-d1105a9f
+      - sp-67463b04
+      - sp-19b37e87
+      - sp-5eabf778
+      - sp-4937faa1
+      - sp-3a7c6ef6
+      - sp-3af38ee2
+  - group: "bindings: PedSA.cpp"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-7be22a22
+      - sp-04cca7e9
+      - sp-5ba2c9f1
+      - sp-cee75db8
+      - sp-c2a2daee
+      - sp-13ce57e8
+      - sp-07f324bd
+  - group: "CPed::GetWeaponSkillForRenderWeaponPedsForPC_SAMP"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-c06a14ea
+  - group: "bindings: PlayerInfoSA.cpp"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-74d583d8
+      - sp-4154223b
+  - group: "bindings: PNGFile.cpp"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-fa507f3a
+  - group: "CPNGFile::ReadFromMemory"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-6f3ece5f
+      - sp-9d064f3e
+  - group: "bindings: PoolsSA.cpp"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-a61b6db1
+  - group: "bindings: ScriptSA.cpp"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-e45e1592
+  - group: "ModCompat::Utils::GetFunctionAddrIfRerouted"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-6decaee1.0
+      - sp-6decaee1.1
+      - sp-6decaee1.2
+      - sp-6decaee1.3
+      - sp-6decaee1.4
+      - sp-6decaee1.5
+      - sp-6decaee1.6
+      - sp-6decaee1.7
+      - sp-6decaee1.8
+      - sp-8e5cd39a.0
+      - sp-8e5cd39a.1
+      - sp-8e5cd39a.2
+      - sp-8e5cd39a.3
+      - sp-8e5cd39a.4
+      - sp-8e5cd39a.5
+      - sp-8e5cd39a.6
+      - sp-8e5cd39a.7
+      - sp-8e5cd39a.8
+  - group: "bindings: SilentPatchSA.cpp"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-440c3e6b
+      - sp-7df8e662
+      - sp-d67bf71c
+      - sp-4996cf70
+      - sp-08bfd154
+      - sp-23b66093
+      - sp-a675181a
+      - sp-82fdaa75
+      - sp-683cc011
+      - sp-a3632a50
+      - sp-b6f976db
+      - sp-9c66d754
+      - sp-38d54119
+      - sp-5453e6d2
+      - sp-3fc24a4a
+      - sp-1d5d34a5
+      - sp-739716e2
+      - sp-3a5e86c8
+      - sp-e8c5d553
+      - sp-6757ae96
+      - sp-34d6d02f
+      - sp-1020aafe
+      - sp-c36dacba
+      - sp-6c6f59d2
+      - sp-2f395fc7
+      - sp-8f88f0f2
+      - sp-6ac57690
+      - sp-aeee345e
+      - sp-26343a55
+      - sp-49e35ecf
+      - sp-21ed67bf
+      - sp-8ce926cd
+      - sp-72bd5e88
+      - sp-7e54be54
+      - sp-b173886a
+      - sp-5b06e2cd
+      - sp-5115ee80
+      - sp-f6cb69e6
+      - sp-fe67ab4c
+      - sp-f768be75
+      - sp-f24fd9c2
+      - sp-b9f54dde
+      - sp-0942a070
+      - sp-69c49184
+      - sp-5f493037
+      - sp-d228e636
+      - sp-fe9bd785
+      - sp-90df9fdf
+      - sp-1555ba4c
+      - sp-6dd91446
+      - sp-c619fe4f
+      - sp-d8c780ce
+      - sp-09105154
+      - sp-e2b059d0
+      - sp-97010ec2
+      - sp-ab8bf33c
+      - sp-543935d4
+      - sp-c56751c4
+      - sp-6ba1d7e0
+      - sp-403209e5
+      - sp-d49ca140
+      - sp-3e727204
+      - sp-3baf615d
+      - sp-a2bcf271
+      - sp-5ae3f0c8
+      - sp-8121e75b
+      - sp-52bb4a8d
+      - sp-4d54c693
+      - sp-4daa335f
+      - sp-437f7973
+      - sp-14fd1a41
+      - sp-eec2fa73
+      - sp-dde20e06
+      - sp-e6e1c6f5
+      - sp-4e37d09a
+      - sp-fd0bce2b
+      - sp-e75e71c1
+      - sp-099984ec
+      - sp-98906577
+      - sp-8de3273e
+      - sp-85866579
+      - sp-d04b49d7
+      - sp-b04a8a12
+      - sp-24642c0d
+      - sp-4131dbed
+      - sp-e809a60f
+      - sp-7ba6cc87
+      - sp-abee15a2
+      - sp-109439ac
+      - sp-8d3e2cdf
+      - sp-739a8003
+  - group: "Obtain a path to the ASI"
+    decision: drop
+    reason: "mod code is compiled into the host; there is no ASI file to locate"
+    changelog: ""
+    sites:
+      - sp-5d8cabed
+      - sp-740135d0
+  - group: "InjectDelayedPatches_10"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-fd897fc6.0
+      - sp-fd897fc6.1
+      - sp-fd897fc6.2
+      - sp-6fd4375d.0
+      - sp-6fd4375d.1
+      - sp-6fd4375d.2
+      - sp-44118f4f
+      - sp-da94ff0e
+      - sp-a30f6341
+      - sp-ce974ab9
+      - sp-8a82e2a0
+      - sp-83e0251c
+      - sp-1e21e77c
+      - sp-bc3eb344
+      - sp-4660f759
+      - sp-c4f506cb
+      - sp-1155ae54
+      - sp-5fd95410
+      - sp-68506ace
+      - sp-7977e108
+      - sp-9155b142
+      - sp-f876954f
+      - sp-89f09c14
+      - sp-00ce32c5
+      - sp-4f746ffb
+      - sp-c6d92ff1
+  - group: "Weapons rendering"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-d72fbef9
+      - sp-aa206bdd
+  - group: "Gym glitch fix"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-d29e8d24
+      - sp-7ab871b8
+      - sp-25bcba4d
+      - sp-7f05c93b
+      - sp-5aeb69b6
+  - group: "Basketball fix"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-570b3a0d
+  - group: "Skip the damn intro splash"
+    decision: replace
+    reason: "the launcher's skip-intro option (sa-host --skip-intro) skips the splash natively"
+    changelog: ""
+    sites:
+      - sp-922deeaf
+  - group: "Coloured zone names"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-0fb877e6
+      - sp-bb2d8851
+      - sp-2b6f6065
+  - group: "Apply the correct colors on detached car components"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-b4e54c16
+  - group: "Cars getting dirty"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:170"
+    sites:
+      - sp-0817ed33
+      - sp-8397c012
+      - sp-e8b65d95
+      - sp-bb7c5f46
+      - sp-51dcd10e
+  - group: "Enable directional lights on flying car components"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-5e38650d
+  - group: "Properly random numberplates"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-e199412b
+      - sp-e21d9483
+      - sp-9d60e172
+      - sp-b058b22e
+      - sp-da5b461e
+      - sp-8844bb35
+      - sp-48e79be7
+  - group: "SSE conflicts"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-a7c803c6
+      - sp-4205e7db
+  - group: "Disable alpha test for stored shadows"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-34f30d5a
+      - sp-b73045b3
+  - group: "Bigger streamed entity linked lists"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-438f20bc
+      - sp-8d344f17
+  - group: "Read CCustomCarPlateMgr::GeneratePlateText from here"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-17d7b37f
+  - group: "Double rwheels whitelist"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-05df6d3c
+      - sp-bab71f2c
+      - sp-d01199a5
+      - sp-e3dc2b14
+  - group: "Handle IMGs bigger than 4GB"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:219"
+    sites:
+      - sp-88a6e38b
+      - sp-f0b55819
+      - sp-10654027
+      - sp-ed3d29d0
+  - group: "Fix directional light position"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-531f83bd
+      - sp-1c7dd8ce
+      - sp-0ece7731
+      - sp-62b26fdf
+      - sp-bd01f279
+  - group: "Fix original bugs"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-e6a49c7a
+      - sp-8bb08c23
+      - sp-ff899c5e
+      - sp-2c9a0ca2
+      - sp-35e73842
+  - group: "Re-enable"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-53b2504e
+  - group: "Minor spelling mistake, keep it for backwards compatibility with old INI files"
+    decision: drop
+    reason: "INI parsing is replaced by the unified settings file"
+    changelog: ""
+    sites:
+      - sp-aaa1b2c5
+  - group: "Moonphases"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-88a38be5
+      - sp-9d91b708
+  - group: "Don't patch if old FLA and enhanced IMGs are in place"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-ad8468e9
+      - sp-347f745a
+      - sp-045353b1
+      - sp-58d38ff6
+      - sp-2c3a75f5
+      - sp-48267f4e
+      - sp-f13a10cd
+      - sp-53a7c564
+      - sp-4dd8d859
+      - sp-d710b22f
+      - sp-db09e5db
+  - group: "For imfast compatibility"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-d56c49e1
+  - group: "Modulo over CLoadingScreen::m_currDisplayedSplash"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-a15c55cc
+      - sp-b46dfc3a
+      - sp-3bbcc053
+  - group: "Register CBaseModelInfo::GetModelInfo for SVF so we can resolve model names"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-fb07e619
+  - group: "Disable building pipeline for skinned objects (like parachute)"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-ac13463d
+  - group: "Even though those two patch the same function, treating them as separate patches"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-23a73509
+      - sp-5f707ba5
+      - sp-2aab6315
+      - sp-585eff28
+      - sp-cc184f4c
+  - group: "The expected code:"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-539d2692
+      - sp-14713765
+  - group: "Verify that all fadd and fsub instructions are intact"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-68ad3b65
+      - sp-bae0874c
+      - sp-8ae68332
+      - sp-9f89a49a
+      - sp-04150161
+      - sp-07a8dc69
+      - sp-01d95964
+  - group: "Fix credits not scaling to resolution"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:107"
+    sites:
+      - sp-822a848d
+      - sp-85f5f218
+      - sp-d2b2d359
+  - group: "Fix the credits cutting off on the bottom early, they don't do that in III"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-7180e649
+      - sp-cfd01e95
+  - group: "As we now scale everything on PrintString time, the resolution height checks nee"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-86f27167
+      - sp-812caa72
+  - group: "Make the game use the desktop refresh rate instead of a fixed 60Hz"
+    decision: replace
+    reason: "the native mode list and Metal presentation own resolutions, refresh rate and monitors (M6 display-mode)"
+    changelog: "CHANGELOG-SA.md:34"
+    sites:
+      - sp-5c2ab44e
+      - sp-98c085a6
+      - sp-2aab5c56
+  - group: "Remove the code disallowing Rhino from having functional lights (III/VC leftover"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-9a59655c
+      - sp-8defdabc
+      - sp-d44c65a4
+      - sp-46512d84
+  - group: "Disable mouse re-centering"
+    decision: replace
+    reason: "the host reads mouse deltas from the native window and owns cursor capture"
+    changelog: ""
+    sites:
+      - sp-f5c83763
+      - sp-d15ce1c7
+      - sp-556f9b8f
+  - group: "IsAlreadyRunning needs to be read relatively late - the later, the better"
+    decision: drop
+    reason: "single-instance detection is a Windows mutex quirk; the launcher starts one host per game"
+    changelog: ""
+    sites:
+      - sp-f80966fe
+      - sp-d338b7ef
+  - group: "(Hopefully) more precise frame limiter"
+    decision: replace
+    reason: "frame limiter and timing are replaced natively (M9)"
+    changelog: "CHANGELOG-SA.md:10"
+    sites:
+      - sp-0e4bdb87
+      - sp-0858b782
+      - sp-c64e97ff
+  - group: "Heli rotors"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-da89902a
+      - sp-6b2c80cf
+  - group: "RefFix"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-44837f27
+      - sp-e01090ac
+  - group: "Proper alpha handling for plane propellers"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-a748e152
+      - sp-f4ac30d1
+  - group: "DOUBLE_RWHEELS"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-0f3a5008
+      - sp-18f6061e
+  - group: "A fix for DOUBLE_RWHEELS trailers"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-14d8a1f4
+      - sp-bf69cb93
+  - group: "No framedelay"
+    decision: replace
+    reason: "frame limiter and timing are replaced natively (M9)"
+    changelog: ""
+    sites:
+      - sp-ad67cba3
+      - sp-f7061094
+      - sp-3f1726b9
+  - group: "Disable re-initialization of DirectInput mouse device by the game"
+    decision: replace
+    reason: "DirectInput is the host's dinput8 layer; the device is never re-created against a window"
+    changelog: ""
+    sites:
+      - sp-8c55b198
+      - sp-5053deb4
+      - sp-7bca70d5
+  - group: "Make sure DirectInput mouse device is set non-exclusive (may not be needed?)"
+    decision: replace
+    reason: "DirectInput is the host's dinput8 layer; exclusivity has no meaning there"
+    changelog: ""
+    sites:
+      - sp-2341e7c9
+  - group: "Hunter door render flag fix (interior no longer vanishing when looking at it fro"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-c978bcdb
+  - group: "Fixed blown up car rendering"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-c86bf7dc
+      - sp-f91b4377
+      - sp-68c80cb2
+      - sp-e3e4e842
+  - group: "Bindable NUM5"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-883d5fc7
+  - group: "Lightbeam fix"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-530a7e87
+      - sp-8a43a9f4
+      - sp-57794c65
+      - sp-9bd22f67
+      - sp-158ef967
+      - sp-9e30e046
+      - sp-57bd4dd1
+      - sp-cd40f515
+      - sp-5b8359de
+      - sp-2dfc95dc
+      - sp-b4666854
+      - sp-4334fa5b
+      - sp-23d69c55
+      - sp-e3837541
+  - group: "rwRENDERSTATETEXTURERASTER not saved"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-15e47c90
+      - sp-3513c3b0
+      - sp-d5fa27f9
+      - sp-8ce2dd49
+      - sp-d07271da
+      - sp-c66030db
+      - sp-fc6a90c2
+      - sp-e6f12df8
+      - sp-dff025e5
+  - group: "PS2 SUN!!!!!!!!!!!!!!!!!"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-e8b38300
+  - group: "Fix lights not resetting the material attributes correctly"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-90755017
+  - group: "Advanced Display Options"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:17"
+    sites:
+      - sp-823929be
+      - sp-b2b7fe42
+      - sp-4835d471
+      - sp-5909f454
+      - sp-9b0e2e79
+  - group: "Resolution selection dialog"
+    decision: replace
+    reason: "the Windows resolution dialog is not shown; the launcher picks the mode"
+    changelog: "CHANGELOG-SA.md:215"
+    sites:
+      - sp-9678672c
+      - sp-5359fe27
+      - sp-d954bb72
+      - sp-9a94eb9a
+  - group: "Heap corruption fix"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:30"
+    sites:
+      - sp-b572865f
+  - group: "User Tracks fix"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:181"
+    sites:
+      - sp-615062ad
+      - sp-e46a4bf6
+      - sp-850523cd
+  - group: "FLAC support"
+    decision: drop
+    reason: "FLAC is dropped (ROADMAP §0)"
+    changelog: ""
+    sites:
+      - sp-93c5f455
+      - sp-9b9403df
+      - sp-9086bcc4
+      - sp-ae26f342
+      - sp-c12f7a00
+      - sp-d4a230d2
+      - sp-5fad9071
+      - sp-03a31874
+  - group: "Impound garages working correctly"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:185"
+    sites:
+      - sp-0c87c699
+      - sp-5f8fa78c
+      - sp-d96bb234
+  - group: "Impounding after busted works"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-23d6d80b
+  - group: "Mouse rotates an airborne car only with Steer with Mouse option enabled"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:188"
+    sites:
+      - sp-8642595c
+      - sp-d7d70a61
+  - group: "Patched CAutomobile::Fix"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-f216e837
+      - sp-3ded7072
+      - sp-c24a0a2d
+      - sp-271ef946
+      - sp-7c98e4d3
+      - sp-03eac44d
+      - sp-a7bc27e8
+  - group: "Patched CPlane::Fix"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-6a925df3
+      - sp-b083324b
+  - group: "Weapon icon fix (crosshairs mess up rwRENDERSTATEZWRITEENABLE)"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:194"
+    sites:
+      - sp-200f89bd
+      - sp-89cb03ca
+      - sp-8e1d093e
+  - group: "Zones fix"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-e34aa896
+  - group: "Bilinear filtering for license plates"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-60624a8b
+  - group: "Bilinear filtering with mipmaps for weapon icons"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-85453800
+  - group: "Directional multiplier value from timecyc.dat properly using floats"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-3e5932e2
+  - group: "Directional multiplier defaults to 1.0f, and work around a broken RAINY_COUNTRYS"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-a793351f
+  - group: "All lights get casted at vehicles"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:98"
+    sites:
+      - sp-dcc76f9f
+      - sp-8a143548
+      - sp-36d57fef
+  - group: "6 extra directionals on Medium and higher"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-5a192690
+      - sp-a0c6f3bd
+      - sp-bb3aef97
+      - sp-114c0f24
+  - group: "Default resolution to native resolution"
+    decision: replace
+    reason: "the native mode list and Metal presentation own resolutions, refresh rate and monitors (M6 display-mode)"
+    changelog: "CHANGELOG-SA.md:212"
+    sites:
+      - sp-9cdd849b
+      - sp-a5f55455
+      - sp-a8402656
+  - group: "Corrected Map screen 1px issue"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:21"
+    sites:
+      - sp-bddc9c07
+      - sp-52bcca0f
+      - sp-ac267000
+      - sp-da63f8d5
+      - sp-5524d1ac
+      - sp-ca56a772
+  - group: "Cars drive on water cheat"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:199"
+    sites:
+      - sp-bfbc93a6
+  - group: "No DirectPlay dependency"
+    decision: drop
+    reason: "the host never loads DirectPlay"
+    changelog: "CHANGELOG-SA.md:12"
+    sites:
+      - sp-3c59102d
+      - sp-02edb50a
+  - group: "SHGetFolderPath on User Files"
+    decision: replace
+    reason: "the VFS user-dir overlay serves saves and gta_sa.set (ROADMAP 3.9)"
+    changelog: "CHANGELOG-SA.md:13"
+    sites:
+      - sp-6be63720
+  - group: "Fixed muzzleflash not showing from last bullet"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-eabf62fe
+      - sp-778b282d
+  - group: "Proper randomizations"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-a1a8d184
+      - sp-29192a31
+      - sp-2bb4e9b2
+  - group: "Help boxes showing with big message"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-fb7829d3
+  - group: "Fixed lens flare"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:48"
+    sites:
+      - sp-1ea4112a
+      - sp-07ac3ffc
+  - group: "Add CSprite::FlushSpriteBuffer, jmp loc_6FB605 at the bottom of the function"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-b63f67bd
+      - sp-3694dda4
+      - sp-6a69c5cd
+      - sp-65ffc585
+      - sp-dcb8025d
+      - sp-8971b38a
+      - sp-ce49133f
+      - sp-a425ca93
+      - sp-9f40f903
+      - sp-9a94b832
+      - sp-c74fb603
+  - group: "Y axis sensitivity fix"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:45"
+    sites:
+      - sp-3264efc2
+      - sp-5a6f89cf
+      - sp-fe3054e6
+      - sp-14257296
+      - sp-a138e5b0
+  - group: "Don't lock mouse Y axis during fadeins"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:46"
+    sites:
+      - sp-fae44708
+      - sp-4d95999d
+      - sp-abb1302e
+  - group: "Fixed mirrors crash"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-183c6c89
+  - group: "Mirrors depth fix & bumped quality"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-a5a1cf77
+  - group: "Fixed MSAA options"
+    decision: replace
+    reason: "renderer-touching: MSAA is chosen in the Metal layer (ROADMAP M9)"
+    changelog: "CHANGELOG-SA.md:66"
+    sites:
+      - sp-cc7f154b
+      - sp-5c547dca
+      - sp-1a6f913e
+      - sp-b7b4496d
+      - sp-0a898b41
+      - sp-61285fea
+      - sp-42bfd2c9
+  - group: "Fixed car collisions - car you're hitting gets proper damage now"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-c9446a7d
+  - group: "Crash when entering advanced display options on a dual monitor machine after:"
+    decision: replace
+    reason: "the native mode list and Metal presentation own resolutions, refresh rate and monitors (M6 display-mode)"
+    changelog: "CHANGELOG-SA.md:17"
+    sites:
+      - sp-89404052
+      - sp-8cc4fb3c
+      - sp-e5b0d591
+  - group: "Fixed escalators crash"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:19"
+    sites:
+      - sp-f4b33358
+      - sp-5f49c58b
+      - sp-782fd0cc
+  - group: "Don't allocate constant memory for stencil shadows every frame"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-b7809b17
+      - sp-410b1892
+      - sp-57bbfb97
+      - sp-d9a32f6b
+  - group: "\"Streaming memory bug\" fix"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:50"
+    sites:
+      - sp-aa0d324e
+  - group: "Fixed ammo for melee weapons in cheats"
+    decision: keep
+    reason: "game logic; ported as instruction-aligned byte_patch entries (manifest/silentpatch.yaml, group melee-cheat-ammo)"
+    changelog: ""
+    sites:
+      - sp-22541e22
+      - sp-973fbfa1
+      - sp-d0499d62
+      - sp-54b67e29
+      - sp-187425ab
+      - sp-0a3ad7a6
+      - sp-4a27e4a9
+  - group: "AI accuracy issue"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-1d1550c8
+      - sp-f1cd6535
+  - group: "New timers fix"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-790c1228
+      - sp-aa9de440
+      - sp-0d92cad8
+      - sp-16a800a4
+  - group: "Don't catch WM_SYSKEYDOWN and WM_SYSKEYUP (fixes Alt+F4)"
+    decision: replace
+    reason: "window messages come from the native window; Alt+F4 is not a Mac shortcut"
+    changelog: ""
+    sites:
+      - sp-103691bd
+      - sp-68be6a2c
+      - sp-1c0e6d6c
+      - sp-4d74ccea
+      - sp-00f74714
+      - sp-c1ec7f64
+      - sp-37e3cb6e
+      - sp-e9c19c09
+      - sp-95089995
+      - sp-3f6e709f
+      - sp-d6b50465
+      - sp-794edef3
+      - sp-1eaa97cd
+      - sp-eba9e0b1
+  - group: "FuckCarCompletely not fixing panels"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-f0d89621
+  - group: "014C cargen counter fix (by spaceeinstein)"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-d36d39bd
+      - sp-ca524e14
+  - group: "Linear filtering on script sprites"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:59"
+    sites:
+      - sp-e2c306d9
+      - sp-5e327661
+  - group: "Properly initialize all CVehicleModelInfo fields"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-d0c02cf6
+  - group: "Animated Phoenix hood scoop"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:156"
+    sites:
+      - sp-697bd0fc
+  - group: "Extra animations for planes"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-ed1087e8
+  - group: "Stop BF Injection/Bandito/Hotknife rotating engine components when engine is off"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:157"
+    sites:
+      - sp-40fe44da
+      - sp-80a551ff
+  - group: "Make freeing temp objects more aggressive to fix vending crash"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-254675c9
+  - group: "Remove FILE_FLAG_NO_BUFFERING from CdStreams"
+    decision: replace
+    reason: "CdStream reads go through the host I/O worker, which ignores Windows buffering flags (ROADMAP 3.9)"
+    changelog: "CHANGELOG-SA.md:71"
+    sites:
+      - sp-afef4341
+  - group: "Proper metric-imperial conversion constants"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:72"
+    sites:
+      - sp-91fafd98
+      - sp-8979a163
+  - group: "Fixed impounding of random vehicles (because CVehicle::~CVehicle doesn't remove "
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-9b672bbc
+      - sp-9b058331
+  - group: "Don't include an extra D3DLIGHT on vehicles since we fixed directional already"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-4f731d2f
+      - sp-7607b805
+      - sp-d707e8f5
+      - sp-1c545fea
+      - sp-9240f986
+      - sp-82091d9f
+  - group: "Fixed CAEAudioUtility timers - not typecasting to float so we're not losing prec"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-15102e81
+      - sp-6450ecb1
+      - sp-e32c3c88
+  - group: "Car generators placed in interiors visible everywhere"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:74"
+    sites:
+      - sp-18aaae5f
+  - group: "unnamed CdStream semaphore"
+    decision: replace
+    reason: "Win32 semaphores are host objects; names cannot collide with other processes"
+    changelog: ""
+    sites:
+      - sp-b0785104
+      - sp-5541c259
+  - group: "Correct streaming when using RC vehicles"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-68804e8e
+      - sp-cb71bee5
+  - group: "Fixed triangle above recruitable peds' heads"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-f0301c4e
+  - group: "Fixed ammo from SCM"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-b7286f69
+      - sp-ee9925f3
+  - group: "Fixed bicycle on fire - instead of CJ being set on fire, bicycle's driver is"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-1040c323
+      - sp-c15e8b0f
+      - sp-66dbc128
+      - sp-9d921dff
+  - group: "Decreased keyboard input latency"
+    decision: replace
+    reason: "keyboard state comes from the host's native input layer each frame"
+    changelog: "CHANGELOG-SA.md:79"
+    sites:
+      - sp-aa6e4878
+      - sp-424085ac
+      - sp-64a4ccc5
+      - sp-1e40b4de
+  - group: "Fixed handling.cfg name matching (names don't need unique prefixes anymore)"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-bcf7611b
+      - sp-5bbeee34
+  - group: "Firela animations"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-324dc086
+      - sp-66e5bdb6
+  - group: "Double artict3 trailer"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-d58f5c09
+  - group: "DFT-30 wheel, Sweeper brushes and other typos in hierarchy"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-4de7ad3f
+  - group: "Tug tow bar (misc_b instead of misc_a"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-69770175
+      - sp-b0a093ea
+  - group: "Play passenger's voice lines when killing peds with car, not only when hitting t"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-2e5ca250
+  - group: "Prevent samples from playing where they used to, so passengers don't comment on "
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-5064459b
+  - group: "Reset variables on New Game"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-2db9eef7
+      - sp-ea234813
+      - sp-9cb5eb4c
+  - group: "Don't clean the car BEFORE Pay 'n Spray doors close, as it gets cleaned later ag"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-fee068b9
+  - group: "Locale based metric/imperial system"
+    decision: keep
+    reason: "ported as func_replace sp_is_metric over the Mac's region; the INI and debug-menu override becomes silentpatch.units"
+    changelog: "CHANGELOG-SA.md:225"
+    sites:
+      - sp-e37152d7
+  - group: "Fix paintjobs vanishing after opening/closing garage without rendering the car"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-f7c4c648
+  - group: "Remove *= 20.0f from recipz to retrieve the original value for later"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-377d7d48
+      - sp-611db916
+      - sp-517486c3
+  - group: "Fixed static shadows not rendering under fire and pickups"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-c3536348
+      - sp-54c49aec
+  - group: "Reset requested extras if created vehicle has no extras"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-1c554f06
+      - sp-e7f9959f
+  - group: "Allow extra6 to be picked with component rule 4 (any)"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-6c433a6c
+  - group: "Disallow moving cam up/down with mouse when looking back/left/right in vehicle"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-c4b0f30a
+      - sp-2c10efab
+      - sp-0c216607
+  - group: "Display stats in kg as floats (they pass a float and intend to display an intege"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-e0a6c86c
+      - sp-300eb9a4
+  - group: "Add wind animations when driving a Quadbike"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:89"
+    sites:
+      - sp-b749a98d
+      - sp-b1b499b4
+  - group: "Tie handlebar movement to the steering animations on Quadbike, fixes odd animati"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:90"
+    sites:
+      - sp-7b1e15d7
+      - sp-297a8325
+  - group: "Modify the radio station change animation to only affect the right hand, and dis"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-5958147a
+  - group: "Fix a memory leak when taking photos"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:22"
+    sites:
+      - sp-7271058d
+      - sp-69f22c34
+  - group: "Fix crosshair issues when sniper rifle is equipped and a photo is taken by a gan"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:94"
+    sites:
+      - sp-b9d55506
+  - group: "Cancel the Drive By task of biker cops when losing the wanted level"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:95"
+    sites:
+      - sp-e37966db
+  - group: "Fix miscolored racing checkpoints if no other marker was drawn before them"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-f3c0830c
+  - group: "If we're overwriting actual meaningful instructions and not NOPs, use a differen"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-c329997e
+      - sp-21b43420
+      - sp-eee02fdd
+      - sp-8a33735c
+      - sp-b86bf0be
+  - group: "(The entity reference is already cleared for us, no need to do it)"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-f1a141dd
+  - group: "Spawn lapdm1 (biker cop) correctly if the script requests one with PEDTYPE_COP"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-b7a6de39
+  - group: "Fix PlayerPed replay crashes"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-49007958
+  - group: "Since this function differs between EU and US Hoodlum, exceptionally use pattern"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-5edf31aa
+      - sp-4f86068d
+  - group: "Fix planes spawning in places where they crash easily"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-48d6a9f7
+  - group: "Allow hovering on the Jetpack with Keyboard + Mouse controls"
+    decision: keep
+    reason: "game logic; ported as mid_hook sp_jetpack_keyboard_hover, switchable with silentpatch.jetpack_keyboard_hover"
+    changelog: "CHANGELOG-SA.md:104"
+    sites:
+      - sp-eba14850
+      - sp-865fabf2
+      - sp-5d83d3eb
+  - group: "During riots, don't target the player group during missions"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:105"
+    sites:
+      - sp-5ebeb13d
+  - group: "Rescale light switching randomness in CVehicle::GetVehicleLightsStatus for PC th"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-ab9d1e45
+  - group: "Fix damage state of vehicle rear lights both using RIGHT_TAIL_LIGHT"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-41a55804
+  - group: "Fixed vehicles exploding twice if the driver leaves the car while it's exploding"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-5f28dd35
+      - sp-3e9eb728
+      - sp-430980fa
+  - group: "CVehicle::RemoveDriver already sets the status to STATUS_ABANDONED, these are re"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-c0333362
+      - sp-c4736160
+  - group: "Fixed falling stars rendering black"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-07146df7
+  - group: "Fix the logic behind exploding cars losing wheels"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-fc4100d5
+      - sp-f8ef3fac
+      - sp-dadc74ac
+      - sp-29dc9a0b
+      - sp-27b246f0
+  - group: "Invert a CPed::IsAlive check in CTaskComplexEnterCar::CreateNextSubTask to avoid"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-b566a815
+  - group: "Improved resolution selection dialog"
+    decision: replace
+    reason: "the Windows resolution dialog is not shown; the launcher picks the mode"
+    changelog: ""
+    sites:
+      - sp-37d7fca4
+      - sp-f7a97adf
+      - sp-6208871f
+      - sp-57475c9a
+  - group: "\"Unscale\" text sliding thresholds, so texts don't stay on screen longer at high "
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-34ba2731
+  - group: "Replace dword ptr [esp+0Ch+X], eax \\ dword ptr [esp+0Ch+X]"
+    decision: pending
+    reason: ""
+    hint: "replace: D3D9/DInput/DSound paths live in the native layers"
+    changelog: ""
+    sites:
+      - sp-529c0424
+      - sp-0f6da7f9
+  - group: "Someone re-routed CPostEffects::HeatHazeFXInit and we can't read the variable, f"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-c8049299
+      - sp-db96db68
+  - group: "Regular crosshair"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-0d756195
+  - group: "Fix nitrous recharging faster when reversing the car"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:114"
+    sites:
+      - sp-b043ebef
+      - sp-7831f261
+  - group: "Fix Skimmer not spawning correctly (and shooting up the sky) on Windows 11 24H2"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:26"
+    sites:
+      - sp-3d01a271
+  - group: "Fix the rear van doors not being properly special cased in CCarEnterExit::GetPos"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-2c3970ae
+  - group: "Fix jumping on bikes from the front misplacing CJ on the Z axis"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-4f290be7
+  - group: "Stop cops holding one handed guns like gangsters, with a tilted stance"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-5488ea15
+      - sp-2190c191
+      - sp-1ffa3ad9
+      - sp-e2749508
+  - group: "Fix CJ clones spawning in gang roadblocks in neutral zones"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-e0625ce3
+      - sp-8d31fc2f
+  - group: "Fix the savegame loading not loading the number of tags correctly"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-59f8e9b4
+      - sp-4c0e2457
+  - group: "Fix CREATE_BIRDS mis-interpreting coordinate arguments as integers"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-52be0b5d
+      - sp-06107cfe
+      - sp-75be44f2
+      - sp-4ad9075d
+      - sp-b323fced
+      - sp-7a6554e5
+  - group: "Fake the VRAM poll, as it's used to limit resolutions for no reason"
+    decision: replace
+    reason: "the native mode list and Metal presentation own resolutions, refresh rate and monitors (M6 display-mode); the list is not limited by VRAM"
+    changelog: ""
+    sites:
+      - sp-8eb005b4
+  - group: "Display a fallback string if the resolution string is absent"
+    decision: keep
+    reason: "safety net for a null mode string in Advanced Display Options; ported as call_redirect sp_ascii_to_gxt_null_check"
+    changelog: ""
+    sites:
+      - sp-f9cf1fd6
+  - group: "Fix 2 player blips both drawing in P1's position"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-52fed4a6
+      - sp-3628d998
+      - sp-ec0a6717
+  - group: "Stop gang wars clearing the friendly entity blips when the gang war ends"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-9065fe19
+      - sp-97e9095a
+      - sp-4fddafe8
+  - group: "Speech system fixes"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-60504374
+      - sp-c541ef2e
+  - group: "Special case CJ's weather responses to fall back to the CD mood instead of CR"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-77cd101e
+      - sp-718bc7e3
+  - group: "Try to fixup VOICE_GEN_S*FYST vs VOICE_GEN_S*FYSTR"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-5b443663
+  - group: "Play turf takeover cheers on CJ, not on his gang members"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-df286ff1
+      - sp-c9ca302b
+  - group: "Change CJ's mood to WR after playing the solicit line, not before, so non-WR lin"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-5746c6a9
+      - sp-4136e8d8
+  - group: "Add a missing ATTACK_PLAYER trigger to CTaskComplexGangLeader::DoGangAttackSpeec"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-b3ef02af
+  - group: "Re-enable PAIN_SPRAYED"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:137"
+    sites:
+      - sp-1d647cc3
+  - group: "Play CJ's CHASED line from CTaskComplexArrestPed too, so 1-star quotes are not u"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-51cd9e6b
+  - group: "Fix CJ not playing SHOOT lines when shooting on a mouse and keyboard"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:139"
+    sites:
+      - sp-c64c5b8c
+      - sp-bbff62b5
+      - sp-04a6c4ab
+      - sp-0b7c6b81
+  - group: "Enable SURROUNDED and COVER ME lines for cops"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:140"
+    sites:
+      - sp-19b893e3
+  - group: "Enable WHERE_YOU_FROM_POS_REPLY as a reply to WHERE_YOU_FROM_POS"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-91753129
+      - sp-f874fe3e
+      - sp-ffa3c46f
+  - group: "Play DRUGGED_IGNORE on the homie, not on CJ, when they're refusing to be recruit"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:146"
+    sites:
+      - sp-ead67d44
+  - group: "Replace a legacy flag check with a fleeing event check, and play GOOD_CITIZEN on"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-bada8be9
+      - sp-de96cb4d
+      - sp-f486ec8b
+  - group: "Prevent the player from getting punished for defending against the criminal they"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-f4c52a4f
+      - sp-89e2e9dd
+      - sp-99a7ed0c
+      - sp-423eda47
+  - group: "Inject a fallback text as GOODBOY doesn't exist by default"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-d40c94b6
+  - group: "Fix CShadows::CastShadowEntityXY ignoring the Up rotation of an object"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-75b144ae
+      - sp-211e70d2
+      - sp-8c721218
+      - sp-986c6413
+      - sp-dc786368
+  - group: "Fix script draws affecting the line wrapping of a radio station name display"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-df881db0
+  - group: "Revert leftover GTA III code making Securicars very fragile against the player"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-acf15d9a
+      - sp-d58b9f27
+  - group: "Intercept binary IPL car generator spawns to fix a Beagle spawn in Fort Carson"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-a3471f6a
+  - group: "Reorder the law enforcement checks in CRoadBlocks::GenerateRoadBlocks to match t"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-3a6b4a13
+      - sp-7bea022f
+      - sp-8640e225
+      - sp-4fe403fe
+      - sp-2ea7b11e
+      - sp-17334f01
+      - sp-63dfc697
+      - sp-c12f283f
+  - group: "Swap the GANGS and CRIMES section names when exporting stats to stats.html"
+    decision: pending
+    reason: ""
+    changelog: "CHANGELOG-SA.md:152"
+    sites:
+      - sp-ae3d6d43
+      - sp-f600c90d
+      - sp-7c497cf2
+      - sp-f92ced13
+  - group: "Allow to store trains in garages"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-399abf7f
+  - group: "bindings: TimerSA.cpp"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-d76d4aef
+      - sp-f53d69cc
+  - group: "bindings: VehicleSA.cpp"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - sp-2a00cef4
+      - sp-3b196bc4
+      - sp-cc034fdf

@@ -68,6 +68,15 @@ struct ContentView: View {
                 Text("A resolution saved in the game's own settings takes precedence.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            if !model.modSpecs.isEmpty {
+                Section("Fixes") {
+                    ForEach(model.modSpecs) { spec in
+                        ModSettingRow(spec: spec, value: model.modBinding(spec))
+                    }
+                    Text("These replace the mods' INI files and take effect the next time the game starts.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
             Section {
                 HStack {
                     Button("Play") { model.play() }
@@ -84,6 +93,7 @@ struct ContentView: View {
         .formStyle(.grouped)
         .frame(minWidth: 520, minHeight: 560)
         .onChange(of: model.config) { model.save() }
+        .onChange(of: model.modValues) { model.saveModSettings() }
         .onAppear { model.start() }
     }
 
@@ -98,5 +108,34 @@ struct ContentView: View {
     private var resolutionBinding: Binding<Resolution> {
         Binding(get: { Resolution(width: model.config.width, height: model.config.height) },
                 set: { model.config.width = $0.width; model.config.height = $0.height })
+    }
+}
+
+struct ModSettingRow: View {
+    let spec: ModSettingSpec
+    @Binding var value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            switch spec.kind {
+            case .bool:
+                Toggle(spec.title, isOn: Binding(get: { value == "true" }, set: { value = $0 ? "true" : "false" }))
+            case let .choice(choices):
+                Picker(spec.title, selection: $value) {
+                    ForEach(choices, id: \.self) { Text($0.capitalized).tag($0) }
+                }
+            case let .int(min, max):
+                Stepper("\(spec.title): \(value)", value: Binding(get: { Int(value) ?? 0 }, set: { value = String($0) }),
+                        in: min...max)
+            case let .number(min, max, step):
+                Stepper("\(spec.title): \(value)",
+                        value: Binding(get: { Double(value) ?? min },
+                                       set: { value = ModSettingSpec.format(($0 / step).rounded() * step) }),
+                        in: min...max, step: step)
+            }
+            if !spec.notes.isEmpty {
+                Text(spec.notes).font(.caption).foregroundStyle(.secondary)
+            }
+        }
     }
 }

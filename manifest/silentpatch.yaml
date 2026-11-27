@@ -1,0 +1,64 @@
+- addr: 0x0043890b
+  kind: byte_patch
+  source: silentpatch
+  group: melee-cheat-ammo
+  bytes: "6a01"
+  notes: "Fixed ammo for melee weapons in cheats: the knife from the first weapon cheat is given with 1 ammo (push 1, was push 0), so it shows up and can be selected"
+
+- addr: 0x004389f8
+  kind: byte_patch
+  source: silentpatch
+  group: melee-cheat-ammo
+  bytes: "6a01"
+  notes: "Knife from the second weapon cheat"
+
+- addr: 0x00438b9f
+  kind: byte_patch
+  source: silentpatch
+  group: melee-cheat-ammo
+  bytes: "6a01"
+  notes: "Chainsaw from the second weapon cheat"
+
+- addr: 0x00438c58
+  kind: byte_patch
+  source: silentpatch
+  group: melee-cheat-ammo
+  bytes: "6a01"
+  notes: "Chainsaw from the third weapon cheat"
+
+- addr: 0x004395c8
+  kind: byte_patch
+  source: silentpatch
+  group: melee-cheat-ammo
+  bytes: "6a01"
+  notes: "Parachute cheat"
+
+- addr: 0x00439f1f
+  kind: byte_patch
+  source: silentpatch
+  group: melee-cheat-ammo
+  bytes: "536a01"
+  notes: "Katana from the ninja cheat: the two pushes swap, so the ammo argument is 1 and the other argument keeps ebx"
+
+- addr: 0x0056d220
+  kind: func_replace
+  source: silentpatch
+  group: locale-units
+  target: sp_is_metric
+  notes: "CLocalisation::Metric follows the Mac's region (kCFLocaleUsesMetricSystem) instead of the menu language; silentpatch.units can force metric or imperial"
+
+- addr: 0x0067ed2d
+  kind: mid_hook
+  source: silentpatch
+  group: jetpack-keyboard-hover
+  target: sp_jetpack_keyboard_hover
+  resume: 0x0067edaf
+  setting: silentpatch.jetpack_keyboard_hover
+  notes: "CTaskSimpleJetPack::ProcessControlInput: with keyboard and mouse, the look-behind key hovers (resume at 0x67edaf, as the pad path does)"
+
+- addr: 0x0057a071
+  kind: call_redirect
+  source: silentpatch
+  group: resolution-string-fallback
+  target: sp_ascii_to_gxt_null_check
+  notes: "Advanced Display Options: AsciiToGxtChar gets \"-\" instead of a null resolution string, which crashed 1.0 with little VRAM; the native mode list makes the null case unlikely, so this is a safety net"

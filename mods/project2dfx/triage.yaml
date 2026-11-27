@@ -1,0 +1,115 @@
+mod: project2dfx
+commit: "16509fcac44f0d0ea9eccc25d047055877c020b8"
+groups:
+  - group: "ApplyMemoryPatches"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - p2-feb1b489
+      - p2-1c03b9cc
+      - p2-13b04d48
+      - p2-6838c229
+      - p2-eb86e318
+      - p2-eed954ea
+      - p2-1fd11171
+      - p2-5f9fe67c
+      - p2-0d99dab8
+      - p2-d155d616
+      - p2-a8e20352
+      - p2-48370a72
+  - group: "Shadows: the game's distances times ShadowDistance, the intensity Project2DFX wa"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - p2-5dd5bd7f.0
+      - p2-5dd5bd7f.1
+      - p2-5dd5bd7f.2
+      - p2-5dd5bd7f.3
+      - p2-5dd5bd7f.4
+      - p2-5dd5bd7f.5
+      - p2-5dd5bd7f.6
+      - p2-5dd5bd7f.7
+      - p2-5dd5bd7f.8
+      - p2-5dd5bd7f.9
+  - group: "The game's lamp coronas and light pools, which the distant ones hand over to"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - p2-7284d933
+      - p2-ea9b3a3b
+  - group: "Small objects and vegetation keep their own range, read when the IDE files load."
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - p2-7a3e3fc0
+      - p2-dbfe3c4d
+  - group: "Keeps LOD models loaded, so they don't pop in. Only with the limit adjuster's st"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - p2-c8667e0f
+      - p2-8afb2b68
+  - group: "bindings: dllmain.cpp"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - p2-d3d16a7c
+      - p2-93ffa14b
+  - group: "ObjectDistance::InstallAlphaHook"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - p2-2b752d44
+  - group: "SetupMapEntityVisibility has computed radius/fade width, but has not"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - p2-6e3fdc1b
+  - group: "outDistance already holds the real distance: the old `distance += cameraScaledMo"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - p2-48cd9d25
+  - group: "ObjectDistance::InstallProceduralHooks"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - p2-bbd1e2d7
+      - p2-d9d4be06
+  - group: "CIplStore::LoadIpls: after native player/mission requests, just before"
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - p2-0a8f136d
+  - group: "Redirect the renderer's 300 m non-LOD cap to the live distance setting."
+    decision: pending
+    reason: ""
+    changelog: ""
+    sites:
+      - p2-36fbef70.0
+      - p2-36fbef70.1
+      - p2-36fbef70.2
+      - p2-36fbef70.3
+      - p2-36fbef70.4
+      - p2-36fbef70.5
+      - p2-36fbef70.6
+      - p2-36fbef70.7
+      - p2-36fbef70.8
+      - p2-36fbef70.9
+      - p2-36fbef70.10
+      - p2-36fbef70.11
+      - p2-36fbef70.12
+      - p2-36fbef70.13
+      - p2-36fbef70.14
+      - p2-36fbef70.15

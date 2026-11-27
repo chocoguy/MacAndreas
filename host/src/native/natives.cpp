@@ -69,9 +69,34 @@ constexpr NativeSymbol kSymbols[] = {
 std::span<const NativeSymbol> builtin_symbols() { return kSymbols; }
 
 TraceFn find_symbol(std::string_view name) {
-    for (const auto& symbol : kSymbols) {
-        if (symbol.name == name) {
-            return symbol.fn;
+    for (auto table : {std::span<const NativeSymbol>(kSymbols), silentpatch_symbols(), widescreen_symbols(),
+                        widescreen_hud_symbols()}) {
+        for (const auto& symbol : table) {
+            if (symbol.name == name) {
+                return symbol.fn;
+            }
+        }
+    }
+    return nullptr;
+}
+
+MidHookFn find_mid_hook(std::string_view name) {
+    for (auto table : {silentpatch_mid_hooks(), widescreen_mid_hooks(), widescreen_hud_mid_hooks()}) {
+        for (const auto& hook : table) {
+            if (hook.name == name) {
+                return hook.fn;
+            }
+        }
+    }
+    return nullptr;
+}
+
+SlotFn find_slot(std::string_view name) {
+    for (auto table : {widescreen_slots(), widescreen_hud_slots()}) {
+        for (const auto& slot : table) {
+            if (slot.name == name) {
+                return slot.fn;
+            }
         }
     }
     return nullptr;

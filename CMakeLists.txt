@@ -33,8 +33,12 @@ enable_testing()
 
 add_subdirectory(runtime/loader)
 add_subdirectory(runtime/manifest)
+add_subdirectory(runtime/settings)
 add_subdirectory(tools/pe-inspect)
 add_subdirectory(tools/repo-guard)
+add_subdirectory(tools/manifest-check)
+add_subdirectory(tools/mod-inventory)
+add_subdirectory(tools/verify)
 
 find_package(LLVM CONFIG QUIET
     PATHS "${MACANDREAS_LLVM_PREFIX}/lib/cmake/llvm" NO_DEFAULT_PATH)

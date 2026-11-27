@@ -30,6 +30,15 @@ class Route:
         for i in range(count):
             self.steps.append((frame + i * spacing, f"{frame + i * spacing}:look@{dx}:{dy}"))
 
+    def new_game(self, skip_cutscene=True):
+        self.key(1000, "return")
+        self.key(1100, "return")
+        if not skip_cutscene:
+            return 6450
+        for f in range(1300, 1700, 100):
+            self.key(f, "lbutton")
+        return 1800
+
     def mark(self, frame, label):
         self.marks.append((frame, label))
 

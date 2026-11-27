@@ -3,6 +3,7 @@
 #include "abi.hpp"
 #include "audio/mix.hpp"
 #include "audio/stream.hpp"
+#include "camera_pin.hpp"
 #include "dispatch.hpp"
 #include "guest_memory.hpp"
 #include "input/input_state.hpp"
@@ -18,6 +19,7 @@
 #include "win32/wsprintf.hpp"
 
 #include "macandreas/interp.hpp"
+#include "macandreas/manifest.hpp"
 
 #include <algorithm>
 #include <array>
@@ -422,6 +424,47 @@ void install_interp_fixtures() {
     register_trace(kLiftedBlock, lifted_block);
     register_trace(kLiftedDouble, lifted_double);
     register_trace(kLiftedCallsInterp, lifted_calls_interp);
+}
+
+constexpr uint32_t kCodeRedirect = 0x00500700;
+constexpr uint32_t kRedirectOriginal = 0x00500800;
+constexpr uint32_t kMidHookSite = 0x00500900;
+
+Memory* redirect_original_trace(GuestState& s, uint32_t, Memory* m) {
+    eax(s) = 7;
+    guest_ret(s, 0);
+    return m;
+}
+
+Memory* redirect_target_trace(GuestState& s, uint32_t, Memory* m) {
+    eax(s) = redirect_original() + (redirect_site() == kCodeRedirect ? 1 : 0);
+    guest_ret(s, 0);
+    return m;
+}
+
+uint32_t mid_hook_skip(GuestState& s, uint32_t pc) {
+    ebx(s) = 0x1234;
+    return pc + 6;
+}
+
+void test_redirects_and_mid_hooks(GuestState& s) {
+    write_code(kCodeRedirect, {0xe8, 0, 0, 0, 0, 0xc3});
+    write_rel32(kCodeRedirect + 1, kCodeRedirect + 5, ma::manifest::redirect_address(kCodeRedirect));
+    register_trace(kRedirectOriginal, redirect_original_trace);
+
+    register_redirect(kCodeRedirect, kRedirectOriginal, nullptr);
+    CHECK(call_guest(s, kCodeRedirect, {}, false) == 7);
+    register_redirect(kCodeRedirect, kRedirectOriginal, redirect_target_trace);
+    CHECK(call_guest(s, kCodeRedirect, {}, false) == kRedirectOriginal + 1);
+    CHECK(redirect_site() == 0);
+
+    CHECK(run_mid_hook(s, kMidHookSite) == kMidHookSite);
+    register_mid_hook(kMidHookSite, mid_hook_skip);
+    uint32_t saved_ebx = ebx(s);
+    CHECK(run_mid_hook(s, kMidHookSite) == kMidHookSite + 6);
+    CHECK(eip(s) == kMidHookSite);
+    CHECK(ebx(s) == 0x1234);
+    ebx(s) = saved_ebx;
 }
 
 void test_interpreter(GuestState& s) {
@@ -1106,6 +1149,19 @@ void test_keyboard_messages(GuestState& s) {
 
 }
 
+void test_camera_pin_parse() {
+    auto pin = camera::parse_pin("1820:2234.2,-1262.1,25.4:2239.7,-1261.9,24.4");
+    CHECK(pin.has_value());
+    CHECK(pin && pin->frame == 1820 && !pin->restore);
+    CHECK(pin && pin->position[1] == -1262.1f && pin->target[2] == 24.4f);
+    auto restore = camera::parse_pin("1860:restore");
+    CHECK(restore && restore->restore && restore->frame == 1860);
+    CHECK(!camera::parse_pin("1820:1,2:3,4,5"));
+    CHECK(!camera::parse_pin("1820:1,2,3,4:5,6,7"));
+    CHECK(!camera::parse_pin("x:1,2,3:4,5,6"));
+    CHECK(!camera::parse_pin("1820"));
+}
+
 int main() {
     if (!reserve_guest_space()) {
         std::fprintf(stderr, "cannot reserve guest space\n");
@@ -1133,6 +1189,8 @@ int main() {
     test_seh_chain(s);
     test_seh_nonlocal_unwind(s);
     test_interpreter(s);
+    test_redirects_and_mid_hooks(s);
+    test_camera_pin_parse();
     test_wsprintf();
     test_allocator_realloc();
     test_mode_list();

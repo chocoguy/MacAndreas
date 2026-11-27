@@ -14,6 +14,10 @@ jobs:
         run: python3 -I tools/repo-guard/test_repo_guard.py
       - name: Check tracked files
         run: python3 -I tools/repo-guard/repo_guard.py --tracked
+      - name: Mod inventory unit tests
+        run: python3 -I tools/mod-inventory/test_mod_inventory.py
+      - name: Mod inventory and triage check
+        run: python3 -I tools/mod-inventory/mod_inventory.py check --require --manifest manifest
 
   build:
     runs-on: macos-26
@@ -25,5 +29,9 @@ jobs:
         run: cmake --preset dev
       - name: Build
         run: cmake --build --preset dev
+      - name: Manifest conflict check
+        run: build/dev/tools/manifest-check/manifest-check --schema mods/settings.yaml manifest
+      - name: Manifest conflict check rejects the seeded overlap
+        run: "! build/dev/tools/manifest-check/manifest-check manifest tests/manifest/seeded"
       - name: Test
         run: ctest --preset dev --label-exclude game

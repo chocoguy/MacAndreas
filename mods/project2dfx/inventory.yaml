@@ -1,0 +1,639 @@
+mod: project2dfx
+upstream: "https://github.com/ThirteenAG/III.VC.SA.IV.Project2DFX"
+commit: "16509fcac44f0d0ea9eccc25d047055877c020b8"
+files: 9
+sites: 52
+unresolved: 0
+dropped: {}
+rows:
+  - id: "p2-feb1b489"
+    op: "mid_hook"
+    addr: 0x005b925a
+    span: 5
+    pin: "pattern"
+    version: "any"
+    group: "ApplyMemoryPatches"
+    scope: "ApplyMemoryPatches"
+    target: "[](SafetyHookContext& regs) { LoadDatFile(); if (!m_bCatchLa"
+    expr: "pattern.get_first()"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 125
+  - id: "p2-1c03b9cc"
+    op: "inline_hook"
+    addr: 0x00538090
+    span: 5
+    pin: "pattern+branch"
+    version: "any"
+    group: "ApplyMemoryPatches"
+    scope: "ApplyMemoryPatches"
+    target: "CFileLoader::LoadObjectInstance"
+    expr: "injector::GetBranchDestination(pattern.get_first()).as_int()"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 137
+  - id: "p2-13b04d48"
+    op: "mid_hook"
+    addr: 0x00717d00
+    span: 5
+    pin: "pattern"
+    version: "any"
+    group: "ApplyMemoryPatches"
+    scope: "ApplyMemoryPatches"
+    target: "[](SafetyHookContext& regs) { CLODLights::Init(numCoronas); "
+    expr: "pattern.get_first()"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 140
+  - id: "p2-6838c229"
+    op: "mid_hook"
+    addr: 0x00717554
+    span: 5
+    pin: "pattern"
+    version: "any"
+    group: "ApplyMemoryPatches"
+    scope: "ApplyMemoryPatches"
+    target: "[](SafetyHookContext& regs) { ObjectDistance::UpdateProcedur"
+    expr: "pattern.get_first()"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 153
+  - id: "p2-eb86e318"
+    op: "mid_hook"
+    addr: 0x005531f2
+    span: 5
+    pin: "pattern"
+    version: "any"
+    group: "ApplyMemoryPatches"
+    scope: "ApplyMemoryPatches"
+    target: "[](SafetyHookContext&) { if (nDistantTraffic > 0) CMovingThi"
+    expr: "pattern.get_first()"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 163
+  - id: "p2-eed954ea"
+    op: "mid_hook"
+    addr: 0x0053e184
+    span: 5
+    pin: "pattern"
+    version: "any"
+    group: "ApplyMemoryPatches"
+    scope: "ApplyMemoryPatches"
+    target: "[](SafetyHookContext& regs) { if (bRenderLodLights) { CLODLi"
+    expr: "pattern.get_first()"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 170
+  - id: "p2-1fd11171"
+    op: "mid_hook"
+    addr: 0x00717c21
+    span: 5
+    pin: "pattern"
+    version: "any"
+    group: "ApplyMemoryPatches"
+    scope: "ApplyMemoryPatches"
+    target: "[](SafetyHookContext& regs) { CMovingThings::ShutdownDistant"
+    expr: "pattern.count(2).get(1).get<void*>()"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 184
+  - id: "p2-5f9fe67c"
+    op: "patch"
+    addr: 0x006fc65e
+    span: 4
+    pin: "pattern"
+    version: "any"
+    group: "ApplyMemoryPatches"
+    scope: "ApplyMemoryPatches"
+    value: "&ViewDistance::sunCore"
+    expr: "hook::get_pattern(\"…\", 2)"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 190
+  - id: "p2-0d99dab8"
+    op: "patch"
+    addr: 0x006fc6ea
+    span: 4
+    pin: "pattern"
+    version: "any"
+    group: "ApplyMemoryPatches"
+    scope: "ApplyMemoryPatches"
+    value: "&ViewDistance::sunCorona"
+    expr: "hook::get_pattern(\"…\", 2)"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 191
+  - id: "p2-d155d616"
+    op: "patch"
+    addr: 0x006fc053
+    span: ~
+    pin: "literal"
+    version: "any"
+    group: "ApplyMemoryPatches"
+    scope: "ApplyMemoryPatches"
+    value: "0x7080 * 0xA"
+    expr: "0x6FC051 + 0x2"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 195
+  - id: "p2-a8e20352"
+    op: "patch"
+    addr: 0x0049dcf4
+    span: 4
+    pin: "literal"
+    version: "any"
+    group: "ApplyMemoryPatches"
+    scope: "ApplyMemoryPatches"
+    value: "550.0f"
+    expr: "0x49DCF4"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 196
+  - id: "p2-48370a72"
+    op: "make_inline"
+    addr: 0x006fcfba
+    span: ~
+    pin: "literal"
+    version: "any"
+    group: "ApplyMemoryPatches"
+    scope: "ApplyMemoryPatches"
+    expr: "0x6FCFBA"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 206
+  - id: "p2-5dd5bd7f.0"
+    op: "patch"
+    addr: 0x006fd13c
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Shadows: the game's distances times ShadowDistance, the intensity Project2DFX wa"
+    scope: "ApplyMemoryPatches"
+    cond: "fStaticShadowsIntensity"
+    value: "&fStaticShadowsIntensity"
+    expr: "address"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 218
+  - id: "p2-5dd5bd7f.1"
+    op: "patch"
+    addr: 0x006fd16e
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Shadows: the game's distances times ShadowDistance, the intensity Project2DFX wa"
+    scope: "ApplyMemoryPatches"
+    cond: "fStaticShadowsIntensity"
+    value: "&fStaticShadowsIntensity"
+    expr: "address"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 218
+  - id: "p2-5dd5bd7f.2"
+    op: "patch"
+    addr: 0x006fd17c
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Shadows: the game's distances times ShadowDistance, the intensity Project2DFX wa"
+    scope: "ApplyMemoryPatches"
+    cond: "fStaticShadowsIntensity"
+    value: "&fStaticShadowsIntensity"
+    expr: "address"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 218
+  - id: "p2-5dd5bd7f.3"
+    op: "patch"
+    addr: 0x006fd1ce
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Shadows: the game's distances times ShadowDistance, the intensity Project2DFX wa"
+    scope: "ApplyMemoryPatches"
+    cond: "fStaticShadowsIntensity"
+    value: "&fStaticShadowsIntensity"
+    expr: "address"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 218
+  - id: "p2-5dd5bd7f.4"
+    op: "patch"
+    addr: 0x006fd2c0
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Shadows: the game's distances times ShadowDistance, the intensity Project2DFX wa"
+    scope: "ApplyMemoryPatches"
+    cond: "fStaticShadowsIntensity"
+    value: "&fStaticShadowsIntensity"
+    expr: "address"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 218
+  - id: "p2-5dd5bd7f.5"
+    op: "patch"
+    addr: 0x006fd301
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Shadows: the game's distances times ShadowDistance, the intensity Project2DFX wa"
+    scope: "ApplyMemoryPatches"
+    cond: "fStaticShadowsIntensity"
+    value: "&fStaticShadowsIntensity"
+    expr: "address"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 218
+  - id: "p2-5dd5bd7f.6"
+    op: "patch"
+    addr: 0x006fd30f
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Shadows: the game's distances times ShadowDistance, the intensity Project2DFX wa"
+    scope: "ApplyMemoryPatches"
+    cond: "fStaticShadowsIntensity"
+    value: "&fStaticShadowsIntensity"
+    expr: "address"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 218
+  - id: "p2-5dd5bd7f.7"
+    op: "patch"
+    addr: 0x006fd3bc
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Shadows: the game's distances times ShadowDistance, the intensity Project2DFX wa"
+    scope: "ApplyMemoryPatches"
+    cond: "fStaticShadowsIntensity"
+    value: "&fStaticShadowsIntensity"
+    expr: "address"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 218
+  - id: "p2-5dd5bd7f.8"
+    op: "patch"
+    addr: 0x006fd3da
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Shadows: the game's distances times ShadowDistance, the intensity Project2DFX wa"
+    scope: "ApplyMemoryPatches"
+    cond: "fStaticShadowsIntensity"
+    value: "&fStaticShadowsIntensity"
+    expr: "address"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 218
+  - id: "p2-5dd5bd7f.9"
+    op: "patch"
+    addr: 0x006fd3f8
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Shadows: the game's distances times ShadowDistance, the intensity Project2DFX wa"
+    scope: "ApplyMemoryPatches"
+    cond: "fStaticShadowsIntensity"
+    value: "&fStaticShadowsIntensity"
+    expr: "address"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 218
+  - id: "p2-7284d933"
+    op: "mid_hook"
+    addr: 0x0053dfe2
+    span: 5
+    pin: "literal"
+    version: "any"
+    group: "The game's lamp coronas and light pools, which the distant ones hand over to"
+    scope: "ApplyMemoryPatches"
+    target: "[](SafetyHookContext&) { if (bRenderLodLights) CLODLights::R"
+    expr: "reinterpret_cast<void*>(0x53DFE2)"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 223
+  - id: "p2-ea9b3a3b"
+    op: "mid_hook"
+    addr: 0x006fc7a0
+    span: 5
+    pin: "literal"
+    version: "any"
+    group: "The game's lamp coronas and light pools, which the distant ones hand over to"
+    scope: "ApplyMemoryPatches"
+    target: "[](SafetyHookContext& regs) { LampEntities::MarkProcessed(re"
+    expr: "reinterpret_cast<void*>(0x6FC7A0)"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 232
+  - id: "p2-7a3e3fc0"
+    op: "make_inline"
+    addr: 0x005b3f4c
+    span: ~
+    pin: "literal"
+    version: "any"
+    group: "Small objects and vegetation keep their own range, read when the IDE files load."
+    scope: "ApplyMemoryPatches"
+    expr: "0x5B3F4C"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 250
+  - id: "p2-dbfe3c4d"
+    op: "make_inline"
+    addr: 0x005b3d9f
+    span: 6
+    pin: "literal"
+    version: "any"
+    group: "Small objects and vegetation keep their own range, read when the IDE files load."
+    scope: "ApplyMemoryPatches"
+    expr: "0x5B3D9F"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 319
+  - id: "p2-c8667e0f"
+    op: "mid_hook"
+    addr: 0x005b52a4
+    span: 5
+    pin: "pattern"
+    version: "any"
+    group: "Keeps LOD models loaded, so they don't pop in. Only with the limit adjuster's st"
+    scope: "ApplyMemoryPatches"
+    cond: "bPreloadLODs && LimitAdjusterStreamingBudget() >= 256 * 1024 * 1024"
+    target: "[](SafetyHookContext& regs) { lodPtrs.push_back((CEntity*)re"
+    expr: "pattern.get_first()"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 341
+  - id: "p2-8afb2b68"
+    op: "mid_hook"
+    addr: 0x0053c07c
+    span: 5
+    pin: "pattern"
+    version: "any"
+    group: "Keeps LOD models loaded, so they don't pop in. Only with the limit adjuster's st"
+    scope: "ApplyMemoryPatches"
+    cond: "bPreloadLODs && LimitAdjusterStreamingBudget() >= 256 * 1024 * 1024"
+    target: "[](SafetyHookContext& regs) { if (gGameState != 9) return; i"
+    expr: "pattern.get_first()"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 347
+  - id: "p2-d3d16a7c"
+    op: "bind"
+    addr: 0x005b8e64
+    span: ~
+    pin: "literal"
+    version: "any"
+    group: "bindings: dllmain.cpp"
+    scope: "Init"
+    expr: "*(uint16_t*)0x5B8E64"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 447
+  - id: "p2-93ffa14b"
+    op: "bind"
+    addr: 0x005b8e66
+    span: ~
+    pin: "literal"
+    version: "any"
+    group: "bindings: dllmain.cpp"
+    scope: "Init"
+    expr: "*(uint32_t*)0x5B8E66"
+    file: "source/SALodLights/dllmain.cpp"
+    line: 447
+  - id: "p2-2b752d44"
+    op: "inline_hook"
+    addr: 0x00732500
+    span: 5
+    pin: "literal"
+    version: "any"
+    group: "ObjectDistance::InstallAlphaHook"
+    scope: "ObjectDistance::InstallAlphaHook"
+    target: "CalculateObjectAlpha"
+    expr: "reinterpret_cast<void*>(0x732500)"
+    file: "source/SALodLights/ObjectDistance.hpp"
+    line: 319
+  - id: "p2-6e3fdc1b"
+    op: "mid_hook"
+    addr: 0x00554028
+    span: 5
+    pin: "literal"
+    version: "any"
+    group: "SetupMapEntityVisibility has computed radius/fade width, but has not"
+    scope: "ObjectDistance::InstallNormalHook"
+    target: "SetupNormalObjectVisibility"
+    expr: "reinterpret_cast<void*>(0x554028)"
+    file: "source/SALodLights/ObjectDistance.hpp"
+    line: 326
+  - id: "p2-48cd9d25"
+    op: "make_jmp"
+    addr: 0x005545e2
+    span: 5
+    pin: "literal"
+    version: "any"
+    group: "outDistance already holds the real distance: the old `distance += cameraScaledMo"
+    scope: "ObjectDistance::InstallNormalHook"
+    target: "0x554636"
+    expr: "0x5545E2"
+    file: "source/SALodLights/ObjectDistance.hpp"
+    line: 329
+  - id: "p2-bbd1e2d7"
+    op: "inline_hook"
+    addr: 0x00554230
+    span: 5
+    pin: "literal"
+    version: "any"
+    group: "ObjectDistance::InstallProceduralHooks"
+    scope: "ObjectDistance::InstallProceduralHooks"
+    target: "SetupProceduralVisibility"
+    expr: "reinterpret_cast<void*>(0x554230)"
+    file: "source/SALodLights/ObjectDistance.hpp"
+    line: 334
+  - id: "p2-d9d4be06"
+    op: "inline_hook"
+    addr: 0x005a3850
+    span: 5
+    pin: "literal"
+    version: "any"
+    group: "ObjectDistance::InstallProceduralHooks"
+    scope: "ObjectDistance::InstallProceduralHooks"
+    target: "AddProceduralObjects"
+    expr: "reinterpret_cast<void*>(0x5A3850)"
+    file: "source/SALodLights/ObjectDistance.hpp"
+    line: 336
+  - id: "p2-0a8f136d"
+    op: "mid_hook"
+    addr: 0x00405355
+    span: 5
+    pin: "literal"
+    version: "any"
+    group: "CIplStore::LoadIpls: after native player/mission requests, just before"
+    scope: "ObjectDistance::InstallIplStreamingHook"
+    target: "[](SafetyHookContext& ctx) { ExtendIplRequests(*reinterpret_"
+    expr: "reinterpret_cast<void*>(0x405355)"
+    file: "source/SALodLights/ObjectDistance.hpp"
+    line: 347
+  - id: "p2-36fbef70.0"
+    op: "patch"
+    addr: 0x005545e8
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Redirect the renderer's 300 m non-LOD cap to the live distance setting."
+    scope: "ObjectDistance::Install"
+    value: "&fMaxDrawDistanceForNormalObjects"
+    expr: "address"
+    file: "source/SALodLights/ObjectDistance.hpp"
+    line: 360
+  - id: "p2-36fbef70.1"
+    op: "patch"
+    addr: 0x00554602
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Redirect the renderer's 300 m non-LOD cap to the live distance setting."
+    scope: "ObjectDistance::Install"
+    value: "&fMaxDrawDistanceForNormalObjects"
+    expr: "address"
+    file: "source/SALodLights/ObjectDistance.hpp"
+    line: 360
+  - id: "p2-36fbef70.2"
+    op: "patch"
+    addr: 0x0055462c
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Redirect the renderer's 300 m non-LOD cap to the live distance setting."
+    scope: "ObjectDistance::Install"
+    value: "&fMaxDrawDistanceForNormalObjects"
+    expr: "address"
+    file: "source/SALodLights/ObjectDistance.hpp"
+    line: 360
+  - id: "p2-36fbef70.3"
+    op: "patch"
+    addr: 0x00555174
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Redirect the renderer's 300 m non-LOD cap to the live distance setting."
+    scope: "ObjectDistance::Install"
+    value: "&fMaxDrawDistanceForNormalObjects"
+    expr: "address"
+    file: "source/SALodLights/ObjectDistance.hpp"
+    line: 360
+  - id: "p2-36fbef70.4"
+    op: "patch"
+    addr: 0x0055519a
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Redirect the renderer's 300 m non-LOD cap to the live distance setting."
+    scope: "ObjectDistance::Install"
+    value: "&fMaxDrawDistanceForNormalObjects"
+    expr: "address"
+    file: "source/SALodLights/ObjectDistance.hpp"
+    line: 360
+  - id: "p2-36fbef70.5"
+    op: "patch"
+    addr: 0x005551bd
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Redirect the renderer's 300 m non-LOD cap to the live distance setting."
+    scope: "ObjectDistance::Install"
+    value: "&fMaxDrawDistanceForNormalObjects"
+    expr: "address"
+    file: "source/SALodLights/ObjectDistance.hpp"
+    line: 360
+  - id: "p2-36fbef70.6"
+    op: "patch"
+    addr: 0x00555230
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Redirect the renderer's 300 m non-LOD cap to the live distance setting."
+    scope: "ObjectDistance::Install"
+    value: "&fMaxDrawDistanceForNormalObjects"
+    expr: "address"
+    file: "source/SALodLights/ObjectDistance.hpp"
+    line: 360
+  - id: "p2-36fbef70.7"
+    op: "patch"
+    addr: 0x0055523a
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Redirect the renderer's 300 m non-LOD cap to the live distance setting."
+    scope: "ObjectDistance::Install"
+    value: "&fMaxDrawDistanceForNormalObjects"
+    expr: "address"
+    file: "source/SALodLights/ObjectDistance.hpp"
+    line: 360
+  - id: "p2-36fbef70.8"
+    op: "patch"
+    addr: 0x00555244
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Redirect the renderer's 300 m non-LOD cap to the live distance setting."
+    scope: "ObjectDistance::Install"
+    value: "&fMaxDrawDistanceForNormalObjects"
+    expr: "address"
+    file: "source/SALodLights/ObjectDistance.hpp"
+    line: 360
+  - id: "p2-36fbef70.9"
+    op: "patch"
+    addr: 0x005552f6
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Redirect the renderer's 300 m non-LOD cap to the live distance setting."
+    scope: "ObjectDistance::Install"
+    value: "&fMaxDrawDistanceForNormalObjects"
+    expr: "address"
+    file: "source/SALodLights/ObjectDistance.hpp"
+    line: 360
+  - id: "p2-36fbef70.10"
+    op: "patch"
+    addr: 0x00555300
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Redirect the renderer's 300 m non-LOD cap to the live distance setting."
+    scope: "ObjectDistance::Install"
+    value: "&fMaxDrawDistanceForNormalObjects"
+    expr: "address"
+    file: "source/SALodLights/ObjectDistance.hpp"
+    line: 360
+  - id: "p2-36fbef70.11"
+    op: "patch"
+    addr: 0x0055530a
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Redirect the renderer's 300 m non-LOD cap to the live distance setting."
+    scope: "ObjectDistance::Install"
+    value: "&fMaxDrawDistanceForNormalObjects"
+    expr: "address"
+    file: "source/SALodLights/ObjectDistance.hpp"
+    line: 360
+  - id: "p2-36fbef70.12"
+    op: "patch"
+    addr: 0x00555364
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Redirect the renderer's 300 m non-LOD cap to the live distance setting."
+    scope: "ObjectDistance::Install"
+    value: "&fMaxDrawDistanceForNormalObjects"
+    expr: "address"
+    file: "source/SALodLights/ObjectDistance.hpp"
+    line: 360
+  - id: "p2-36fbef70.13"
+    op: "patch"
+    addr: 0x0055537c
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Redirect the renderer's 300 m non-LOD cap to the live distance setting."
+    scope: "ObjectDistance::Install"
+    value: "&fMaxDrawDistanceForNormalObjects"
+    expr: "address"
+    file: "source/SALodLights/ObjectDistance.hpp"
+    line: 360
+  - id: "p2-36fbef70.14"
+    op: "patch"
+    addr: 0x0055538a
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Redirect the renderer's 300 m non-LOD cap to the live distance setting."
+    scope: "ObjectDistance::Install"
+    value: "&fMaxDrawDistanceForNormalObjects"
+    expr: "address"
+    file: "source/SALodLights/ObjectDistance.hpp"
+    line: 360
+  - id: "p2-36fbef70.15"
+    op: "patch"
+    addr: 0x005b527c
+    span: 4
+    pin: "literal+multi"
+    version: "any"
+    group: "Redirect the renderer's 300 m non-LOD cap to the live distance setting."
+    scope: "ObjectDistance::Install"
+    value: "&fMaxDrawDistanceForNormalObjects"
+    expr: "address"
+    file: "source/SALodLights/ObjectDistance.hpp"
+    line: 360

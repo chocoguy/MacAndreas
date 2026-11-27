@@ -39,6 +39,11 @@ add_library(sa-host-core OBJECT
     src/input/input_state.cpp
     src/input/keys.cpp
     src/native/natives.cpp
+    src/native/silentpatch.cpp
+    src/native/widescreen.cpp
+    src/native/widescreen_hud.cpp
+    src/mod_settings.cpp
+    src/camera_pin.cpp
     src/manifest_runtime.cpp
     src/settings.cpp
     src/perf.cpp
@@ -66,7 +71,7 @@ find_library(MA_OGG_LIB NAMES libogg.a HINTS /opt/homebrew/opt/libogg/lib REQUIR
 target_include_directories(sa-host-core SYSTEM PRIVATE "${MA_VORBIS_INCLUDE}" "${MA_OGG_INCLUDE}")
 target_link_libraries(sa-host-core PRIVATE "${MA_VORBISFILE_LIB}" "${MA_VORBIS_LIB}" "${MA_OGG_LIB}")
 target_include_directories(sa-host-core SYSTEM PUBLIC "${MA_REMILL_INCLUDE}")
-target_link_libraries(sa-host-core PUBLIC MacAndreas::loader MacAndreas::manifest ma_interp
+target_link_libraries(sa-host-core PUBLIC MacAndreas::loader MacAndreas::manifest MacAndreas::settings ma_interp
     "-framework CoreGraphics" "-framework AppKit" "-framework Metal" "-framework QuartzCore" "-framework ImageIO"
     "-framework AudioToolbox" "-framework CoreAudio" "-framework GameController")
 target_compile_options(sa-host-core PUBLIC -Wno-unused-parameter -Wno-pedantic -Wno-gnu-anonymous-struct

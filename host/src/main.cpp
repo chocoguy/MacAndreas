@@ -1,9 +1,11 @@
 #include "crash.hpp"
 #include "difftest.hpp"
+#include "camera_pin.hpp"
 #include "dispatch.hpp"
 #include "guest_memory.hpp"
 #include "input/keys.hpp"
 #include "manifest_runtime.hpp"
+#include "mod_settings.hpp"
 #include "platform/window.hpp"
 #include "settings.hpp"
 #include "shadow.hpp"
@@ -35,6 +37,9 @@ struct Options {
     fs::path game_dir;
     fs::path native;
     fs::path manifest;
+    fs::path settings_schema;
+    fs::path settings_file;
+    std::vector<std::string> setting_overrides;
     bool trace_imports = false;
     bool trace_interp = false;
     std::vector<uint32_t> interpret;
@@ -53,6 +58,12 @@ bool parse(int argc, char** argv, Options& o) {
             o.native = argv[++i];
         } else if (a == "--manifest" && i + 1 < argc) {
             o.manifest = argv[++i];
+        } else if (a == "--settings-schema" && i + 1 < argc) {
+            o.settings_schema = argv[++i];
+        } else if (a == "--settings" && i + 1 < argc) {
+            o.settings_file = argv[++i];
+        } else if (a == "--set" && i + 1 < argc) {
+            o.setting_overrides.emplace_back(argv[++i]);
         } else if (a == "--trace-imports") {
             o.trace_imports = true;
         } else if (a == "--trace-interp") {
@@ -145,6 +156,30 @@ bool parse(int argc, char** argv, Options& o) {
             o.diff.verbose = true;
         } else if (a == "--diff-seed" && i + 1 < argc) {
             o.diff.seed = std::stoull(argv[++i], nullptr, 0);
+        } else if (a == "--pin-camera" && i + 1 < argc) {
+            auto pin = ma::host::camera::parse_pin(argv[++i]);
+            if (!pin) {
+                std::fprintf(stderr, "sa-host: --pin-camera expects FRAME:X,Y,Z:TX,TY,TZ or FRAME:restore\n");
+                return false;
+            }
+            settings().camera_pins.push_back(*pin);
+        } else if (a == "--watch-chain" && i + 1 < argc) {
+            std::string_view list = argv[++i];
+            while (!list.empty()) {
+                auto comma = list.find(',');
+                std::string_view item = list.substr(0, comma);
+                std::vector<uint32_t> chain;
+                while (!item.empty()) {
+                    auto gt = item.find('>');
+                    chain.push_back(static_cast<uint32_t>(std::stoul(std::string(item.substr(0, gt)), nullptr, 16)));
+                    item = gt == std::string_view::npos ? std::string_view{} : item.substr(gt + 1);
+                }
+                if (chain.size() < 2) {
+                    return false;
+                }
+                settings().watch_chains.push_back(std::move(chain));
+                list = comma == std::string_view::npos ? std::string_view{} : list.substr(comma + 1);
+            }
         } else if ((a == "--interpret" || a == "--trace-pc" || a == "--watch") && i + 1 < argc) {
             auto& out = a == "--interpret" ? o.interpret : a == "--trace-pc" ? o.trace_pcs : settings().watch;
             std::string_view list = argv[++i];
@@ -235,8 +270,8 @@ size_t resolve_imports(const ma::pe::Image& image) {
 int main(int argc, char** argv) {
     Options options;
     if (!parse(argc, argv, options)) {
-        std::println(stderr, "usage: sa-host --game <game dir> --native <libgta_sa_native.dylib> [--manifest <dir>] "
-                     "[--trace-imports] [--trace-interp] [--interpret ADDR,...] [--interpret-range LO-HI,...] [--trace-pc ADDR,...] [--trap-nan] [--watch ADDR,...] [--diff-test LIST [--diff-iterations N] [--diff-seed N] [--diff-x87-args N] [--diff-deep] [--diff-verbose]] [--shadow LO-HI,... [--shadow-from FRAME] [--shadow-samples N] [--shadow-every N] [--shadow-deep]] [--dump-memory FRAME:ADDR:SIZE:FILE] [--pool-stats] [--pool-detail FRAME,...] [--probe ADDR,...] [--touch VALUE LO-HI,...] [--resolution WxH] [--modes WxH,...] [--skip-intro] [--ignore-focus-loss] [--capture-dir DIR] "
+        std::println(stderr, "usage: sa-host --game <game dir> --native <libgta_sa_native.dylib> [--manifest <dir>] [--settings-schema FILE] [--settings FILE] [--set KEY=VALUE]... "
+                     "[--trace-imports] [--trace-interp] [--interpret ADDR,...] [--interpret-range LO-HI,...] [--trace-pc ADDR,...] [--trap-nan] [--watch ADDR,...] [--watch-chain ADDR>OFF>...,...] [--pin-camera FRAME:X,Y,Z:TX,TY,TZ|FRAME:restore] [--diff-test LIST [--diff-iterations N] [--diff-seed N] [--diff-x87-args N] [--diff-deep] [--diff-verbose]] [--shadow LO-HI,... [--shadow-from FRAME] [--shadow-samples N] [--shadow-every N] [--shadow-deep]] [--dump-memory FRAME:ADDR:SIZE:FILE] [--pool-stats] [--pool-detail FRAME,...] [--probe ADDR,...] [--touch VALUE LO-HI,...] [--resolution WxH] [--modes WxH,...] [--skip-intro] [--ignore-focus-loss] [--capture-dir DIR] "
                      "[--capture-frames N,M,...|all] [--exit-after-frames N] [--keys FRAME[m]:KEY[+|-],...] [--dump-shaders DIR] [--ignore-user-input] [--no-audio] [--audio-capture FILE.wav] "
                      "[--window-mode windowed|borderless|fullscreen] [--display N] [--no-mouse-capture] [--frame-times FILE.csv]");
         return 64;
@@ -304,6 +339,19 @@ int main(int argc, char** argv) {
     }
     set_trace_imports(options.trace_imports);
     set_trace_interp(options.trace_interp);
+    if (options.settings_schema.empty() && !options.manifest.empty()) {
+        fs::path guess = options.manifest.parent_path() / "mods" / "settings.yaml";
+        if (options.manifest.filename().empty()) {
+            guess = options.manifest.parent_path().parent_path() / "mods" / "settings.yaml";
+        }
+        if (fs::exists(guess)) {
+            options.settings_schema = guess;
+        }
+    }
+    if (auto ok = init_mod_settings(options.settings_schema, options.settings_file, options.setting_overrides); !ok) {
+        std::println(stderr, "sa-host: settings: {}", ok.error());
+        return 1;
+    }
     if (!options.manifest.empty()) {
         auto loaded = ma::manifest::load_directory(options.manifest);
         if (!loaded) {
@@ -312,7 +360,9 @@ int main(int argc, char** argv) {
             }
             return 1;
         }
-        auto problems = ma::manifest::check(*loaded);
+        ma::manifest::CheckContext context;
+        context.is_known_setting = [](std::string_view key) { return mod_schema().find(key) != nullptr; };
+        auto problems = ma::manifest::check(*loaded, context);
         for (const auto& d : problems) {
             std::println(stderr, "sa-host: manifest: {}", d.text());
         }
@@ -324,8 +374,11 @@ int main(int argc, char** argv) {
             std::print(stderr, "sa-host: manifest:\n{}", applied.error());
             return 1;
         }
-        std::println(stderr, "sa-host: manifest: {} native replacements, {} data pokes, {} lift-time entries",
-                     applied->replaced, applied->poked, applied->lift_time);
+        std::println(stderr,
+                     "sa-host: manifest: {} native replacements, {} call redirects, {} mid hooks, {} operand slots, "
+                     "{} data pokes, {} lift-time entries, {} switched off by settings",
+                     applied->replaced, applied->redirected, applied->hooked, applied->slotted, applied->poked,
+                     applied->lift_time, applied->disabled);
     }
     win32::register_all();
     win32::init_process(options.game_dir, image->image_base);

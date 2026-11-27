@@ -1,0 +1,31 @@
+pins:
+  - id: "sp-fd897fc6"
+    addrs:
+      - 0x007341d9
+      - 0x00734127
+      - 0x0073445e
+    reason: "BlurredRotorsAtomicRender PatchRenderCB, non-fallback entries of heli_rotor_render and plane_prop_render in InjectDelayedPatches_10: the render callback pointer operand"
+  - id: "sp-6fd4375d"
+    addrs:
+      - 0x0073421d
+      - 0x0073414d
+      - 0x0073448c
+    reason: "BlurredRotorsAtomicRender PatchRenderCB, fallback entries: these are calls, so the mod intercepts them"
+  - id: "sp-bb7c5f46"
+    addr: 0x0085c5e4
+    reason: "pVMT = *(DWORD**)0x4C75FC is the CVehicleModelInfo vtable (0x85c5c8); slot 7 is Shutdown"
+  - id: "sp-51dcd10e"
+    addr: 0x0085c5e4
+    reason: "same vtable slot as sp-bb7c5f46: the mod reads it, then writes Shutdown_CarDirtFix"
+  - id: "sp-bfbc93a6"
+    addr: 0x008a5d50
+    reason: "*(DWORD**)0x438513 is the cheat jump table (0x8a5cc8); entry 34 is the cars-drive-on-water cheat"
+  - id: "sp-697bd0fc"
+    addr: 0x00871164
+    reason: "*(0x6B0AD2 + 2) is the CAutomobile vtable (0x871120); slot 17 is PreRender"
+  - id: "sp-ed1087e8"
+    addr: 0x0087198c
+    reason: "*(0x6C8E5A + 2) is the CPlane vtable (0x871948); slot 17 is PreRender"
+  - id: "sp-d58f5c09"
+    addr: 0x00871d18
+    reason: "*(0x6D03FD + 2) is the CTrailer vtable (0x871c28); slot 60 is GetTowBarPos"

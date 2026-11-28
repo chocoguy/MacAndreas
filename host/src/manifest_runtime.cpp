@@ -151,6 +151,36 @@ std::expected<ManifestStats, std::string> apply_runtime_manifest(const manifest:
             ++stats.slotted;
             break;
         }
+        case manifest::Kind::vtable_redirect: {
+            TraceFn fn = native::find_symbol(e.target);
+            if (!fn) {
+                fail(e, std::format("unknown native symbol \"{}\"", e.target));
+                break;
+            }
+            uint32_t original = mem::read<uint32_t>(e.addr);
+            if (*on) {
+                mem::write<uint32_t>(e.addr, manifest::redirect_address(e.addr));
+            }
+            register_redirect(e.addr, original, *on ? fn : nullptr);
+            std::fprintf(stderr, "[MANIFEST] vtable_redirect 0x%08x (0x%08x) -> %s%s (%s)\n", e.addr, original,
+                         e.target.c_str(), *on ? "" : " [off]", e.group.c_str());
+            ++(*on ? stats.redirected : stats.disabled);
+            break;
+        }
+        case manifest::Kind::imm_redirect: {
+            TraceFn fn = native::find_symbol(e.target);
+            if (!fn) {
+                fail(e, std::format("unknown native symbol \"{}\"", e.target));
+                break;
+            }
+            uint32_t original = mem::read<uint32_t>(e.addr);
+            mem::write<uint32_t>(e.addr, manifest::redirect_address(e.addr));
+            register_redirect(e.addr, original, *on ? fn : nullptr);
+            std::fprintf(stderr, "[MANIFEST] imm_redirect 0x%08x (0x%08x) -> %s%s (%s)\n", e.addr, original,
+                         e.target.c_str(), *on ? "" : " [off]", e.group.c_str());
+            ++(*on ? stats.redirected : stats.disabled);
+            break;
+        }
         case manifest::Kind::data_poke:
             if (!*on) {
                 ++stats.disabled;

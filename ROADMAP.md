@@ -282,7 +282,8 @@ YAML, one entry per patch, as in the original plan, plus these fields:
 
 ```yaml
 - addr: 0x00000000
-  kind: byte_patch | nop | data_poke | call_redirect | mid_hook | func_replace | operand_slot | data_slot
+  kind: byte_patch | nop | data_poke | call_redirect | mid_hook | func_replace | operand_slot | data_slot |
+        vtable_redirect | imm_redirect
   source: silentpatch | widescreen | project2dfx | native
   group: <fix-name>
   target: <native symbol>
@@ -315,6 +316,18 @@ off, the slot copies the original constant. `data_slot` sets a float in the game
 value of a slot function, when its setting is on. The host refreshes both kinds once per frame.
 The Widescreen Fix uses them to change the HUD's scale constants per instruction, as the mod
 does by pointing each operand at its own variable.
+
+`vtable_redirect` points a vtable slot (`addr`, in the game's data) at a native, as a mod does when it
+replaces a virtual function and keeps the old pointer. The host registers the native at
+`0xE0000000 + addr`, writes that address into the slot and keeps the old pointer for
+`redirect_original()`, so the native is written like a `call_redirect` target. When the entry's setting
+is off, the slot keeps the game's function.
+
+`imm_redirect` does the same for a function pointer in code: `addr` is the 32-bit immediate of a
+`push imm32` or `mov r/m32, imm32` (SilentPatch writes its render callbacks there). The lifter writes
+`0xE0000000 + addr` into the immediate, and the host registers the native there with the old pointer
+for `redirect_original()`. Because the operand is fixed at lift time, an entry whose setting is off
+still goes through the redirect address, which then calls the original.
 
 `mid_hook` targets receive `GuestCtx&`. Naked asm stubs from the mods are hand-translated
 into functions that take `GuestCtx&`.
@@ -1594,6 +1607,274 @@ Exit criteria:
 - Every group is marked ported, replaced or dropped, each with a reason.
 - Every ported group has a passing reproduction test.
 - No regressions on the M6 mission set.
+
+Status: **in progress.** Every fix group is decided, the Critical-fixes section of the changelog is ported, and
+the frame limiter is native. The Other-fixes and Enhancements sections are ported (batches 9 and 10), and batch 11
+ported the groups deferred from earlier batches (moon phases, the parachute pipeline, the radio station change
+animation, the biker cop drive-by, racing checkpoints, exploding car wheels) and five kept groups without a
+changelog line that no batch had picked up. Every kept SilentPatch group now has a manifest entry over its sites.
+
+Inventory and triage:
+- The scanner missed SilentPatch's `HookEach_*(list, InterceptCall)` and `HookEach_*(list,
+  InterceptMemDisplacement)` site lists, `AddVariableToReset` (the New Game resets), `*reinterpret_cast<…>(0x… + n)`
+  table reads (the speech lookup tables) and the `VP::` spellings of the ModUtils calls. They are scanned now
+  (`test_hook_each_lists_resets_and_table_reads`): 799 sites, up from 661, none unresolved. The one pattern
+  inside the DRM-moved `DealWithNewPedPacket` is pinned by hand (0x156ee68).
+- The scanner names a group after the nearest heading comment, which split or misnamed about 40 fixes ("The
+  expected code:", "Fix original bugs", "Regular crosshair", the sun size hack under "Obtain a path to the ASI",
+  true invincibility under the INI spelling comment). `mods/silentpatch/pins.yaml` moves those rows to the fix they
+  belong to.
+- `mods/silentpatch/triage.yaml`: 204 groups, none pending. 163 keep, 21 replace, 20 drop; 562, 103 and 134
+  sites. Bindings and read-only helpers are dropped (natives name 1.0 US addresses directly); Windows display,
+  input, DirectPlay, file-flag and semaphore fixes are replaced by the native layer; FLAC, SA-MP, SVF, the
+  `[DoubleRearWheels]` override list and IMGs over 4 GB are dropped; SilentPatch's Small Steam texts option is
+  replaced by the Widescreen Fix's subtitle scaling, which patches the same operands. Every group links its
+  changelog line where there is one. No kept group overlaps a kept Widescreen Fix site.
+- INI options become settings as groups are ported: `silentpatch.script_fixes` (on) so far; the sun size hack,
+  coloured zone names, directional light from the sun, true invincibility, minimal HUD and sliding texts follow
+  with their groups.
+
+Ported (`manifest/silentpatch.yaml`, natives in `host/src/native/silentpatch.cpp`; one record per group in
+`tests/fixes/silentpatch/`):
+- Critical fixes: mirrors crash, collision data initialisation (car explosion crash), escalators crash, vending
+  crash (temp objects), photo memory leak, replay crashes (clothes and body type), the delayed cigarette and
+  bottle removal, Skimmer vehicles.ide defaults, trains in garages, timer fractions, zones bounds, the HOODLUM
+  `CPlayerPedData::operator=`, the CdStream race, the gym glitch and the mission script fixes (basketball, Sweet's
+  Girl, Mountain Cloud Boys, school cones, Air Raid, Ice Cold Killa, Supply Lines, Beefy Baron, quadruple stunt
+  bonus), heap corruption, and the 14 ms frame delay.
+- Other fixes, batch 2 (changelog order, first ~25 entries): mouse Y sensitivity and fade-in lock, corona Z test,
+  lens flare, flare scaling, the streaming memory bug, bindable Num5, impound garages (four groups), last-bullet
+  muzzle flash, timecyc.dat defaults and float multiplier, script sprite filtering, the 014C car generator
+  counter, 31-bit randoms, help boxes with big messages, mirror buffers, car collision damage, stencil shadow pads
+  and AI accuracy. Deferred within this stretch: patched `CAutomobile::Fix` (car panels), which needs frame
+  resets and SilentPatch's SVF feature lists. The M9 route passes with batch 2 (timecyc reparses only
+  RAINY_COUNTRYSIDE; animations use the fixed interpolator setup; flare, lens, impound-list, stencil and script
+  sprite hooks run). M4 (24,450 frames, no interpreter entries, mean 33.0 ms), M5, M7 and M8 pass with batch 2.
+  M5 first showed one interpreter entry: the lens hook called `CSprite::InitSpriteBuffer2D` (0x70cfd0), which is
+  not a lifted trace head. The hook now does that function's three stores itself.
+  One M9 run measured 86–98 ms frames at 30 and 60 fps from frame 1900 on (8 ms while loading); the next run, with
+  nothing changed, measured 33.33 and 16.67 ms. The slow run is not explained yet; the Mac was otherwise busy and
+  may have throttled the hidden window.
+- Other fixes, batch 3 (changelog order, metric constants through the passenger-side car steal): metric-imperial
+  constants and vehicle light randomness (the first SilentPatch `operand_slot`s), audio utility timers, interior car
+  generators, RC vehicle streaming, the recruit triangle, SCM weapon ammo, bicycle fire, corona rotation, static and
+  stored shadow alpha, extras reset and extra6, in-car mouse pitch, Quadbike wind and handlebar, the photo
+  crosshair, lapdm1 biker cops, vehicles exploding twice, 16-bit script randoms, shooting stars, plane spawn sectors,
+  riots and the passenger-side steal. SilentPatch's lapdm1 fix repoints one jump table entry that the game shares
+  with three other cases, so the port hooks the shared target and checks the case. Deferred from this stretch, as
+  they need deeper task, animation or RenderWare structures: the biker cop drive-by, racing checkpoints, the radio
+  station change animation, the parachute pipeline, exploding car wheels and the New Game resets. The M9 route
+  passes with batch 3: the audio utility clock advances 19,998 ms over 19,998 ms of frames; corona rotation and the
+  shadow alpha hooks run; 16-bit randoms, plane spawn sectors and the interior car generators are not reached by
+  the New Game route. M4 (24,450 frames, no interpreter entries, mean 32.4 ms), M5, M7 and M8 pass with
+  batch 3.
+- Other fixes, batch 4 (changelog order, credits scaling through gang war blips, plus the line-wrap group
+  that has no changelog line):
+  - Resolution scaling: credits, mission title and 'Mission Passed' durations, heat haze and underwater
+    ripple, heat-seeking and gamepad crosshairs, Map screen cursor and limits, text box padding and menu
+    line wraps.
+  - Gameplay and models: nitrous while reversing, Hydra thrusters, the Hunter door, jumping on a bike from
+    the front, rear van doors, cops' one-handed stance, roadblock clones, the gang tag count in saves,
+    `CREATE_BIRDS`, the second player's blip and gang war blips.
+  - SilentPatch takes its UI scales from the multipliers of game instructions (`Render2dStuff`,
+    `StretchX`/`StretchY`, `CFont`, `CReplay`). The natives read those operands the same way, so they pick
+    up the Widescreen Fix's operand and data slots. The two mods compose as they do on Windows: the
+    credits print at 1.5 × 1.5 at 1280×720 with the Widescreen HUD scale.
+  - Where SilentPatch recalculates its constants at a call, the port uses operand slots. These are
+    refreshed every frame and whenever the Widescreen menu canvas applies or restores.
+  - Three of SilentPatch's four `SetCurrentVideoMode` wrappers are already Widescreen Fix call_redirects,
+    so the post-effects fix hooks the callee's `ret` instead.
+  - The gang war check is in DRM-moved code. The scanner took the pattern's first match in the image, so
+    its three sites are pinned to the moved body (0x1560b5b).
+  - SilentPatch's optional sliding texts (`SlidingMissionTitleText`, `SlidingOddJobText`) move to the
+    Enhancements batch.
+  - The M9 route passes with batch 4. It starts the credits with `--call` and loads the Hunter, and checks
+    the fixed-height credits layout, the scaled print and the `door_lf` unmark. The post-effects and menu
+    wrap hooks run at boot and in the menu. The crosshair, map, big message, ripple, nitrous, thruster and
+    gang war hooks are not reached by the New Game route. M4 (24,450 frames, no interpreter entries, mean
+    32.2 ms), M5 (no interpreter entries), M7 and M8 pass with batch 4.
+- Other fixes, batch 5 (changelog order, the speech system fixes through stats.html, plus the roadblock order
+  that has no changelog line):
+  - Speech: the lookup tables, weather conversations, criminals fleeing cops, ped voice names, turf takeover
+    cheers, the solicit mood, Vagos taunts, gang attack lines, the CRASH_GENERIC fallback, PAIN_SPRAYED, CJ's
+    CHASED replies, SHOOT lines with mouse and keyboard, SURROUNDED and COVER ME, 'Where are you from'
+    replies and DRUGGED_IGNORE.
+  - Also: the Good Citizen Bonus, shadows on rotated objects, the radio station name wrap, Securicars, the
+    Fort Carson Beagle, Rhino lights, the stats.html headings and the roadblock law enforcement order.
+  - SilentPatch patches the speech lookup tables at load. The port does the same work once in a mid_hook at
+    WinMain (0x748710), with the context numbers from SilentPatch's `SpeechContextsSA.h`.
+  - SilentPatch's injected calls with flag tests (Good Citizen, the SHOOT target) become mid_hooks that pick
+    their resume address. Cops' dummy ped group is a zeroed block the size of a `CPedGroup` instead of
+    SilentPatch's module base.
+  - `--call` arguments can be `$TEXT` (a guest string) and `@` / `@+N` (the previous call's result).
+  - The M9 route passes with batch 5. It checks at load the speech tables, Maccer's voice slot and the
+    four peds.ide voice fixes. It streams `countn2_stream1.ipl` (`FindIplSlot`, then resource 25255 + slot)
+    and checks that the Beagle generator becomes a BMX. The shadow transform runs in New Game; the
+    conversation, gang, crash, spray, cop, Good Citizen and radio hooks are not reached by the route. M4
+    (24,450 frames, no interpreter entries, mean 32.7 ms), M5 (no interpreter entries), M7 and M8 pass with
+    batch 5.
+- Other fixes, batch 6 (changelog lines 153–164, detached parts through stats in kilograms):
+  - Detached part colours, culling and lighting; Map screen seams; Phoenix, Sweeper, Newsvan and plane
+    flap animations; engine components that stop with the engine; the firela ladder; chained artict3
+    trailers; hierarchy typos (DFT-30, Dumper, Uranus); the Tug tow bar; stats in kilograms.
+  - **`vtable_redirect`.** SilentPatch replaces `CAutomobile::PreRender`, `CPlane::PreRender` and
+    `CTrailer::GetTowBarPos` in their vtables. The DRM scatters their epilogues, so hooking their returns is
+    fragile. The new manifest kind (§3.10) points the vtable slot at a native registered at
+    `0xE0000000 + slot` and keeps the old pointer for `redirect_original()`, as a `call_redirect` does.
+  - SilentPatch's stock SVF model list (11 models) is a native table, and its `SetComponentRotation` and
+    `CMatrix` multiply work on the frames' modelling matrices. The deferred `CAutomobile::Fix` group needs
+    the same table.
+  - The kg format string is rewritten in place (`data_poke`), as only the two stats pages use it.
+  - The M9 route passes with batch 6. `CAutomobile::PreRender` runs through its vtable slot (0x871164).
+    Loading the DFT-30, Uranus and Dumper accepts five typo'd nodes (`wheel_lm`, `tailights`,
+    `tailights2`, `transmision_f`, `transmision_r`). The part, animation, ladder and tow bar hooks are not
+    reached by the route. M4 (24,450 frames, no interpreter entries, mean 32.5 ms), M5 (no interpreter
+    entries), M7 and M8 pass with batch 6.
+- Other fixes, batch 7 (changelog lines 165–175, 16:9 resolutions through the light beam):
+  - Road reflections (RefFix), the light material restore, blown-up cars, dirty cars getting clean, unique
+    and custom number plates (bikes included) with bilinear filtering, and the vehicle light beam's
+    render states. 16:9 resolutions are already the native mode list's (M6, replace).
+  - Weapon rendering (line 167) is deferred to the batch with line 193: SilentPatch reimplements
+    `CPed::RenderWeapon` for it, and the weapon and jetpack shadow fix uses the same function.
+  - SilentPatch keeps extra dirt materials in a `new[]` array; the port keeps them in a host-side list
+    keyed by model info and drops it from `CVehicleModelInfo::Shutdown` (a `vtable_redirect`). The light
+    beam's state save and restore hook the `call [reg+0x20]` instructions instead of pointing the engine
+    operands at fake push/pop functions.
+  - The M9 route passes with batch 7. New Game reaches the dirt lists (the first model has 20 dirt
+    materials, more than the game's 16), dirt remaps, per-vehicle plates, the material restore and the
+    light beam restore. Road reflections and blown-up cars are not reached.
+  - M4 and M5 first showed one interpreter entry: the plate native called
+    `CCustomCarPlateMgr::GetMapRegionPlateDesign` (0x6fd7a0), which the game only inlines, so it is not a
+    lifted trace head. The native now reads the map region (0xc81314) itself. M4 (24,450 frames, no
+    interpreter entries, mean 32.2 ms), M5 (no interpreter entries), M7 and M8 pass with batch 7.
+- Other fixes, batch 8 (changelog lines 176–194 except weapon rendering and shadows, plus the deferred
+  `CAutomobile::Fix` and `FuckCarCompletely` from line 52):
+  - Lights on vehicles and peds (8 lights, no extra D3DLIGHT), the police scanner names, the bigger streamed
+    entity list, mouse steering in the air, the vehicle repair fixes (`CAutomobile::Fix`, `CPlane::Fix`,
+    `FuckCarCompletely`: misc parts, Towtruck hitch, plane doors and props, Rhino wheels) and the weapon icon
+    on a jetpack. Lines 177, 178 and 185–186 were ported with the light beam, timecyc and impound groups;
+    User Tracks and PCM WAVE (181–183) are replaced by the native audio layer.
+  - SilentPatch rewrites `CAutomobile::Fix`'s epilogue into a tail jump to its own `Fix`. The port does
+    that work in a mid_hook (frames from the model's clump, panels with the Towtruck and Tractor exceptions,
+    Rhino wheels) and pops the saved registers itself before the SEH epilogue.
+  - Moon phases (176) were deferred to batch 11: SilentPatch builds its mask texture with RenderWare's image and
+    raster internals and a code patch to `RtPNGImageRead`, which the lifted build can't use.
+  - The M9 route passes with batch 8; the repair hooks are not reached by New Game.
+  - **D3D9 lights above index 7.** SilentPatch's light fix moves the car pipeline's special light from
+    D3D light 1 to light 8, so it stops overwriting a real light. The D3D9 layer ignored indices of 8 and
+    above. RenderWare still tracked light 8 as set and enabled, and CJ's lighting began to depend on what
+    was drawn before him: M8's Hor+ comparison differed by 1.1–1.3% on him, varying between runs. The
+    layer now stores 16 lights, as D3D9 accepts any index. Lights 0–7 keep their shader slots and a
+    higher enabled light takes the first free one, as a driver with 8 active lights does
+    (`test_lights_above_eight`). Two M8 runs then matched within 0.08–0.69%. With that layer, M9, M4
+    (24,450 frames, no interpreter entries, mean 32.2 ms), M5 (no interpreter entries), M7 and M8 pass with
+    batch 8.
+- Other fixes, batch 9 (changelog lines 167 and 193, the weapon rendering deferred from batches 7 and 8, and
+  lines 195–207):
+  - Weapons are drawn with the ped, before the vehicle alpha pass, so they show through car windows, and
+    `RenderWeaponPedsForPC` keeps only the muzzle flashes with the ped's lighting removed afterwards. A native
+    `CPed::RenderWeapon` (hand bone, parachute offset, twin pistols) is shared with the shadow fix: a native
+    `CShadowCamera::Update` takes the entity and draws a ped's weapon and jetpack into its shadow.
+  - New Game resets (respray and bomb flags, dispatch timers, stat counters, the quit-car help text, the mad
+    driver timer, the death and arrest penalties, text IPL pickups, car generators and stunt jumps), the
+    `SEAROADER` cheat, looping loading screens, passenger lines when running a ped over, Pay 'n Spray cleaning
+    behind the doors, paint jobs kept in garages, blurred rotors and propellers (`silentpatch.rotor_fix`) and dual
+    rear wheels. Line 207 (quadruple stunt bonus) was ported with the script fixes.
+  - **`imm_redirect`.** SilentPatch writes its rotor render callbacks into `push imm32` and `mov [esp+N], imm32`
+    operands. The new manifest kind points such an operand at a native at lift time and keeps the old pointer
+    for `redirect_original()` (§3.10).
+  - The M9 route spawns a Hunter next to CJ (`CCheat::VehicleCheat`) while he holds the camera, and checks
+    the static rotor callback, the rotor alphas, the blended rotor, the weapon drawn with the ped and the
+    shadow camera update. New Game from the boot menu does not reach `CGame::InitialiseWhenRestarting`, so the
+    resets are converted but not reached; plane propellers, trailers, loading screen loops, passenger lines and
+    the paint job fallback are not reached either.
+  - M9, M4 (24,450 frames, no interpreter entries, mean 32.15 ms), M5 (no interpreter entries), M7 and M8 pass
+    with batch 9; M8's Hor+ comparison matched within 0.03–0.17%.
+- Enhancements, batch 10 (changelog lines 212–226):
+  - Kept: 6 extra directional lights on Medium and higher Visual FX (always on, as SilentPatch), and the
+    sun size hack (`silentpatch.sun_size_hack`, on). Optional and off, as in SilentPatch's INI:
+    - coloured zone names (`silentpatch.coloured_zone_names`);
+    - sun reflections following the time of day (`silentpatch.directional_from_sun`);
+    - True Invincibility (`silentpatch.true_invincibility`);
+    - the Minimal HUD (`silentpatch.minimal_hud`; its two float alpha fixes are always on);
+    - sliding mission titles and odd job texts (`silentpatch.sliding_mission_title`,
+      `silentpatch.sliding_odd_job_text`).
+  - Already ported or replaced: desktop resolution, the monitor dialog, the intro splashes, Small Steam
+    texts and metric/imperial units. The German censorship and Steam save fixes patch only the Steam and
+    RGL executables, so they have no 1.0 US sites; IMGs over 4 GB and FLAC are dropped.
+  - SilentPatch points instruction operands at its own variables for the sun size hack and the sun
+    direction. The port pushes the value at the sun's `fld`, and loads the three components at the first
+    of the three `mov`s that read the vector, as mid_hooks that resume after them.
+  - The M9 route turns every optional enhancement on in its uncapped run and checks that the sun direction
+    and the minimal HUD mode run only there; the sun size hack, the extra lights and the float alpha fixes
+    are reached in every run. Coloured zone names, True Invincibility and the sliding texts are converted but
+    not reached. M9, M4 (24,450 frames, no interpreter entries, mean 32.14 ms), M5 (no interpreter entries),
+    M7 and M8 pass with batch 10; M8's Hor+ comparison matched within 0.05–0.12%.
+- Deferred groups, batch 11 (changelog lines 82, 91, 95, 97, 102 and 176):
+  - Moon phases. SilentPatch's `lunar64.png` (MIT, by aap) is bundled in `mods/silentpatch/` and compiled
+    into `sa-host` (CMake writes its bytes to a generated include). It is decoded with ImageIO and copied
+    into a 64×64 8888 raster made with `RwRasterCreate` and `RwRasterLock`. The mask sprite is drawn with it
+    into the alpha channel only (`D3DRS_COLORWRITEENABLE`), as SilentPatch does.
+  - The parachute's skin pipeline is no longer replaced by the building pipeline. The radio station change
+    animation keeps only the head and right arm, and is skipped in the Kart. Biker cops abort a drive-by
+    sequence when the wanted level is gone (the DRM-moved call at 0x1561366; task types and `MakeAbortable`
+    through the tasks' vtables). Racing checkpoints modulate their material colour. Exploding cars spawn the
+    wheels the damage manager detached, and the random pick reaches the rear right wheel (an `operand_slot`
+    for -4).
+  - The M9 route checks the moon. It sets the clock to 3:40, the moon's brightest time (the moon shows from
+    0:00 to 7:20), advances eight days and pins the camera at the moon. In a capture the masked moon is
+    gibbous where the stock moon is full. The other five groups are converted but not reached by New Game.
+  - A check of every kept group against the manifest found five that no batch had picked up, all without a
+    changelog line (bomb ownership is line 75). They are now ported:
+    - mipmapped weapon icon filtering;
+    - `CVehicleModelInfo` initialisation (material lists cleared, the removed plate material pointed at a
+      dummy);
+    - bombs restored with their owner on stored cars and bikes (two DRM-moved garage loops);
+    - whole-name `handling.cfg` matching;
+    - the left rear light's damage state.
+  - The biker cop native exposed a wrong `CVehicle` offset from batch 9: the driver is at 0x460 and the
+    passengers at 0x464 (the game reads 0x460 45 times in its vehicle code). The passenger-line native read
+    the passengers from 0x468; both use the right offsets now.
+  - M9 (the moon in all three runs; the model info and handling fixes at load; no interpreter entries), M4
+    (24,450 frames, no interpreter entries, mean 32.14 ms), M5 (no interpreter entries), M7 and M8 pass with
+    batch 11; M8's Hor+ comparison matched within 0.06–0.13%.
+- **Frame limiter.** `manifest/native.yaml` `frame-limiter`: a mid_hook on the main loop's limiter test keeps
+  vanilla's conditions (menu Frame Limiter, the forced limit, the audio engine's check) and sleeps on the host
+  clock until the next frame instead of spinning. `silentpatch.frame_limit` is 30 (default), 60 or uncapped.
+- `sa-host --call FRAME:ADDR:CONV[:ARG,…]` calls a game function from the guest thread and logs the result, for
+  reproductions that call the patched function directly.
+
+Scripted results (`tools/route/m9_silentpatch.py`, New Game at 30, 60 and uncapped fps):
+- Frame pacing: mean 33.33 ms at 30, 16.67 ms at 60 and 8.33 ms uncapped (the 120 Hz display), against about
+  40 ms (25 fps) in M8's runs with the 14 ms delay.
+- Timers: the game clock tracks wall time within 0.1% at every rate (1.0001, 0.9992, 0.9998). Truncating the same
+  frames to whole milliseconds, as vanilla does, gives 0.985, 0.965 and 0.919.
+- Zones: `GetCurrentZoneLockedOrUnlocked(9000, 9000)` returns unlocked; vanilla reads byte 0xba37ed, 189 bytes
+  into a 100-byte grid, which holds 0 (locked) here.
+- Script fixes: New Game's INITIAL gets the basketball save point move (7 values) and the stunt bonus patch; with
+  `silentpatch.script_fixes=false` neither happens.
+- vehicles.ide: the Skimmer and the ten boats have 11 of 15 fields and get the wheel defaults instead of stack
+  contents.
+- Photo: after a photo with the camera (`--call` to `CPed::GiveWeapon`), `psGrabScreen`'s surface is released
+  with 0 references left.
+- New collision data goes through the clearing allocator, and CdStream syncs wait through the locked path.
+- M7's route still passes (melee ammo, jetpack hover, units, resolution string).
+- Regressions: M4's route passes with no interpreter entries (24,450 frames, mean 32.3 ms, p99 41.9 ms; M8 measured
+  38.6–42.5 ms with the 14 ms delay); M5's route passes (intro cutscene with audio, every stream opened); M8's route
+  passes. M8's Hor+ comparison first failed at 1.1–1.2%: at 30 fps, frame 1850 falls while the "Use UP, DOWN…"
+  help box is still up, and the box sat inside the compared region in the 4:3 picture (at the left edge in the wider
+  ones, as it should). The region now starts below it (`SCENE` y 120); the middles match within 0.01–0.04%.
+
+Not reproduced yet (ported, converted and loaded, but no scripted reproduction): mirrors crash, heap corruption,
+delayed prop destruction, escalators, vending, replay crashes, trains in garages, `CPlayerPedData::operator=`,
+the CdStream race itself, the gym glitch and the per-mission script fixes. Each record in `tests/fixes/silentpatch/`
+says what its reproduction needs.
+
+Findings:
+- The intro cutscene skip in `Route.new_game()` counts frames, so at 60 fps and above the route reaches first
+  control later in game time; post-control checks that need CJ (the photo) run only at 30 fps for now.
+- Giving a weapon with `CPed::GiveWeapon` does not stream its model; aiming an unloaded camera crashes in the
+  animation code. The route requests model 367 first, as scripts do.
 
 ### M10 — Project2DFX
 

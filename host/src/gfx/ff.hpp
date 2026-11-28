@@ -16,6 +16,7 @@ inline constexpr unsigned kMaxSamplers = 16;
 inline constexpr unsigned kMaxStreams = 8;
 inline constexpr unsigned kMaxElements = 16;
 inline constexpr unsigned kMaxLights = 8;
+inline constexpr unsigned kStoredLights = 16;
 
 struct Matrix {
     float m[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
@@ -93,8 +94,8 @@ struct FixedFunctionState {
     std::array<uint32_t, d3d::rs::count> rs{};
     std::array<std::array<uint32_t, d3d::tss::count>, kMaxStages> tss{};
     std::array<std::array<uint32_t, d3d::samp::count>, kMaxSamplers> ss{};
-    std::array<Light, kMaxLights> lights{};
-    std::array<uint8_t, kMaxLights> light_enabled{};
+    std::array<Light, kStoredLights> lights{};
+    std::array<uint8_t, kStoredLights> light_enabled{};
     Material material{};
     Matrix world{};
     Matrix view{};

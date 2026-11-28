@@ -2,12 +2,12 @@ mod: silentpatch
 upstream: "https://github.com/CookiePLMonster/SilentPatch"
 commit: "74976544adc196fa664831ddc59778e684cf6af0"
 files: 20
-sites: 661
+sites: 799
 unresolved: 0
 dropped:
-  "1.01": 178
-  "newsteam": 314
-  "steam": 215
+  "1.01": 184
+  "newsteam": 348
+  "steam": 219
 rows:
   - id: "sp-f24a659c"
     op: "bind"
@@ -1164,7 +1164,7 @@ rows:
     span: ~
     pin: "literal+version_10"
     version: "any"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "A fix for DOUBLE_RWHEELS trailers"
     expr: "0x4C9333"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 4961
@@ -1174,7 +1174,7 @@ rows:
     span: ~
     pin: "literal+version_10"
     version: "any"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "A fix for DOUBLE_RWHEELS trailers"
     expr: "0x4C9235"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 4962
@@ -1184,7 +1184,7 @@ rows:
     span: ~
     pin: "literal+version_10"
     version: "any"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "User Tracks fix"
     scope: "UserTracksChanges"
     expr: "AddressByVersion<void(__thiscall*)(CAEUserRadioTrackManager*)>(0x4F35B0, 0x4F3A1"
     file: "SilentPatchSA/SilentPatchSA.cpp"
@@ -1195,7 +1195,7 @@ rows:
     span: ~
     pin: "literal+version_10"
     version: "any"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "User Tracks fix"
     scope: "UserTracksChanges"
     expr: "AddressByVersion<CAEUserRadioTrackManager**>(0x4D9B7B, 0x4DA06C, 0x4E4A43)"
     file: "SilentPatchSA/SilentPatchSA.cpp"
@@ -1206,7 +1206,7 @@ rows:
     span: ~
     pin: "literal+version_10"
     version: "any"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "User Tracks fix"
     scope: "UserTracksChanges"
     expr: "0x4F3743"
     file: "SilentPatchSA/SilentPatchSA.cpp"
@@ -1217,7 +1217,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "Obtain a path to the ASI"
+    group: "Sun size hack"
     scope: "InjectDelayedPatches_10"
     cond: "const int INIoption = GetPrivateProfileIntW(L\"…\", L\"…\", -1, wcModulePath); INIop"
     target: "fHackedFarClipZ"
@@ -1230,7 +1230,7 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Obtain a path to the ASI"
+    group: "Sun size hack"
     scope: "InjectDelayedPatches_10"
     cond: "const int INIoption = GetPrivateProfileIntW(L\"…\", L\"…\", -1, wcModulePath); INIop"
     target: "DoSunAndMoon_SunSizeHack"
@@ -1243,7 +1243,7 @@ rows:
     span: 4
     pin: "manual"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Helicopter rotors and plane propellers"
     scope: "InjectDelayedPatches_10"
     cond: "!fallback"
     value: "&replaced"
@@ -1257,7 +1257,7 @@ rows:
     span: 4
     pin: "manual"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Helicopter rotors and plane propellers"
     scope: "InjectDelayedPatches_10"
     cond: "!fallback"
     value: "&replaced"
@@ -1271,7 +1271,7 @@ rows:
     span: 4
     pin: "manual"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Helicopter rotors and plane propellers"
     scope: "InjectDelayedPatches_10"
     cond: "!fallback"
     value: "&replaced"
@@ -1285,7 +1285,7 @@ rows:
     span: 5
     pin: "manual"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Helicopter rotors and plane propellers"
     scope: "InjectDelayedPatches_10"
     cond: "BlurredRotorsAtomicRender::HasGameBindings()"
     target: "replaced"
@@ -1299,7 +1299,7 @@ rows:
     span: 5
     pin: "manual"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Helicopter rotors and plane propellers"
     scope: "InjectDelayedPatches_10"
     cond: "BlurredRotorsAtomicRender::HasGameBindings()"
     target: "replaced"
@@ -1313,7 +1313,7 @@ rows:
     span: 5
     pin: "manual"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Helicopter rotors and plane propellers"
     scope: "InjectDelayedPatches_10"
     cond: "BlurredRotorsAtomicRender::HasGameBindings()"
     target: "replaced"
@@ -1417,13 +1417,39 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Basketball fix"
+    group: "Script fixes"
     scope: "InjectDelayedPatches_10"
     cond: "GetPrivateProfileIntW(L\"…\", L\"…\", 0, wcModulePath) != 0"
     target: "TheScriptsLoad_BasketballFix"
     expr: "0x5D18F0"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 5616
+  - id: "sp-32b37fe6.0"
+    op: "intercept_call"
+    addr: 0x00489a70
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Script fixes"
+    scope: "InjectDelayedPatches_10"
+    cond: "GetPrivateProfileIntW(L\"…\", L\"…\", 0, wcModulePath) != 0"
+    target: "HookEach_SCMFixes"
+    expr: "HookEach(wipeLocalVars)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 5619
+  - id: "sp-32b37fe6.1"
+    op: "intercept_call"
+    addr: 0x004899f0
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Script fixes"
+    scope: "InjectDelayedPatches_10"
+    cond: "GetPrivateProfileIntW(L\"…\", L\"…\", 0, wcModulePath) != 0"
+    target: "HookEach_SCMFixes"
+    expr: "HookEach(wipeLocalVars)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 5619
   - id: "sp-922deeaf"
     op: "patch"
     addr: 0x00748aa8
@@ -1443,7 +1469,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "bSmallSteamTexts"
     value: "&fSteamSubtitleSizeY"
@@ -1456,7 +1482,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "bSmallSteamTexts"
     value: "&fSteamSubtitleSizeY"
@@ -1469,7 +1495,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "bSmallSteamTexts"
     value: "&fSteamSubtitleSizeY"
@@ -1482,7 +1508,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "bSmallSteamTexts"
     value: "&fSteamSubtitleSizeX"
@@ -1495,7 +1521,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "bSmallSteamTexts"
     value: "&fSteamSubtitleSizeX"
@@ -1508,7 +1534,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "bSmallSteamTexts"
     value: "&fSteamSubtitleSizeX"
@@ -1521,7 +1547,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "bSmallSteamTexts"
     value: "&fSteamRadioNamePosY"
@@ -1534,7 +1560,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "bSmallSteamTexts"
     value: "&fSteamRadioNameSizeY"
@@ -1547,7 +1573,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "bSmallSteamTexts"
     value: "&fSteamRadioNameSizeX"
@@ -1560,7 +1586,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "const int INIoption = GetPrivateProfileIntW(L\"…\", L\"…\", -1, wcModulePath); INIop"
     value: "orgSubtitleSizeY"
@@ -1573,7 +1599,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "const int INIoption = GetPrivateProfileIntW(L\"…\", L\"…\", -1, wcModulePath); INIop"
     value: "orgSubtitleSizeY"
@@ -1586,7 +1612,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "const int INIoption = GetPrivateProfileIntW(L\"…\", L\"…\", -1, wcModulePath); INIop"
     value: "orgSubtitleSizeY"
@@ -1599,7 +1625,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "const int INIoption = GetPrivateProfileIntW(L\"…\", L\"…\", -1, wcModulePath); INIop"
     value: "orgSubtitleSizeX"
@@ -1612,7 +1638,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "const int INIoption = GetPrivateProfileIntW(L\"…\", L\"…\", -1, wcModulePath); INIop"
     value: "orgSubtitleSizeX"
@@ -1625,7 +1651,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "const int INIoption = GetPrivateProfileIntW(L\"…\", L\"…\", -1, wcModulePath); INIop"
     value: "orgSubtitleSizeX"
@@ -1638,7 +1664,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "const int INIoption = GetPrivateProfileIntW(L\"…\", L\"…\", -1, wcModulePath); INIop"
     value: "orgRadioNamePosY"
@@ -1651,7 +1677,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "const int INIoption = GetPrivateProfileIntW(L\"…\", L\"…\", -1, wcModulePath); INIop"
     value: "orgRadioNameSizeY"
@@ -1664,7 +1690,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "const int INIoption = GetPrivateProfileIntW(L\"…\", L\"…\", -1, wcModulePath); INIop"
     value: "orgRadioNameSizeX"
@@ -1677,7 +1703,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "bHasDebugMenu"
     expr: "*(float**)0x58C39D"
@@ -1689,7 +1715,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "bHasDebugMenu"
     expr: "*(float**)0x58C387"
@@ -1701,7 +1727,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "bHasDebugMenu"
     expr: "*(float**)0x4E9FD8"
@@ -1713,7 +1739,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "bHasDebugMenu"
     expr: "*(float**)0x4E9F22"
@@ -1725,7 +1751,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Small Steam texts"
     scope: "InjectDelayedPatches_10"
     cond: "bHasDebugMenu"
     expr: "*(float**)0x4E9F38"
@@ -1828,7 +1854,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Cars getting dirty"
     scope: "InjectDelayedPatches_10"
     cond: "HasGameBindings_DirtRemapFix()"
     expr: "*(DWORD**)0x4C75FC"
@@ -1969,7 +1995,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "SSE conflicts"
+    group: "Shadow camera update fix"
     scope: "InjectDelayedPatches_10"
     cond: "HasGameBindings_ShadowRenderingFixes()"
     value: "0x52909090"
@@ -1982,7 +2008,7 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "SSE conflicts"
+    group: "Shadow camera update fix"
     scope: "InjectDelayedPatches_10"
     cond: "HasGameBindings_ShadowRenderingFixes()"
     target: "CShadowCamera::Update"
@@ -2021,7 +2047,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Bigger streamed entity linked lists"
     scope: "InjectDelayedPatches_10"
     cond: "!IsAlreadyRunning()"
     expr: "*(DWORD*)0x5B8E55"
@@ -2059,7 +2085,7 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Read CCustomCarPlateMgr::GeneratePlateText from here"
+    group: "Properly random numberplates"
     scope: "InjectDelayedPatches_10"
     cond: "!IsAlreadyRunning()"
     target: "*CCustomCarPlateMgr::GeneratePlateText.Put()"
@@ -2123,7 +2149,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Handle IMGs bigger than 4GB"
     scope: "InjectDelayedPatches_10"
     cond: "!IsAlreadyRunning()"
     expr: "*(DWORD*)0x4065BB"
@@ -2250,7 +2276,7 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Fix original bugs"
+    group: "Minimal HUD"
     scope: "InjectDelayedPatches_10"
     cond: "const int INIoption = GetPrivateProfileIntW(L\"…\", L\"…\", -1, wcModulePath); INIop"
     value: "{ 0x90, 0xFF, 0x74, 0x24, 0x1C }"
@@ -2263,7 +2289,7 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Fix original bugs"
+    group: "Minimal HUD"
     scope: "InjectDelayedPatches_10"
     cond: "const int INIoption = GetPrivateProfileIntW(L\"…\", L\"…\", -1, wcModulePath); INIop"
     target: "SetRGBA_FloatAlpha"
@@ -2276,7 +2302,7 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Fix original bugs"
+    group: "Minimal HUD"
     scope: "InjectDelayedPatches_10"
     cond: "const int INIoption = GetPrivateProfileIntW(L\"…\", L\"…\", -1, wcModulePath); INIop"
     value: "{ 0x90, 0xFF, 0x74, 0x24, 0x20 + 0x10 }"
@@ -2289,7 +2315,7 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Fix original bugs"
+    group: "Minimal HUD"
     scope: "InjectDelayedPatches_10"
     cond: "const int INIoption = GetPrivateProfileIntW(L\"…\", L\"…\", -1, wcModulePath); INIop"
     target: "orgRenderOneXLUSprite"
@@ -2302,7 +2328,7 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Fix original bugs"
+    group: "Minimal HUD"
     scope: "InjectDelayedPatches_10"
     cond: "const int INIoption = GetPrivateProfileIntW(L\"…\", L\"…\", -1, wcModulePath); INIop"
     target: "RenderXLUSprite_FloatAlpha"
@@ -2315,7 +2341,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "Re-enable"
+    group: "Minimal HUD"
     scope: "InjectDelayedPatches_10"
     cond: "INIoption != 0"
     value: "0"
@@ -2328,7 +2354,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Minimal HUD"
     scope: "InjectDelayedPatches_10"
     cond: "bMinimalHUDEnabled"
     value: "0"
@@ -2341,7 +2367,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "InjectDelayedPatches_10"
+    group: "Minimal HUD"
     scope: "InjectDelayedPatches_10"
     cond: "bHasDebugMenu"
     value: "5"
@@ -2354,7 +2380,7 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Minor spelling mistake, keep it for backwards compatibility with old INI files"
+    group: "True invincibility"
     scope: "InjectDelayedPatches_10"
     cond: "INIoption != -1"
     target: "ComputeWillKillPedHook"
@@ -2393,7 +2419,7 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Don't patch if old FLA and enhanced IMGs are in place"
+    group: "Race condition in CdStream fixed"
     scope: "InjectDelayedPatches_10"
     cond: "!usesEnhancedImages || flaBugAware"
     target: "CdStreamSync::orgCdStreamInitThread"
@@ -2406,20 +2432,90 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Don't patch if old FLA and enhanced IMGs are in place"
+    group: "Race condition in CdStream fixed"
     scope: "InjectDelayedPatches_10"
     cond: "!usesEnhancedImages || flaBugAware"
     target: "CdStreamSync::CdStreamInitThread"
     expr: "0x406C78"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 5954
+  - id: "sp-8c6f82e1"
+    op: "patch"
+    addr: 0x0156cd9d
+    span: 3
+    pin: "literal+reroute"
+    version: "1.0"
+    group: "Race condition in CdStream fixed"
+    scope: "InjectDelayedPatches_10"
+    cond: "memcmp( orgCode, (void*)waitForSingleObject, sizeof(orgCode) ) == 0"
+    value: "{ 0x56, 0xFF, 0x15 }"
+    expr: "waitForSingleObject"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 5963
+    note: "0x00406460 jumps to 0x0156cd80; the mod follows it"
+  - id: "sp-99f39dad"
+    op: "patch"
+    addr: 0x0156cda0
+    span: 4
+    pin: "literal+reroute"
+    version: "1.0"
+    group: "Race condition in CdStream fixed"
+    scope: "InjectDelayedPatches_10"
+    cond: "memcmp( orgCode, (void*)waitForSingleObject, sizeof(orgCode) ) == 0"
+    value: "&CdStreamSync::CdStreamSyncOnObject"
+    expr: "waitForSingleObject + 3"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 5964
+    note: "0x00406460 jumps to 0x0156cd80; the mod follows it"
+  - id: "sp-346da206"
+    op: "patch"
+    addr: 0x0156cda4
+    span: 2
+    pin: "literal+reroute"
+    version: "1.0"
+    group: "Race condition in CdStream fixed"
+    scope: "InjectDelayedPatches_10"
+    cond: "memcmp( orgCode, (void*)waitForSingleObject, sizeof(orgCode) ) == 0"
+    value: "{ 0x5E, 0xC3 }"
+    expr: "waitForSingleObject + 3 + 4"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 5965
+    note: "0x00406460 jumps to 0x0156cd80; the mod follows it"
+  - id: "sp-782bca0a"
+    op: "patch"
+    addr: 0x0156cde1
+    span: 4
+    pin: "literal+reroute"
+    version: "1.0"
+    group: "Race condition in CdStream fixed"
+    scope: "InjectDelayedPatches_10"
+    cond: "memcmp( orgCode1, (void*)getOverlappedResult, sizeof(orgCode1) ) == 0 && memcmp("
+    value: "&CdStreamSync::pGetOverlappedResult"
+    expr: "getOverlappedResult + 2"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 5974
+    note: "0x00406460 jumps to 0x0156cd80; the mod follows it"
+  - id: "sp-60fd8e6a"
+    op: "patch"
+    addr: 0x0156cde5
+    span: 2
+    pin: "literal+reroute"
+    version: "1.0"
+    group: "Race condition in CdStream fixed"
+    scope: "InjectDelayedPatches_10"
+    cond: "memcmp( orgCode1, (void*)getOverlappedResult, sizeof(orgCode1) ) == 0 && memcmp("
+    value: "{ 0x5E, 0xC3 }"
+    expr: "getOverlappedResult + 6"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 5975
+    note: "0x00406460 jumps to 0x0156cd80; the mod follows it"
   - id: "sp-045353b1"
     op: "patch"
     addr: 0x00406669
     span: 3
     pin: "literal"
     version: "1.0"
-    group: "Don't patch if old FLA and enhanced IMGs are in place"
+    group: "Race condition in CdStream fixed"
     scope: "InjectDelayedPatches_10"
     cond: "!usesEnhancedImages"
     value: "{ 0x56, 0xFF, 0x15 }"
@@ -2432,7 +2528,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "Don't patch if old FLA and enhanced IMGs are in place"
+    group: "Race condition in CdStream fixed"
     scope: "InjectDelayedPatches_10"
     cond: "!usesEnhancedImages"
     value: "&CdStreamSync::CdStreamThreadOnObject"
@@ -2445,7 +2541,7 @@ rows:
     span: 2
     pin: "literal"
     version: "1.0"
-    group: "Don't patch if old FLA and enhanced IMGs are in place"
+    group: "Race condition in CdStream fixed"
     scope: "InjectDelayedPatches_10"
     cond: "!usesEnhancedImages"
     value: "{ 0xEB, 0x0F }"
@@ -2458,7 +2554,7 @@ rows:
     span: 2
     pin: "literal"
     version: "1.0"
-    group: "Don't patch if old FLA and enhanced IMGs are in place"
+    group: "Race condition in CdStream fixed"
     scope: "InjectDelayedPatches_10"
     cond: "!usesEnhancedImages || flaBugAware"
     value: "{ 0xFF, 0x15 }"
@@ -2471,7 +2567,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "Don't patch if old FLA and enhanced IMGs are in place"
+    group: "Race condition in CdStream fixed"
     scope: "InjectDelayedPatches_10"
     cond: "!usesEnhancedImages || flaBugAware"
     value: "&CdStreamSync::CdStreamInitializeSyncObject"
@@ -2484,7 +2580,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "Don't patch if old FLA and enhanced IMGs are in place"
+    group: "Race condition in CdStream fixed"
     scope: "InjectDelayedPatches_10"
     cond: "!usesEnhancedImages || flaBugAware"
     expr: "0x406910 + 6"
@@ -2496,7 +2592,7 @@ rows:
     span: 2
     pin: "literal"
     version: "1.0"
-    group: "Don't patch if old FLA and enhanced IMGs are in place"
+    group: "Race condition in CdStream fixed"
     scope: "InjectDelayedPatches_10"
     cond: "!usesEnhancedImages || flaBugAware"
     expr: "0x406910 + 0x16"
@@ -2508,7 +2604,7 @@ rows:
     span: 2
     pin: "literal"
     version: "1.0"
-    group: "Don't patch if old FLA and enhanced IMGs are in place"
+    group: "Race condition in CdStream fixed"
     scope: "InjectDelayedPatches_10"
     cond: "!usesEnhancedImages || flaBugAware"
     value: "{ 0x56, 0x50 }"
@@ -2521,7 +2617,7 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Don't patch if old FLA and enhanced IMGs are in place"
+    group: "Race condition in CdStream fixed"
     scope: "InjectDelayedPatches_10"
     cond: "!usesEnhancedImages || flaBugAware"
     target: "CdStreamSync::CdStreamShutdownSyncObject_Stub"
@@ -2534,7 +2630,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "For imfast compatibility"
+    group: "Loop loading screens"
     scope: "InjectDelayedPatches_10"
     cond: "!IsAlreadyRunning()"
     expr: "0x590ADE"
@@ -2546,7 +2642,7 @@ rows:
     span: 1
     pin: "literal"
     version: "1.0"
-    group: "Modulo over CLoadingScreen::m_currDisplayedSplash"
+    group: "Loop loading screens"
     scope: "InjectDelayedPatches_10"
     cond: "!IsAlreadyRunning()"
     expr: "0x590ADE"
@@ -2558,7 +2654,7 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Modulo over CLoadingScreen::m_currDisplayedSplash"
+    group: "Loop loading screens"
     scope: "InjectDelayedPatches_10"
     cond: "!IsAlreadyRunning()"
     target: "DoPCScreenChange_Mod"
@@ -2571,7 +2667,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "Modulo over CLoadingScreen::m_currDisplayedSplash"
+    group: "Loop loading screens"
     scope: "InjectDelayedPatches_10"
     cond: "!IsAlreadyRunning()"
     value: "&currDisplayedSplash_ForLastSplash"
@@ -2610,31 +2706,70 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Sliding texts scaling fixes"
     scope: "InjectDelayedPatches_10"
     cond: "const int INIoption = GetPrivateProfileIntW(L\"…\", L\"…\", -1, wcModulePath); INIop"
     expr: "*(std::array<float, 6>**)(0x58C919"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 6064
+  - id: "sp-8f0ad845"
+    op: "intercept_call"
+    addr: 0x0058d470
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Sliding texts scaling fixes"
+    scope: "InjectDelayedPatches_10"
+    cond: "const int INIoption = GetPrivateProfileIntW(L\"…\", L\"…\", -1, wcModulePath); INIop"
+    target: "HookEach_PrintString"
+    expr: "HookEach(slidingMessage1)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6071
+  - id: "sp-099799f0"
+    op: "intercept_call"
+    addr: 0x0058d2a9
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Sliding texts scaling fixes"
+    scope: "InjectDelayedPatches_10"
+    cond: "const int INIoption = GetPrivateProfileIntW(L\"…\", L\"…\", -1, wcModulePath); INIop"
+    target: "HookEach_RightJustifyWrap"
+    expr: "HookEach(textWrapFix)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6072
   - id: "sp-e75e71c1"
     op: "bind"
     addr: 0x0058d077
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Sliding texts scaling fixes"
     scope: "InjectDelayedPatches_10"
     cond: "const int INIoption = GetPrivateProfileIntW(L\"…\", L\"…\", -1, wcModulePath); INIop"
     expr: "*(float**)(0x58D077"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 6084
+  - id: "sp-64ef9ef1"
+    op: "intercept_call"
+    addr: 0x0058d21a
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Sliding texts scaling fixes"
+    scope: "InjectDelayedPatches_10"
+    cond: "const int INIoption = GetPrivateProfileIntW(L\"…\", L\"…\", -1, wcModulePath); INIop"
+    target: "HookEach_PrintString"
+    expr: "HookEach(slidingOddJob2)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6089
   - id: "sp-23a73509"
     op: "verify"
     addr: 0x00588251
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "Even though those two patch the same function, treating them as separate patches"
+    group: "Fix Map screen boundaries and the cursor not scaling to resolution"
     scope: "InjectDelayedPatches_10"
     cond: "MapScreenScalingFixes::HasGameBindings()"
     expr: "0x588251"
@@ -2646,7 +2781,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "Even though those two patch the same function, treating them as separate patches"
+    group: "Fix Map screen boundaries and the cursor not scaling to resolution"
     scope: "InjectDelayedPatches_10"
     cond: "MapScreenScalingFixes::HasGameBindings()"
     expr: "0x588265"
@@ -2658,7 +2793,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "Even though those two patch the same function, treating them as separate patches"
+    group: "Fix Map screen boundaries and the cursor not scaling to resolution"
     scope: "InjectDelayedPatches_10"
     cond: "MapScreenScalingFixes::HasGameBindings()"
     expr: "0x5882A8"
@@ -2670,19 +2805,71 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "Even though those two patch the same function, treating them as separate patches"
+    group: "Fix Map screen boundaries and the cursor not scaling to resolution"
     scope: "InjectDelayedPatches_10"
     cond: "MapScreenScalingFixes::HasGameBindings()"
     expr: "0x5882C6"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 6107
+  - id: "sp-5431dce6.0"
+    op: "intercept_displacement"
+    addr: 0x00588253
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix Map screen boundaries and the cursor not scaling to resolution"
+    scope: "InjectDelayedPatches_10"
+    cond: "MemEquals(0x588251, fld) && MemEquals(0x588265, fadd) && MemEquals(0x5882A8, fld"
+    target: "HookEach_CursorXSize"
+    expr: "HookEach(cursorXSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6112
+  - id: "sp-5431dce6.1"
+    op: "intercept_displacement"
+    addr: 0x00588267
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix Map screen boundaries and the cursor not scaling to resolution"
+    scope: "InjectDelayedPatches_10"
+    cond: "MemEquals(0x588251, fld) && MemEquals(0x588265, fadd) && MemEquals(0x5882A8, fld"
+    target: "HookEach_CursorXSize"
+    expr: "HookEach(cursorXSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6112
+  - id: "sp-449d698d.0"
+    op: "intercept_displacement"
+    addr: 0x005882aa
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix Map screen boundaries and the cursor not scaling to resolution"
+    scope: "InjectDelayedPatches_10"
+    cond: "MemEquals(0x588251, fld) && MemEquals(0x588265, fadd) && MemEquals(0x5882A8, fld"
+    target: "HookEach_CursorYSize"
+    expr: "HookEach(cursorYSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6113
+  - id: "sp-449d698d.1"
+    op: "intercept_displacement"
+    addr: 0x005882c8
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix Map screen boundaries and the cursor not scaling to resolution"
+    scope: "InjectDelayedPatches_10"
+    cond: "MemEquals(0x588251, fld) && MemEquals(0x588265, fadd) && MemEquals(0x5882A8, fld"
+    target: "HookEach_CursorYSize"
+    expr: "HookEach(cursorYSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6113
   - id: "sp-cc184f4c"
     op: "intercept_call"
     addr: 0x0058822d
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Even though those two patch the same function, treating them as separate patches"
+    group: "Fix Map screen boundaries and the cursor not scaling to resolution"
     scope: "InjectDelayedPatches_10"
     cond: "MemEquals(0x588251, fld) && MemEquals(0x588265, fadd) && MemEquals(0x5882A8, fld"
     target: "LimitToMap_RecalculateSizes<cursorXSizes.size(), cursorYSize"
@@ -2695,7 +2882,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "The expected code:"
+    group: "Fix Map screen boundaries and the cursor not scaling to resolution"
     scope: "InjectDelayedPatches_10"
     cond: "MapScreenScalingFixes::HasGameBindings()"
     expr: "0x588223"
@@ -2707,7 +2894,7 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "The expected code:"
+    group: "Fix Map screen boundaries and the cursor not scaling to resolution"
     scope: "InjectDelayedPatches_10"
     cond: "MapScreenScalingFixes::HasGameBindings()"
     target: "LimitToMap_Scale"
@@ -2720,7 +2907,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "Verify that all fadd and fsub instructions are intact"
+    group: "Fix text background padding not scaling to resolution"
     scope: "InjectDelayedPatches_10"
     cond: "!bSAMP && TextRectPaddingScalingFixes::HasGameBindings()"
     expr: "0x71A653"
@@ -2732,7 +2919,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "Verify that all fadd and fsub instructions are intact"
+    group: "Fix text background padding not scaling to resolution"
     scope: "InjectDelayedPatches_10"
     cond: "!bSAMP && TextRectPaddingScalingFixes::HasGameBindings()"
     expr: "0x71A66B"
@@ -2744,7 +2931,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "Verify that all fadd and fsub instructions are intact"
+    group: "Fix text background padding not scaling to resolution"
     scope: "InjectDelayedPatches_10"
     cond: "!bSAMP && TextRectPaddingScalingFixes::HasGameBindings()"
     expr: "0x71A69D"
@@ -2756,7 +2943,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "Verify that all fadd and fsub instructions are intact"
+    group: "Fix text background padding not scaling to resolution"
     scope: "InjectDelayedPatches_10"
     cond: "!bSAMP && TextRectPaddingScalingFixes::HasGameBindings()"
     expr: "0x71A6AB"
@@ -2768,7 +2955,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "Verify that all fadd and fsub instructions are intact"
+    group: "Fix text background padding not scaling to resolution"
     scope: "InjectDelayedPatches_10"
     cond: "!bSAMP && TextRectPaddingScalingFixes::HasGameBindings()"
     expr: "0x71A6BF"
@@ -2780,19 +2967,97 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "Verify that all fadd and fsub instructions are intact"
+    group: "Fix text background padding not scaling to resolution"
     scope: "InjectDelayedPatches_10"
     cond: "!bSAMP && TextRectPaddingScalingFixes::HasGameBindings()"
     expr: "0x71A6EC"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 6140
+  - id: "sp-7b344e20.0"
+    op: "intercept_displacement"
+    addr: 0x0071a655
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix text background padding not scaling to resolution"
+    scope: "InjectDelayedPatches_10"
+    cond: "MemEquals(0x71A653, fadd) && MemEquals(0x71A66B, fadd) && MemEquals(0x71A69D, fs"
+    target: "HookEach_PaddingXSize"
+    expr: "HookEach(paddingXSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6150
+  - id: "sp-7b344e20.1"
+    op: "intercept_displacement"
+    addr: 0x0071a66d
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix text background padding not scaling to resolution"
+    scope: "InjectDelayedPatches_10"
+    cond: "MemEquals(0x71A653, fadd) && MemEquals(0x71A66B, fadd) && MemEquals(0x71A69D, fs"
+    target: "HookEach_PaddingXSize"
+    expr: "HookEach(paddingXSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6150
+  - id: "sp-7b344e20.2"
+    op: "intercept_displacement"
+    addr: 0x0071a69f
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix text background padding not scaling to resolution"
+    scope: "InjectDelayedPatches_10"
+    cond: "MemEquals(0x71A653, fadd) && MemEquals(0x71A66B, fadd) && MemEquals(0x71A69D, fs"
+    target: "HookEach_PaddingXSize"
+    expr: "HookEach(paddingXSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6150
+  - id: "sp-7b344e20.3"
+    op: "intercept_displacement"
+    addr: 0x0071a6ad
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix text background padding not scaling to resolution"
+    scope: "InjectDelayedPatches_10"
+    cond: "MemEquals(0x71A653, fadd) && MemEquals(0x71A66B, fadd) && MemEquals(0x71A69D, fs"
+    target: "HookEach_PaddingXSize"
+    expr: "HookEach(paddingXSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6150
+  - id: "sp-322e66e0.0"
+    op: "intercept_displacement"
+    addr: 0x0071a6c1
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix text background padding not scaling to resolution"
+    scope: "InjectDelayedPatches_10"
+    cond: "MemEquals(0x71A653, fadd) && MemEquals(0x71A66B, fadd) && MemEquals(0x71A69D, fs"
+    target: "HookEach_PaddingYSize"
+    expr: "HookEach(paddingYSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6151
+  - id: "sp-322e66e0.1"
+    op: "intercept_displacement"
+    addr: 0x0071a6ee
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix text background padding not scaling to resolution"
+    scope: "InjectDelayedPatches_10"
+    cond: "MemEquals(0x71A653, fadd) && MemEquals(0x71A66B, fadd) && MemEquals(0x71A69D, fs"
+    target: "HookEach_PaddingYSize"
+    expr: "HookEach(paddingYSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6151
   - id: "sp-01d95964"
     op: "intercept_call"
     addr: 0x0071a631
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Verify that all fadd and fsub instructions are intact"
+    group: "Fix text background padding not scaling to resolution"
     scope: "InjectDelayedPatches_10"
     cond: "MemEquals(0x71A653, fadd) && MemEquals(0x71A66B, fadd) && MemEquals(0x71A69D, fs"
     target: "ProcessCurrentString_Scale<paddingXSizes.size(), paddingYSiz"
@@ -2823,6 +3088,32 @@ rows:
     expr: "0x5A8679+8"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 6159
+  - id: "sp-00a6b05f.0"
+    op: "intercept_call"
+    addr: 0x005a8707
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix credits not scaling to resolution"
+    scope: "InjectDelayedPatches_10"
+    cond: "!IsAlreadyRunning()"
+    target: "HookEach_PrintString"
+    expr: "HookEach(creditPrintString)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6165
+  - id: "sp-00a6b05f.1"
+    op: "intercept_call"
+    addr: 0x005a8785
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix credits not scaling to resolution"
+    scope: "InjectDelayedPatches_10"
+    cond: "!IsAlreadyRunning()"
+    target: "HookEach_PrintString"
+    expr: "HookEach(creditPrintString)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6165
   - id: "sp-d2b2d359"
     op: "intercept_call"
     addr: 0x005a86c0
@@ -2842,7 +3133,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Fix credits not scaling to resolution"
     scope: "InjectDelayedPatches_10"
     cond: "!IsAlreadyRunning()"
     expr: "*(float**)(0x5A869A"
@@ -2854,7 +3145,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "Fix the credits cutting off on the bottom early, they don't do that in III"
+    group: "Fix credits not scaling to resolution"
     scope: "InjectDelayedPatches_10"
     cond: "!IsAlreadyRunning()"
     value: "&topMargin"
@@ -2867,7 +3158,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "Fix the credits cutting off on the bottom early, they don't do that in III"
+    group: "Fix credits not scaling to resolution"
     scope: "InjectDelayedPatches_10"
     cond: "!IsAlreadyRunning()"
     value: "&bottomMargin"
@@ -2880,7 +3171,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "As we now scale everything on PrintString time, the resolution height checks nee"
+    group: "Fix credits not scaling to resolution"
     scope: "InjectDelayedPatches_10"
     cond: "!IsAlreadyRunning()"
     value: "&FIXED_RES_HEIGHT_SCALE"
@@ -2893,13 +3184,121 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "As we now scale everything on PrintString time, the resolution height checks nee"
+    group: "Fix credits not scaling to resolution"
     scope: "InjectDelayedPatches_10"
     cond: "!IsAlreadyRunning()"
     value: "&FIXED_RES_HEIGHT_SCALE"
     expr: "0x5AF8C9 + 2"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 6178
+  - id: "sp-bb227d95"
+    op: "read"
+    addr: 0x004e4493
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Speech system fixes (lookup tables)"
+    scope: "InjectDelayedPatches_10"
+    cond: "!IsAlreadyRunning()"
+    expr: "*reinterpret_cast<int16_t (**)[8]>(0x4E4492 + 1)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6185
+  - id: "sp-ddb2c7df"
+    op: "read"
+    addr: 0x004e5a10
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Speech system fixes (lookup tables)"
+    scope: "InjectDelayedPatches_10"
+    cond: "!IsAlreadyRunning()"
+    expr: "*reinterpret_cast<uint8_t (**)[209][2]>(0x4E5A0C + 4)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6186
+  - id: "sp-3243c94a"
+    op: "read"
+    addr: 0x004e5a4d
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Speech system fixes (lookup tables)"
+    scope: "InjectDelayedPatches_10"
+    cond: "!IsAlreadyRunning()"
+    expr: "*reinterpret_cast<int16_t (**)[46][2]>(0x4E5A4A + 3)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6187
+  - id: "sp-ae858149"
+    op: "read"
+    addr: 0x004e5b54
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Speech system fixes (lookup tables)"
+    scope: "InjectDelayedPatches_10"
+    cond: "!IsAlreadyRunning()"
+    expr: "*reinterpret_cast<int16_t (**)[18][2]>(0x4E5B51 + 3)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6188
+  - id: "sp-ae0f16db"
+    op: "read"
+    addr: 0x004e5ad7
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Speech system fixes (lookup tables)"
+    scope: "InjectDelayedPatches_10"
+    cond: "!IsAlreadyRunning()"
+    expr: "*reinterpret_cast<int16_t (**)[20][2]>(0x4E5AD4 + 3)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6189
+  - id: "sp-beb25b70"
+    op: "read"
+    addr: 0x004e5b15
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Speech system fixes (lookup tables)"
+    scope: "InjectDelayedPatches_10"
+    cond: "!IsAlreadyRunning()"
+    expr: "*reinterpret_cast<int16_t (**)[52][2]>(0x4E5B12 + 3)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6190
+  - id: "sp-e547ba68"
+    op: "read"
+    addr: 0x004e41b2
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Speech system fixes (lookup tables)"
+    scope: "InjectDelayedPatches_10"
+    cond: "!IsAlreadyRunning()"
+    expr: "*reinterpret_cast<int16_t (**)[3]>(0x4E41AF + 3)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6191
+  - id: "sp-37c5184e"
+    op: "read"
+    addr: 0x004e4189
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Speech system fixes (lookup tables)"
+    scope: "InjectDelayedPatches_10"
+    cond: "!IsAlreadyRunning()"
+    expr: "*reinterpret_cast<char (**)[20]>(0x4E4186 + 3)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6192
+  - id: "sp-5e0d7f56"
+    op: "read"
+    addr: 0x004e419e
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Speech system fixes (lookup tables)"
+    scope: "InjectDelayedPatches_10"
+    cond: "!IsAlreadyRunning()"
+    expr: "*reinterpret_cast<uint8_t*>(0x4E419B + 3)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 6193
   - id: "sp-5c2ab44e"
     op: "verify"
     addr: 0x007460a0
@@ -3031,7 +3430,7 @@ rows:
     span: 5
     pin: "literal+region_10"
     version: "1.0"
-    group: "IsAlreadyRunning needs to be read relatively late - the later, the better"
+    group: "IsAlreadyRunning hook (delayed patches)"
     scope: "Patch_SA_10"
     target: "IsAlreadyRunning"
     expr: "pIsAlreadyRunning"
@@ -3043,7 +3442,7 @@ rows:
     span: 5
     pin: "literal+region_10"
     version: "1.0"
-    group: "IsAlreadyRunning needs to be read relatively late - the later, the better"
+    group: "IsAlreadyRunning hook (delayed patches)"
     scope: "Patch_SA_10"
     target: "InjectDelayedPatches_10"
     expr: "pIsAlreadyRunning"
@@ -3055,7 +3454,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Fixed blown up car rendering"
     scope: "Patch_SA_10"
     expr: "*(RpLight***)0x5BA573"
     file: "SilentPatchSA/SilentPatchSA.cpp"
@@ -3102,7 +3501,7 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Heli rotors"
+    group: "Helicopter rotors and plane propellers"
     scope: "Patch_SA_10"
     target: "CPlane::RenderRotors"
     expr: "0x6CAB80"
@@ -3114,7 +3513,7 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Heli rotors"
+    group: "Helicopter rotors and plane propellers"
     scope: "Patch_SA_10"
     target: "CHeli::RenderRotors"
     expr: "0x6C4523"
@@ -3150,7 +3549,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "Proper alpha handling for plane propellers"
+    group: "Helicopter rotors and plane propellers"
     scope: "Patch_SA_10"
     cond: "BlurredRotorsAtomicRender::HasGameBindings()"
     value: "&SetAtomicRendererCB_PlaneOrBigVehicle"
@@ -3294,7 +3693,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "Proper alpha handling for plane propellers"
+    group: "Helicopter rotors and plane propellers"
     scope: "Patch_SA_10"
     cond: "BlurredRotorsAtomicRender::HasGameBindings()"
     value: "&SetAtomicRendererCB_RealHeli_StaticRotor"
@@ -3461,6 +3860,42 @@ rows:
     expr: "0x6E141F"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 7176
+  - id: "sp-b6585dd2.0"
+    op: "intercept_call"
+    addr: 0x006a2eda
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Lightbeam fix"
+    scope: "Patch_SA_10"
+    target: "HookEach_DoHeadLightBeam"
+    expr: "HookEach(doHeadLightBeam)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7182
+  - id: "sp-b6585dd2.1"
+    op: "intercept_call"
+    addr: 0x006a2ef2
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Lightbeam fix"
+    scope: "Patch_SA_10"
+    target: "HookEach_DoHeadLightBeam"
+    expr: "HookEach(doHeadLightBeam)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7182
+  - id: "sp-b6585dd2.2"
+    op: "intercept_call"
+    addr: 0x006bde80
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Lightbeam fix"
+    scope: "Patch_SA_10"
+    target: "HookEach_DoHeadLightBeam"
+    expr: "HookEach(doHeadLightBeam)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7182
   - id: "sp-5b8359de"
     op: "patch"
     addr: 0x006e0f39
@@ -3539,7 +3974,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "rwRENDERSTATETEXTURERASTER not saved"
+    group: "Lightbeam fix"
     scope: "Patch_SA_10"
     value: "&RenderStateWrapper<rwRENDERSTATECULLMODE>::PushStatePPtr"
     expr: "0x6E0FAF + 1"
@@ -3551,7 +3986,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "rwRENDERSTATETEXTURERASTER not saved"
+    group: "Lightbeam fix"
     scope: "Patch_SA_10"
     value: "&RenderStateWrapper<rwRENDERSTATEALPHATESTFUNCTION>::PushSta"
     expr: "0x6E0FBB + 2"
@@ -3563,7 +3998,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "rwRENDERSTATETEXTURERASTER not saved"
+    group: "Lightbeam fix"
     scope: "Patch_SA_10"
     value: "&RenderStateWrapper<rwRENDERSTATEALPHATESTFUNCTIONREF>::Push"
     expr: "0x6E0FCB + 2"
@@ -3575,7 +4010,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "rwRENDERSTATETEXTURERASTER not saved"
+    group: "Lightbeam fix"
     scope: "Patch_SA_10"
     value: "&RenderStateWrapper<rwRENDERSTATEZWRITEENABLE>::PopStatePPtr"
     expr: "0x6E13E0 + 2"
@@ -3587,7 +4022,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "rwRENDERSTATETEXTURERASTER not saved"
+    group: "Lightbeam fix"
     scope: "Patch_SA_10"
     value: "&RenderStateWrapper<rwRENDERSTATEZTESTENABLE>::PopStatePPtr"
     expr: "0x6E13ED + 2"
@@ -3599,7 +4034,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "rwRENDERSTATETEXTURERASTER not saved"
+    group: "Lightbeam fix"
     scope: "Patch_SA_10"
     value: "&RenderStateWrapper<rwRENDERSTATESRCBLEND>::PopStatePPtr"
     expr: "0x6E13FA + 1"
@@ -3611,7 +4046,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "rwRENDERSTATETEXTURERASTER not saved"
+    group: "Lightbeam fix"
     scope: "Patch_SA_10"
     value: "&RenderStateWrapper<rwRENDERSTATEDESTBLEND>::PopStatePPtr"
     expr: "0x6E1406 + 2"
@@ -3623,7 +4058,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "rwRENDERSTATETEXTURERASTER not saved"
+    group: "Lightbeam fix"
     scope: "Patch_SA_10"
     value: "&RenderStateWrapper<rwRENDERSTATEVERTEXALPHAENABLE>::PopStat"
     expr: "0x6E1413 + 2"
@@ -3635,7 +4070,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "rwRENDERSTATETEXTURERASTER not saved"
+    group: "Lightbeam fix"
     scope: "Patch_SA_10"
     value: "&RenderStateWrapper<rwRENDERSTATECULLMODE>::PopStatePPtr"
     expr: "0x6E141F + 1"
@@ -3972,7 +4407,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Mouse rotates an airborne car only with Steer with Mouse option enabled"
     scope: "Patch_SA_10"
     expr: "*(bool**)0x6AD7AD"
     file: "SilentPatchSA/SilentPatchSA.cpp"
@@ -4559,7 +4994,7 @@ rows:
     span: 1
     pin: "literal"
     version: "1.0"
-    group: "Add CSprite::FlushSpriteBuffer, jmp loc_6FB605 at the bottom of the function"
+    group: "Fixed lens flare"
     scope: "Patch_SA_10"
     cond: "LensFlareRenderFix::HasGameBindings()"
     value: "0x21"
@@ -4572,7 +5007,7 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Add CSprite::FlushSpriteBuffer, jmp loc_6FB605 at the bottom of the function"
+    group: "Fixed lens flare"
     scope: "Patch_SA_10"
     cond: "LensFlareRenderFix::HasGameBindings()"
     target: "0x70CF20"
@@ -4585,7 +5020,7 @@ rows:
     span: 2
     pin: "literal"
     version: "1.0"
-    group: "Add CSprite::FlushSpriteBuffer, jmp loc_6FB605 at the bottom of the function"
+    group: "Fixed lens flare"
     scope: "Patch_SA_10"
     cond: "LensFlareRenderFix::HasGameBindings()"
     value: "0xDCEB"
@@ -4598,7 +5033,7 @@ rows:
     span: 2
     pin: "literal"
     version: "1.0"
-    group: "Add CSprite::FlushSpriteBuffer, jmp loc_6FB605 at the bottom of the function"
+    group: "Fixed lens flare"
     scope: "Patch_SA_10"
     cond: "LensFlareRenderFix::HasGameBindings()"
     value: "0xB990"
@@ -4611,7 +5046,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "Add CSprite::FlushSpriteBuffer, jmp loc_6FB605 at the bottom of the function"
+    group: "Fixed lens flare"
     scope: "Patch_SA_10"
     cond: "LensFlareRenderFix::HasGameBindings()"
     value: "&FlushLensSwitchZ"
@@ -4624,7 +5059,7 @@ rows:
     span: 2
     pin: "literal"
     version: "1.0"
-    group: "Add CSprite::FlushSpriteBuffer, jmp loc_6FB605 at the bottom of the function"
+    group: "Fixed lens flare"
     scope: "Patch_SA_10"
     cond: "LensFlareRenderFix::HasGameBindings()"
     value: "0xD1FF"
@@ -4637,7 +5072,7 @@ rows:
     span: 1
     pin: "literal"
     version: "1.0"
-    group: "Add CSprite::FlushSpriteBuffer, jmp loc_6FB605 at the bottom of the function"
+    group: "Fixed lens flare"
     scope: "Patch_SA_10"
     cond: "LensFlareRenderFix::HasGameBindings()"
     expr: "0x6FB482"
@@ -4649,7 +5084,7 @@ rows:
     span: 2
     pin: "literal"
     version: "1.0"
-    group: "Add CSprite::FlushSpriteBuffer, jmp loc_6FB605 at the bottom of the function"
+    group: "Fixed lens flare"
     scope: "Patch_SA_10"
     cond: "LensFlareRenderFix::HasGameBindings()"
     value: "0xB990"
@@ -4662,7 +5097,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "Add CSprite::FlushSpriteBuffer, jmp loc_6FB605 at the bottom of the function"
+    group: "Fixed lens flare"
     scope: "Patch_SA_10"
     cond: "LensFlareRenderFix::HasGameBindings()"
     value: "&InitBufferSwitchZ"
@@ -4675,7 +5110,7 @@ rows:
     span: 2
     pin: "literal"
     version: "1.0"
-    group: "Add CSprite::FlushSpriteBuffer, jmp loc_6FB605 at the bottom of the function"
+    group: "Fixed lens flare"
     scope: "Patch_SA_10"
     cond: "LensFlareRenderFix::HasGameBindings()"
     value: "0xD1FF"
@@ -4688,7 +5123,7 @@ rows:
     span: 1
     pin: "literal"
     version: "1.0"
-    group: "Add CSprite::FlushSpriteBuffer, jmp loc_6FB605 at the bottom of the function"
+    group: "Fixed lens flare"
     scope: "Patch_SA_10"
     cond: "LensFlareRenderFix::HasGameBindings()"
     expr: "0x6FAF34"
@@ -4700,7 +5135,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Y axis sensitivity fix"
     scope: "Patch_SA_10"
     expr: "*(float**)0x50F03C"
     file: "SilentPatchSA/SilentPatchSA.cpp"
@@ -4885,6 +5320,78 @@ rows:
     expr: "AddressByRegion_10<BYTE*>(0x7F6683)"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 7457
+  - id: "sp-4be685c5.0"
+    op: "intercept_call"
+    addr: 0x0057d136
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fixed MSAA options"
+    scope: "Patch_SA_10"
+    target: "HookEach_GetMaxMultiSamplingLevels"
+    expr: "HookEach(getMaxMultiSamplingLevels)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7460
+  - id: "sp-4be685c5.1"
+    op: "intercept_call"
+    addr: 0x0057d0ea
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fixed MSAA options"
+    scope: "Patch_SA_10"
+    target: "HookEach_GetMaxMultiSamplingLevels"
+    expr: "HookEach(getMaxMultiSamplingLevels)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7460
+  - id: "sp-62e96125.0"
+    op: "intercept_call"
+    addr: 0x005744fd
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fixed MSAA options"
+    scope: "Patch_SA_10"
+    target: "HookEach_SetOrChangeMultiSamplingLevels"
+    expr: "HookEach(setOrChangeMultiSamplingLevels)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7463
+  - id: "sp-62e96125.1"
+    op: "intercept_call"
+    addr: 0x0057d162
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fixed MSAA options"
+    scope: "Patch_SA_10"
+    target: "HookEach_SetOrChangeMultiSamplingLevels"
+    expr: "HookEach(setOrChangeMultiSamplingLevels)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7463
+  - id: "sp-62e96125.2"
+    op: "intercept_call"
+    addr: 0x0057d2a6
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fixed MSAA options"
+    scope: "Patch_SA_10"
+    target: "HookEach_SetOrChangeMultiSamplingLevels"
+    expr: "HookEach(setOrChangeMultiSamplingLevels)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7463
+  - id: "sp-62e96125.3"
+    op: "intercept_call"
+    addr: 0x00746350
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fixed MSAA options"
+    scope: "Patch_SA_10"
+    target: "HookEach_SetOrChangeMultiSamplingLevels"
+    expr: "HookEach(setOrChangeMultiSamplingLevels)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7463
   - id: "sp-61285fea"
     op: "nop"
     addr: 0x0057a0fc
@@ -4920,6 +5427,45 @@ rows:
     expr: "0x5428EA"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 7470
+  - id: "sp-8f84ef44"
+    op: "intercept_call"
+    addr: 0x01561793
+    span: 5
+    pin: "literal+reroute"
+    version: "1.0"
+    group: "Car explosion crash with multimonitor"
+    scope: "Patch_SA_10"
+    target: "CollisionData_MallocAndInit"
+    expr: "ModCompat::Utils::GetFunctionAddrIfRerouted(0x40F870) + 0x63"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7478
+    note: "0x0040f870 jumps to 0x01561730; the mod follows it"
+  - id: "sp-3ffa1afc.0"
+    op: "intercept_call"
+    addr: 0x01564a1c
+    span: 5
+    pin: "literal+reroute+multi"
+    version: "1.0"
+    group: "Car explosion crash with multimonitor"
+    scope: "Patch_SA_10"
+    target: "HookEach_CollisionDataNew"
+    expr: "HookEach(newAndInit)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7484
+    note: "0x0040f740 jumps to 0x01564a10; the mod follows it; 0x0040f810 jumps to 0x0156deb0; the mod follows it"
+  - id: "sp-3ffa1afc.1"
+    op: "intercept_call"
+    addr: 0x0156debd
+    span: 5
+    pin: "literal+reroute+multi"
+    version: "1.0"
+    group: "Car explosion crash with multimonitor"
+    scope: "Patch_SA_10"
+    target: "HookEach_CollisionDataNew"
+    expr: "HookEach(newAndInit)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7484
+    note: "0x0040f740 jumps to 0x01564a10; the mod follows it; 0x0040f810 jumps to 0x0156deb0; the mod follows it"
   - id: "sp-89404052"
     op: "read_call"
     addr: 0x00745b1e
@@ -5148,7 +5694,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Fixed police scanner names"
     scope: "Patch_SA_10"
     expr: "*(char**)0x4E72D4"
     file: "SilentPatchSA/SilentPatchSA.cpp"
@@ -5477,6 +6023,45 @@ rows:
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 7590
     note: "*(0x6B0AD2 + 2) is the CAutomobile vtable (0x871120); slot 17 is PreRender"
+  - id: "sp-06486cbd.0"
+    op: "intercept_call"
+    addr: 0x006c7e7a
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Animated Phoenix hood scoop"
+    scope: "Patch_SA_10"
+    cond: "HasGameBindings_ExtraAutomobileAnimations()"
+    target: "HookEach_PreRender"
+    expr: "HookEach(preRender)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7593
+  - id: "sp-06486cbd.1"
+    op: "intercept_call"
+    addr: 0x006ceaec
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Animated Phoenix hood scoop"
+    scope: "Patch_SA_10"
+    cond: "HasGameBindings_ExtraAutomobileAnimations()"
+    target: "HookEach_PreRender"
+    expr: "HookEach(preRender)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7593
+  - id: "sp-06486cbd.2"
+    op: "intercept_call"
+    addr: 0x006cfadc
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Animated Phoenix hood scoop"
+    scope: "Patch_SA_10"
+    cond: "HasGameBindings_ExtraAutomobileAnimations()"
+    target: "HookEach_PreRender"
+    expr: "HookEach(preRender)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7593
   - id: "sp-ed1087e8"
     op: "patch"
     addr: 0x0087198c
@@ -5709,6 +6294,34 @@ rows:
     expr: "0x6F3B30"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 7655
+  - id: "sp-153ced45.0"
+    op: "intercept_call"
+    addr: 0x0156d8ea
+    span: 5
+    pin: "literal+reroute+multi"
+    version: "1.0"
+    group: "Fixed bomb ownership/bombs saving for bikes"
+    scope: "Patch_SA_10"
+    cond: "CStoredCar::HasGameBindings_RestoreCar()"
+    target: "HookEach_RestoreCar"
+    expr: "HookEach(restoreCar)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7665
+    note: "0x00448550 jumps to 0x0156d8d0; the mod follows it; 0x004485c0 jumps to 0x01561490; the mod follows it"
+  - id: "sp-153ced45.1"
+    op: "intercept_call"
+    addr: 0x015614ab
+    span: 5
+    pin: "literal+reroute+multi"
+    version: "1.0"
+    group: "Fixed bomb ownership/bombs saving for bikes"
+    scope: "Patch_SA_10"
+    cond: "CStoredCar::HasGameBindings_RestoreCar()"
+    target: "HookEach_RestoreCar"
+    expr: "HookEach(restoreCar)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7665
+    note: "0x00448550 jumps to 0x0156d8d0; the mod follows it; 0x004485c0 jumps to 0x01561490; the mod follows it"
   - id: "sp-b0785104"
     op: "patch"
     addr: 0x00406945
@@ -5848,7 +6461,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Decreased keyboard input latency"
     scope: "Patch_SA_10"
     expr: "*(void**)( 0x541E21"
     file: "SilentPatchSA/SilentPatchSA.cpp"
@@ -5859,7 +6472,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Decreased keyboard input latency"
     scope: "Patch_SA_10"
     expr: "*(void**)( 0x541E26"
     file: "SilentPatchSA/SilentPatchSA.cpp"
@@ -5870,7 +6483,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Decreased keyboard input latency"
     scope: "Patch_SA_10"
     expr: "*(void**)( 0x541E32"
     file: "SilentPatchSA/SilentPatchSA.cpp"
@@ -5881,7 +6494,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Decreased keyboard input latency"
     scope: "Patch_SA_10"
     expr: "*(uint32_t*)( 0x541E1C"
     file: "SilentPatchSA/SilentPatchSA.cpp"
@@ -6057,6 +6670,30 @@ rows:
     expr: "0x6A8298"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 7778
+  - id: "sp-2b62e178.0"
+    op: "intercept_call"
+    addr: 0x0053c6db
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Reset variables on New Game"
+    scope: "Patch_SA_10"
+    target: "HookEach_ReInitGameObjectVariables"
+    expr: "HookEach(reInitGameObjectVariables)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7786
+  - id: "sp-2b62e178.1"
+    op: "intercept_call"
+    addr: 0x0053c76d
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Reset variables on New Game"
+    scope: "Patch_SA_10"
+    target: "HookEach_ReInitGameObjectVariables"
+    expr: "HookEach(reInitGameObjectVariables)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7786
   - id: "sp-2db9eef7"
     op: "intercept_call"
     addr: 0x005b89e4
@@ -6093,6 +6730,186 @@ rows:
     expr: "0x5B89F9"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 7790
+  - id: "sp-d32cacfb"
+    op: "read"
+    addr: 0x0063e8d9
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Reset variables on New Game"
+    scope: "Patch_SA_10"
+    target: "AddVariableToReset"
+    expr: "(bool**)(0x63E8D8+1)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7793
+  - id: "sp-f25a4320"
+    op: "read"
+    addr: 0x0044ac98
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Reset variables on New Game"
+    scope: "Patch_SA_10"
+    target: "AddVariableToReset"
+    expr: "(bool**)(0x44AC97+1)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7794
+  - id: "sp-8690b031"
+    op: "read"
+    addr: 0x0044b49e
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Reset variables on New Game"
+    scope: "Patch_SA_10"
+    target: "AddVariableToReset"
+    expr: "(bool**)(0x44B49D+1)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7795
+  - id: "sp-7812b988"
+    op: "read"
+    addr: 0x00421321
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Reset variables on New Game"
+    scope: "Patch_SA_10"
+    target: "AddVariableToReset"
+    expr: "(int**)(0x42131F + 2)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7797
+  - id: "sp-93e9cd3d"
+    op: "read"
+    addr: 0x0042131b
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Reset variables on New Game"
+    scope: "Patch_SA_10"
+    target: "AddVariableToReset"
+    expr: "(int**)(0x421319 + 2)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7798
+  - id: "sp-fb727f6d"
+    op: "read"
+    addr: 0x0055c844
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Reset variables on New Game"
+    scope: "Patch_SA_10"
+    target: "AddVariableToReset"
+    expr: "(int**)(0x55C843 + 1)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7800
+  - id: "sp-6aee10d4"
+    op: "read"
+    addr: 0x0055ca3a
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Reset variables on New Game"
+    scope: "Patch_SA_10"
+    target: "AddVariableToReset"
+    expr: "(int**)(0x55CA39 + 1)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7801
+  - id: "sp-49c8dacb"
+    op: "read"
+    addr: 0x0055cf40
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Reset variables on New Game"
+    scope: "Patch_SA_10"
+    target: "AddVariableToReset"
+    expr: "(int**)(0x55CF3E + 2)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7802
+  - id: "sp-f5f75260"
+    op: "read"
+    addr: 0x0055cf2c
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Reset variables on New Game"
+    scope: "Patch_SA_10"
+    target: "AddVariableToReset"
+    expr: "(int**)(0x55CF2A + 2)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7803
+  - id: "sp-c3736b1e"
+    op: "read"
+    addr: 0x0055cfc2
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Reset variables on New Game"
+    scope: "Patch_SA_10"
+    target: "AddVariableToReset"
+    expr: "(int**)(0x55CFC1 + 1)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7804
+  - id: "sp-fd3f5c7f"
+    op: "read"
+    addr: 0x0055c5e6
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Reset variables on New Game"
+    scope: "Patch_SA_10"
+    target: "AddVariableToReset"
+    expr: "(int**)(0x55C5E5 + 1)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7805
+  - id: "sp-ec741429"
+    op: "read"
+    addr: 0x0055d044
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Reset variables on New Game"
+    scope: "Patch_SA_10"
+    target: "AddVariableToReset"
+    expr: "(int**)(0x55D043 + 1)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7806
+  - id: "sp-3a7a769e"
+    op: "read"
+    addr: 0x0042136b
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Reset variables on New Game"
+    scope: "Patch_SA_10"
+    target: "AddVariableToReset"
+    expr: "(TimeNextMadDriverChaseCreated_t<float>**)(0x421369 + 2)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7809
+  - id: "sp-270fdb6b"
+    op: "read"
+    addr: 0x004758a6
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Reset variables on New Game"
+    scope: "Patch_SA_10"
+    target: "AddVariableToReset"
+    expr: "(ResetToTrue_t**)(0x4758A4 + 2)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7811
+  - id: "sp-8a696510"
+    op: "read"
+    addr: 0x004758c5
+    span: 4
+    pin: "literal"
+    version: "1.0"
+    group: "Reset variables on New Game"
+    scope: "Patch_SA_10"
+    target: "AddVariableToReset"
+    expr: "(ResetToTrue_t**)(0x4758C4 + 1)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 7812
   - id: "sp-fee068b9"
     op: "nop"
     addr: 0x0044acdc
@@ -6135,7 +6952,7 @@ rows:
     span: 6
     pin: "literal"
     version: "1.0"
-    group: "Remove *= 20.0f from recipz to retrieve the original value for later"
+    group: "Re-introduce corona rotation on PC"
     scope: "Patch_SA_10"
     expr: "0x6FB277"
     file: "SilentPatchSA/SilentPatchSA.cpp"
@@ -6146,7 +6963,7 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Remove *= 20.0f from recipz to retrieve the original value for later"
+    group: "Re-introduce corona rotation on PC"
     scope: "Patch_SA_10"
     target: "orgRenderOneXLUSprite_Rotate_Aspect"
     expr: "0x6FB2E6"
@@ -6158,7 +6975,7 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Remove *= 20.0f from recipz to retrieve the original value for later"
+    group: "Re-introduce corona rotation on PC"
     scope: "Patch_SA_10"
     target: "RenderOneXLUSprite_Rotate_Aspect_SilentPatch"
     expr: "0x6FB2E6"
@@ -6231,7 +7048,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Disallow moving cam up/down with mouse when looking back/left/right in vehicle"
     scope: "Patch_SA_10"
     cond: "FollowCarMouseCamFix::HasGameBindings()"
     expr: "*(bool**)(0x525615"
@@ -6426,7 +7243,7 @@ rows:
     span: ~
     pin: "literal+reroute"
     version: "1.0"
-    group: "If we're overwriting actual meaningful instructions and not NOPs, use a differen"
+    group: "Correct an improperly decrypted CPlayerPedData::operator="
     scope: "Patch_SA_10"
     expr: "placeToPatch"
     file: "SilentPatchSA/SilentPatchSA.cpp"
@@ -6438,7 +7255,7 @@ rows:
     span: 5
     pin: "literal+reroute"
     version: "1.0"
-    group: "If we're overwriting actual meaningful instructions and not NOPs, use a differen"
+    group: "Correct an improperly decrypted CPlayerPedData::operator="
     scope: "Patch_SA_10"
     target: "AssignmentOp_Hoodlum"
     expr: "placeToPatch"
@@ -6451,7 +7268,7 @@ rows:
     span: ~
     pin: "literal+reroute"
     version: "1.0"
-    group: "If we're overwriting actual meaningful instructions and not NOPs, use a differen"
+    group: "Correct an improperly decrypted CPlayerPedData::operator="
     scope: "Patch_SA_10"
     expr: "placeToPatch"
     file: "SilentPatchSA/SilentPatchSA.cpp"
@@ -6463,7 +7280,7 @@ rows:
     span: 5
     pin: "literal+reroute"
     version: "1.0"
-    group: "If we're overwriting actual meaningful instructions and not NOPs, use a differen"
+    group: "Correct an improperly decrypted CPlayerPedData::operator="
     scope: "Patch_SA_10"
     target: "AssignmentOp_Compact"
     expr: "placeToPatch"
@@ -6476,7 +7293,7 @@ rows:
     span: 3
     pin: "literal+reroute"
     version: "1.0"
-    group: "If we're overwriting actual meaningful instructions and not NOPs, use a differen"
+    group: "Correct an improperly decrypted CPlayerPedData::operator="
     scope: "Patch_SA_10"
     expr: "placeToPatch + 5"
     file: "SilentPatchSA/SilentPatchSA.cpp"
@@ -6488,7 +7305,7 @@ rows:
     span: 9
     pin: "literal"
     version: "1.0"
-    group: "(The entity reference is already cleared for us, no need to do it)"
+    group: "Delay destroying of cigarettes/bottles held by NPCs"
     scope: "Patch_SA_10"
     value: "{ 0x81, 0x4E, 0x1C, 0x00, 0x08, 0x00, 0x00, 0xEB, 0x0F }"
     expr: "0x5E03D4"
@@ -6506,6 +7323,30 @@ rows:
     expr: "0x464FC8"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 7995
+  - id: "sp-8aee07fd.0"
+    op: "intercept_call"
+    addr: 0x00566794
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Only allow impounding cars and bikes"
+    scope: "Patch_SA_10"
+    target: "HookEach_ShouldImpound"
+    expr: "HookEach(isThisVehicleInteresting)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8004
+  - id: "sp-8aee07fd.1"
+    op: "intercept_call"
+    addr: 0x0056a378
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Only allow impounding cars and bikes"
+    scope: "Patch_SA_10"
+    target: "HookEach_ShouldImpound"
+    expr: "HookEach(isThisVehicleInteresting)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8004
   - id: "sp-49007958"
     op: "intercept_call"
     addr: 0x0045f060
@@ -6525,20 +7366,34 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Since this function differs between EU and US Hoodlum, exceptionally use pattern"
+    group: "Fix PlayerPed replay crashes"
     scope: "Patch_SA_10"
     cond: "*reinterpret_cast<const uint8_t*>(0x45CEA0) == 0xE9"
     target: "DealWithNewPedPacket_Obfuscated"
     expr: "0x45CEA0"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 8024
+  - id: "sp-70ff7c5e"
+    op: "intercept_call"
+    addr: 0x0156ee68
+    span: 5
+    pin: "manual"
+    version: "1.0"
+    group: "Fix PlayerPed replay crashes"
+    scope: "Patch_SA_10"
+    cond: "ModCompat::Utils::GetModuleHandleFromAddress(DealWithNewPedPacket_Obfuscated) =="
+    target: "RebuildPlayer_LoadAllMotionGroupAnims"
+    expr: "DealWithNewPedPacket"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8030
+    note: "the call at 0x45cea0 jumps to the DRM-moved DealWithNewPedPacket (0x156ed70); the pattern 6A 01 56 E8 inside it matches at 0x156ee65, so the RebuildPlayer call is at +3"
   - id: "sp-4f86068d"
     op: "intercept_call"
     addr: 0x0045cf87
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Since this function differs between EU and US Hoodlum, exceptionally use pattern"
+    group: "Fix PlayerPed replay crashes"
     scope: "Patch_SA_10"
     cond: "!HoodlumPatched"
     target: "RebuildPlayer_LoadAllMotionGroupAnims"
@@ -6670,7 +7525,7 @@ rows:
     span: 3
     pin: "literal"
     version: "1.0"
-    group: "CVehicle::RemoveDriver already sets the status to STATUS_ABANDONED, these are re"
+    group: "Fixed vehicles exploding twice if the driver leaves the car while it's exploding"
     scope: "Patch_SA_10"
     expr: "0x48628D"
     file: "SilentPatchSA/SilentPatchSA.cpp"
@@ -6681,7 +7536,7 @@ rows:
     span: 3
     pin: "literal"
     version: "1.0"
-    group: "CVehicle::RemoveDriver already sets the status to STATUS_ABANDONED, these are re"
+    group: "Fixed vehicles exploding twice if the driver leaves the car while it's exploding"
     scope: "Patch_SA_10"
     expr: "0x647E21"
     file: "SilentPatchSA/SilentPatchSA.cpp"
@@ -6698,6 +7553,54 @@ rows:
     expr: "0x714610"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 8106
+  - id: "sp-634a2a57.0"
+    op: "intercept_call"
+    addr: 0x006b38ca
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix the logic behind exploding cars losing wheels"
+    scope: "Patch_SA_10"
+    target: "HookEach_SpawnFlyingComponent"
+    expr: "HookEach(spawnFlyingComponent)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8116
+  - id: "sp-634a2a57.1"
+    op: "intercept_call"
+    addr: 0x006b3ccb
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix the logic behind exploding cars losing wheels"
+    scope: "Patch_SA_10"
+    target: "HookEach_SpawnFlyingComponent"
+    expr: "HookEach(spawnFlyingComponent)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8116
+  - id: "sp-634a2a57.2"
+    op: "intercept_call"
+    addr: 0x006c6ebe
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix the logic behind exploding cars losing wheels"
+    scope: "Patch_SA_10"
+    target: "HookEach_SpawnFlyingComponent"
+    expr: "HookEach(spawnFlyingComponent)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8116
+  - id: "sp-634a2a57.3"
+    op: "intercept_call"
+    addr: 0x006ccef9
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix the logic behind exploding cars losing wheels"
+    scope: "Patch_SA_10"
+    target: "HookEach_SpawnFlyingComponent"
+    expr: "HookEach(spawnFlyingComponent)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8116
   - id: "sp-fc4100d5"
     op: "nop"
     addr: 0x006b38e4
@@ -6754,6 +7657,30 @@ rows:
     expr: "0x6C25F5 + 2"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 8124
+  - id: "sp-406578ae.0"
+    op: "intercept_call"
+    addr: 0x004674fe
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Make script randomness 16-bit, like on PS2"
+    scope: "Patch_SA_10"
+    target: "HookEach_Rand"
+    expr: "HookEach(rands)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8134
+  - id: "sp-406578ae.1"
+    op: "intercept_call"
+    addr: 0x00467533
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Make script randomness 16-bit, like on PS2"
+    scope: "Patch_SA_10"
+    target: "HookEach_Rand"
+    expr: "HookEach(rands)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8134
   - id: "sp-b566a815"
     op: "patch"
     addr: 0x0063f576
@@ -6772,7 +7699,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Improved resolution selection dialog"
     scope: "Patch_SA_10"
     cond: "NewResolutionSelectionDialog::HasGameBindings()"
     expr: "*(void**)(0x4054DB"
@@ -6836,7 +7763,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "\"Unscale\" text sliding thresholds, so texts don't stay on screen longer at high "
+    group: "Sliding texts scaling fixes"
     scope: "Patch_SA_10"
     value: "&FIXED_RES_WIDTH_SCALE"
     expr: "0x58D2E9 + 1"
@@ -6848,7 +7775,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "Replace dword ptr [esp+0Ch+X], eax \\ dword ptr [esp+0Ch+X]"
+    group: "Sliding texts scaling fixes"
     scope: "Patch_SA_10"
     value: "{ 0x90, 0x90, 0xD9, 0x05 }"
     expr: "0x58C90E"
@@ -6860,7 +7787,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "Replace dword ptr [esp+0Ch+X], eax \\ dword ptr [esp+0Ch+X]"
+    group: "Sliding texts scaling fixes"
     scope: "Patch_SA_10"
     value: "&f620"
     expr: "0x58C90E + 4"
@@ -6872,7 +7799,7 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Fix post effects not scaling correctly"
     scope: "Patch_SA_10"
     expr: "*(uint8_t*)0x701450"
     file: "SilentPatchSA/SilentPatchSA.cpp"
@@ -6883,19 +7810,67 @@ rows:
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Fix post effects not scaling correctly"
     scope: "Patch_SA_10"
     cond: "*(uint8_t*)0x701450 == 0xA1"
     expr: "*(int32_t**)(0x701450"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 8189
+  - id: "sp-ed4afaa7.0"
+    op: "intercept_call"
+    addr: 0x00574509
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix post effects not scaling correctly"
+    scope: "Patch_SA_10"
+    target: "HookEach_SetCurrentVideoMode"
+    expr: "HookEach(setCurrentVideoMode)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8197
+  - id: "sp-ed4afaa7.1"
+    op: "intercept_call"
+    addr: 0x0057d096
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix post effects not scaling correctly"
+    scope: "Patch_SA_10"
+    target: "HookEach_SetCurrentVideoMode"
+    expr: "HookEach(setCurrentVideoMode)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8197
+  - id: "sp-ed4afaa7.2"
+    op: "intercept_call"
+    addr: 0x0057d16e
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix post effects not scaling correctly"
+    scope: "Patch_SA_10"
+    target: "HookEach_SetCurrentVideoMode"
+    expr: "HookEach(setCurrentVideoMode)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8197
+  - id: "sp-ed4afaa7.3"
+    op: "intercept_call"
+    addr: 0x0057d2b2
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix post effects not scaling correctly"
+    scope: "Patch_SA_10"
+    target: "HookEach_SetCurrentVideoMode"
+    expr: "HookEach(setCurrentVideoMode)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8197
   - id: "sp-c8049299"
     op: "intercept_call"
     addr: 0x00745c7d
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Someone re-routed CPostEffects::HeatHazeFXInit and we can't read the variable, f"
+    group: "Fix post effects not scaling correctly"
     scope: "Patch_SA_10"
     target: "SetupBackBufferVertex_Nop"
     expr: "0x745C7D"
@@ -6907,26 +7882,273 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Someone re-routed CPostEffects::HeatHazeFXInit and we can't read the variable, f"
+    group: "Fix post effects not scaling correctly"
     scope: "Patch_SA_10"
     cond: "HasGameBindings_UnderWaterRipple()"
     target: "UnderWaterRipple_ScaleFrequency"
     expr: "0x70529C"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 8202
+  - id: "sp-1607d70a.0"
+    op: "intercept_call"
+    addr: 0x00742eaf
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix heat seeking and gamepad crosshairs not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "CrosshairScalingFixes::HasGameBindings()"
+    target: "HookEach_RenderOneXLUSprite_Rotate_Aspect"
+    expr: "HookEach(renderRotateAspect)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8231
+  - id: "sp-1607d70a.1"
+    op: "intercept_call"
+    addr: 0x00742f45
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix heat seeking and gamepad crosshairs not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "CrosshairScalingFixes::HasGameBindings()"
+    target: "HookEach_RenderOneXLUSprite_Rotate_Aspect"
+    expr: "HookEach(renderRotateAspect)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8231
+  - id: "sp-1607d70a.2"
+    op: "intercept_call"
+    addr: 0x00743073
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix heat seeking and gamepad crosshairs not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "CrosshairScalingFixes::HasGameBindings()"
+    target: "HookEach_RenderOneXLUSprite_Rotate_Aspect"
+    expr: "HookEach(renderRotateAspect)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8231
+  - id: "sp-1607d70a.3"
+    op: "intercept_call"
+    addr: 0x0074311d
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix heat seeking and gamepad crosshairs not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "CrosshairScalingFixes::HasGameBindings()"
+    target: "HookEach_RenderOneXLUSprite_Rotate_Aspect"
+    expr: "HookEach(renderRotateAspect)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8231
+  - id: "sp-1607d70a.4"
+    op: "intercept_call"
+    addr: 0x00743a0a
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix heat seeking and gamepad crosshairs not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "CrosshairScalingFixes::HasGameBindings()"
+    target: "HookEach_RenderOneXLUSprite_Rotate_Aspect"
+    expr: "HookEach(renderRotateAspect)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8231
+  - id: "sp-1607d70a.5"
+    op: "intercept_call"
+    addr: 0x00743bd4
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix heat seeking and gamepad crosshairs not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "CrosshairScalingFixes::HasGameBindings()"
+    target: "HookEach_RenderOneXLUSprite_Rotate_Aspect"
+    expr: "HookEach(renderRotateAspect)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8231
   - id: "sp-0d756195"
     op: "intercept_call"
     addr: 0x0074318d
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Regular crosshair"
+    group: "Fix heat seeking and gamepad crosshairs not scaling to resolution"
     scope: "Patch_SA_10"
     cond: "CrosshairScalingFixes::HasGameBindings()"
     target: "CalcScreenCoors_Recalculate<triangleSizes.size(), 0>"
     expr: "0x74318D"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 8233
+  - id: "sp-26838183.0"
+    op: "intercept_displacement"
+    addr: 0x007436f3
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix heat seeking and gamepad crosshairs not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "CrosshairScalingFixes::HasGameBindings()"
+    target: "HookEach_GamepadCrosshair"
+    expr: "HookEach(triangleSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8234
+  - id: "sp-26838183.1"
+    op: "intercept_displacement"
+    addr: 0x00743701
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix heat seeking and gamepad crosshairs not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "CrosshairScalingFixes::HasGameBindings()"
+    target: "HookEach_GamepadCrosshair"
+    expr: "HookEach(triangleSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8234
+  - id: "sp-26838183.2"
+    op: "intercept_displacement"
+    addr: 0x0074370f
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix heat seeking and gamepad crosshairs not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "CrosshairScalingFixes::HasGameBindings()"
+    target: "HookEach_GamepadCrosshair"
+    expr: "HookEach(triangleSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8234
+  - id: "sp-26838183.3"
+    op: "intercept_displacement"
+    addr: 0x0074374d
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix heat seeking and gamepad crosshairs not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "CrosshairScalingFixes::HasGameBindings()"
+    target: "HookEach_GamepadCrosshair"
+    expr: "HookEach(triangleSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8234
+  - id: "sp-26838183.4"
+    op: "intercept_displacement"
+    addr: 0x00743799
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix heat seeking and gamepad crosshairs not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "CrosshairScalingFixes::HasGameBindings()"
+    target: "HookEach_GamepadCrosshair"
+    expr: "HookEach(triangleSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8234
+  - id: "sp-26838183.5"
+    op: "intercept_displacement"
+    addr: 0x007437d2
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix heat seeking and gamepad crosshairs not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "CrosshairScalingFixes::HasGameBindings()"
+    target: "HookEach_GamepadCrosshair"
+    expr: "HookEach(triangleSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8234
+  - id: "sp-26838183.6"
+    op: "intercept_displacement"
+    addr: 0x007437fd
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix heat seeking and gamepad crosshairs not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "CrosshairScalingFixes::HasGameBindings()"
+    target: "HookEach_GamepadCrosshair"
+    expr: "HookEach(triangleSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8234
+  - id: "sp-26838183.7"
+    op: "intercept_displacement"
+    addr: 0x0074381b
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix heat seeking and gamepad crosshairs not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "CrosshairScalingFixes::HasGameBindings()"
+    target: "HookEach_GamepadCrosshair"
+    expr: "HookEach(triangleSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8234
+  - id: "sp-26838183.8"
+    op: "intercept_displacement"
+    addr: 0x00743871
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix heat seeking and gamepad crosshairs not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "CrosshairScalingFixes::HasGameBindings()"
+    target: "HookEach_GamepadCrosshair"
+    expr: "HookEach(triangleSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8234
+  - id: "sp-26838183.9"
+    op: "intercept_displacement"
+    addr: 0x00743214
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix heat seeking and gamepad crosshairs not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "CrosshairScalingFixes::HasGameBindings()"
+    target: "HookEach_GamepadCrosshair"
+    expr: "HookEach(triangleSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8234
+  - id: "sp-26838183.10"
+    op: "intercept_displacement"
+    addr: 0x00743220
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix heat seeking and gamepad crosshairs not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "CrosshairScalingFixes::HasGameBindings()"
+    target: "HookEach_GamepadCrosshair"
+    expr: "HookEach(triangleSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8234
+  - id: "sp-26838183.11"
+    op: "intercept_displacement"
+    addr: 0x0074325b
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix heat seeking and gamepad crosshairs not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "CrosshairScalingFixes::HasGameBindings()"
+    target: "HookEach_GamepadCrosshair"
+    expr: "HookEach(triangleSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8234
+  - id: "sp-26838183.12"
+    op: "intercept_displacement"
+    addr: 0x00743268
+    span: 4
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix heat seeking and gamepad crosshairs not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "CrosshairScalingFixes::HasGameBindings()"
+    target: "HookEach_GamepadCrosshair"
+    expr: "HookEach(triangleSizes)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8234
   - id: "sp-b043ebef"
     op: "nop"
     addr: 0x006a407b
@@ -6950,6 +8172,54 @@ rows:
     expr: "0x6A407B + 1"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 8244
+  - id: "sp-635927e5.0"
+    op: "intercept_call"
+    addr: 0x006ca09f
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix Hydra's jet thrusters not displaying due to an uninitialized variable in RwM"
+    scope: "Patch_SA_10"
+    target: "HookEach_MatrixMultiply"
+    expr: "HookEach(matrixMult)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8254
+  - id: "sp-635927e5.1"
+    op: "intercept_call"
+    addr: 0x006ca122
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix Hydra's jet thrusters not displaying due to an uninitialized variable in RwM"
+    scope: "Patch_SA_10"
+    target: "HookEach_MatrixMultiply"
+    expr: "HookEach(matrixMult)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8254
+  - id: "sp-635927e5.2"
+    op: "intercept_call"
+    addr: 0x006ca1b2
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix Hydra's jet thrusters not displaying due to an uninitialized variable in RwM"
+    scope: "Patch_SA_10"
+    target: "HookEach_MatrixMultiply"
+    expr: "HookEach(matrixMult)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8254
+  - id: "sp-635927e5.3"
+    op: "intercept_call"
+    addr: 0x006ca242
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fix Hydra's jet thrusters not displaying due to an uninitialized variable in RwM"
+    scope: "Patch_SA_10"
+    target: "HookEach_MatrixMultiply"
+    expr: "HookEach(matrixMult)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8254
   - id: "sp-3d01a271"
     op: "intercept_call"
     addr: 0x005b6fc7
@@ -6986,6 +8256,149 @@ rows:
     expr: "0x64FFAD"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 8275
+  - id: "sp-16e8e5b1"
+    op: "intercept_call"
+    addr: 0x00575e72
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fixed most line wraps not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "FixedLineWraps::HasGameBindings()"
+    target: "HookEach_PrintMap_FullWidth"
+    expr: "HookEach(full_width)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8290
+  - id: "sp-9914e90c.0"
+    op: "intercept_call"
+    addr: 0x005760ba
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fixed most line wraps not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "FixedLineWraps::HasGameBindings()"
+    target: "HookEach_PrintMap_Right"
+    expr: "HookEach(right_align)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8291
+  - id: "sp-9914e90c.1"
+    op: "intercept_call"
+    addr: 0x005762c5
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fixed most line wraps not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "FixedLineWraps::HasGameBindings()"
+    target: "HookEach_PrintMap_Right"
+    expr: "HookEach(right_align)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8291
+  - id: "sp-b8daa890.0"
+    op: "intercept_call"
+    addr: 0x005760c4
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fixed most line wraps not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "FixedLineWraps::HasGameBindings()"
+    target: "HookEach_PrintMap_Left"
+    expr: "HookEach(left_align)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8292
+  - id: "sp-b8daa890.1"
+    op: "intercept_call"
+    addr: 0x005762cf
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fixed most line wraps not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "FixedLineWraps::HasGameBindings()"
+    target: "HookEach_PrintMap_Left"
+    expr: "HookEach(left_align)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8292
+  - id: "sp-5adc348d.0"
+    op: "intercept_call"
+    addr: 0x005794e6
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fixed most line wraps not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "FixedLineWraps::HasGameBindings()"
+    target: "HookEach_DrawStandardMenus_Right"
+    expr: "HookEach(right_align)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8300
+  - id: "sp-5adc348d.1"
+    op: "intercept_call"
+    addr: 0x005796ce
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fixed most line wraps not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "FixedLineWraps::HasGameBindings()"
+    target: "HookEach_DrawStandardMenus_Right"
+    expr: "HookEach(right_align)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8300
+  - id: "sp-5adc348d.2"
+    op: "intercept_call"
+    addr: 0x00579894
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fixed most line wraps not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "FixedLineWraps::HasGameBindings()"
+    target: "HookEach_DrawStandardMenus_Right"
+    expr: "HookEach(right_align)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8300
+  - id: "sp-607b71a5.0"
+    op: "intercept_call"
+    addr: 0x005794f0
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fixed most line wraps not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "FixedLineWraps::HasGameBindings()"
+    target: "HookEach_DrawStandardMenus_Left"
+    expr: "HookEach(left_align)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8301
+  - id: "sp-607b71a5.1"
+    op: "intercept_call"
+    addr: 0x0057989e
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fixed most line wraps not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "FixedLineWraps::HasGameBindings()"
+    target: "HookEach_DrawStandardMenus_Left"
+    expr: "HookEach(left_align)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8301
+  - id: "sp-2a03e332"
+    op: "intercept_call"
+    addr: 0x0045c28f
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Fixed most line wraps not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "FixedLineWraps::HasGameBindings()"
+    target: "HookEach_Display_Right"
+    expr: "HookEach(set_centre_size)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8308
   - id: "sp-5488ea15"
     op: "patch"
     addr: 0x0061e530
@@ -7058,6 +8471,45 @@ rows:
     expr: "0x4613C6"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 8325
+  - id: "sp-c822ab48.0"
+    op: "intercept_call"
+    addr: 0x006fb461
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Corona flares not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "CoronaFlaresScaling::HasGameBindings()"
+    target: "HookEach_RenderOneSprite"
+    expr: "HookEach(render_buffered_flare_sprite)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8334
+  - id: "sp-c822ab48.1"
+    op: "intercept_call"
+    addr: 0x006fb561
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Corona flares not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "CoronaFlaresScaling::HasGameBindings()"
+    target: "HookEach_RenderOneSprite"
+    expr: "HookEach(render_buffered_flare_sprite)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8334
+  - id: "sp-c822ab48.2"
+    op: "intercept_call"
+    addr: 0x006fb5ea
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Corona flares not scaling to resolution"
+    scope: "Patch_SA_10"
+    cond: "CoronaFlaresScaling::HasGameBindings()"
+    target: "HookEach_RenderOneSprite"
+    expr: "HookEach(render_buffered_flare_sprite)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8334
   - id: "sp-59f8e9b4"
     op: "read_call"
     addr: 0x005d3dc4
@@ -7216,9 +8668,9 @@ rows:
     line: 8378
   - id: "sp-9065fe19"
     op: "patch"
-    addr: 0x005e452c
+    addr: 0x01560b5b
     span: 2
-    pin: "pattern"
+    pin: "manual"
     version: "1.0"
     group: "Stop gang wars clearing the friendly entity blips when the gang war ends"
     scope: "Patch_SA_10"
@@ -7227,12 +8679,12 @@ rows:
     expr: "clear_blip_on_death_check.get<void>(0)"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 8396
-    note: "pattern matched 3 times"
+    note: "ReleasePedsInAttackWave (0x445c30) jumps to its DRM-moved body at 0x15609c0; SilentPatch scans 0x200 bytes from there, where 8B 86 74 04 00 00 F6 C4 20 is at 0x1560b5b, not the first match in the image (0x5e452c)"
   - id: "sp-97e9095a"
     op: "inject_call"
-    addr: 0x005e452e
+    addr: 0x01560b5d
     span: 5
-    pin: "pattern"
+    pin: "manual"
     version: "1.0"
     group: "Stop gang wars clearing the friendly entity blips when the gang war ends"
     scope: "Patch_SA_10"
@@ -7241,12 +8693,12 @@ rows:
     expr: "clear_blip_on_death_check.get<void>(2)"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 8397
-    note: "pattern matched 3 times"
+    note: "the same match, +2"
   - id: "sp-4fddafe8"
     op: "patch"
-    addr: 0x005e4533
+    addr: 0x01560b62
     span: 2
-    pin: "pattern"
+    pin: "manual"
     version: "1.0"
     group: "Stop gang wars clearing the friendly entity blips when the gang war ends"
     scope: "Patch_SA_10"
@@ -7255,14 +8707,14 @@ rows:
     expr: "clear_blip_on_death_check.get<void>(7)"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 8398
-    note: "pattern matched 3 times"
+    note: "the same match, +7"
   - id: "sp-739a8003"
     op: "bind"
     addr: 0x0043be8a
     span: ~
     pin: "literal"
     version: "1.0"
-    group: "bindings: SilentPatchSA.cpp"
+    group: "Speech system fixes: weather conversations"
     scope: "Patch_SA_10"
     expr: "*(uint32_t**)(0x43BE8A"
     file: "SilentPatchSA/SilentPatchSA.cpp"
@@ -7273,7 +8725,7 @@ rows:
     span: 1
     pin: "literal"
     version: "1.0"
-    group: "Speech system fixes"
+    group: "Speech system fixes: weather conversations"
     scope: "Patch_SA_10"
     value: "8"
     expr: "0x43B341 + 1"
@@ -7285,19 +8737,31 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Speech system fixes"
+    group: "Speech system fixes: weather conversations"
     scope: "Patch_SA_10"
     target: "PedSay_NegativeWeatherOverride"
     expr: "0x43BE4A"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 8410
+  - id: "sp-caeb3590"
+    op: "intercept_call"
+    addr: 0x004e67e2
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Speech system fixes: weather conversations"
+    scope: "Patch_SA_10"
+    target: "HookEach_GetSoundAndBankIDs"
+    expr: "HookEach(get_sound_and_bank_ids)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8416
   - id: "sp-77cd101e"
     op: "intercept_call"
     addr: 0x004e5a67
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Special case CJ's weather responses to fall back to the CD mood instead of CR"
+    group: "Speech system fixes: weather conversations"
     scope: "Patch_SA_10"
     target: "GetCurrentCJMood_Override"
     expr: "0x4E5A67"
@@ -7309,19 +8773,43 @@ rows:
     span: 1
     pin: "literal"
     version: "1.0"
-    group: "Special case CJ's weather responses to fall back to the CD mood instead of CR"
+    group: "Speech system fixes: criminals fleeing cops"
     scope: "Patch_SA_10"
     value: "0"
     expr: "0x4B9BB9 + 1"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 8419
+  - id: "sp-06abc536.0"
+    op: "intercept_call"
+    addr: 0x005b75ab
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Speech system fixes: ped voice names"
+    scope: "Patch_SA_10"
+    target: "HookEach_GetVoice"
+    expr: "HookEach(get_voices)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8425
+  - id: "sp-06abc536.1"
+    op: "intercept_call"
+    addr: 0x005b75bd
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Speech system fixes: ped voice names"
+    scope: "Patch_SA_10"
+    target: "HookEach_GetVoice"
+    expr: "HookEach(get_voices)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8425
   - id: "sp-5b443663"
     op: "intercept_call"
     addr: 0x005b749d
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Try to fixup VOICE_GEN_S*FYST vs VOICE_GEN_S*FYSTR"
+    group: "Speech system fixes: ped voice names"
     scope: "Patch_SA_10"
     target: "sscanf_PedsIde_FixupVoiceNames"
     expr: "0x5B749D"
@@ -7350,6 +8838,150 @@ rows:
     expr: "0x444078"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 8432
+  - id: "sp-67185290.0"
+    op: "intercept_call"
+    addr: 0x0044408b
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Play turf takeover cheers on CJ, not on his gang members"
+    scope: "Patch_SA_10"
+    target: "HookEach_TextLabelStricmp"
+    expr: "HookEach(stricmp_calls)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8440
+  - id: "sp-67185290.1"
+    op: "intercept_call"
+    addr: 0x004440bc
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Play turf takeover cheers on CJ, not on his gang members"
+    scope: "Patch_SA_10"
+    target: "HookEach_TextLabelStricmp"
+    expr: "HookEach(stricmp_calls)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8440
+  - id: "sp-67185290.2"
+    op: "intercept_call"
+    addr: 0x004440ed
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Play turf takeover cheers on CJ, not on his gang members"
+    scope: "Patch_SA_10"
+    target: "HookEach_TextLabelStricmp"
+    expr: "HookEach(stricmp_calls)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8440
+  - id: "sp-67185290.3"
+    op: "intercept_call"
+    addr: 0x0044411d
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Play turf takeover cheers on CJ, not on his gang members"
+    scope: "Patch_SA_10"
+    target: "HookEach_TextLabelStricmp"
+    expr: "HookEach(stricmp_calls)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8440
+  - id: "sp-67185290.4"
+    op: "intercept_call"
+    addr: 0x0044414e
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Play turf takeover cheers on CJ, not on his gang members"
+    scope: "Patch_SA_10"
+    target: "HookEach_TextLabelStricmp"
+    expr: "HookEach(stricmp_calls)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8440
+  - id: "sp-67185290.5"
+    op: "intercept_call"
+    addr: 0x0044417f
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Play turf takeover cheers on CJ, not on his gang members"
+    scope: "Patch_SA_10"
+    target: "HookEach_TextLabelStricmp"
+    expr: "HookEach(stricmp_calls)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8440
+  - id: "sp-67185290.6"
+    op: "intercept_call"
+    addr: 0x004441af
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Play turf takeover cheers on CJ, not on his gang members"
+    scope: "Patch_SA_10"
+    target: "HookEach_TextLabelStricmp"
+    expr: "HookEach(stricmp_calls)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8440
+  - id: "sp-67185290.7"
+    op: "intercept_call"
+    addr: 0x004441e0
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Play turf takeover cheers on CJ, not on his gang members"
+    scope: "Patch_SA_10"
+    target: "HookEach_TextLabelStricmp"
+    expr: "HookEach(stricmp_calls)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8440
+  - id: "sp-67185290.8"
+    op: "intercept_call"
+    addr: 0x00444211
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Play turf takeover cheers on CJ, not on his gang members"
+    scope: "Patch_SA_10"
+    target: "HookEach_TextLabelStricmp"
+    expr: "HookEach(stricmp_calls)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8440
+  - id: "sp-67185290.9"
+    op: "intercept_call"
+    addr: 0x00444241
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Play turf takeover cheers on CJ, not on his gang members"
+    scope: "Patch_SA_10"
+    target: "HookEach_TextLabelStricmp"
+    expr: "HookEach(stricmp_calls)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8440
+  - id: "sp-67185290.10"
+    op: "intercept_call"
+    addr: 0x00444272
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Play turf takeover cheers on CJ, not on his gang members"
+    scope: "Patch_SA_10"
+    target: "HookEach_TextLabelStricmp"
+    expr: "HookEach(stricmp_calls)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8440
+  - id: "sp-67185290.11"
+    op: "intercept_call"
+    addr: 0x004442a3
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Play turf takeover cheers on CJ, not on his gang members"
+    scope: "Patch_SA_10"
+    target: "HookEach_TextLabelStricmp"
+    expr: "HookEach(stricmp_calls)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8440
   - id: "sp-5746c6a9"
     op: "intercept_call"
     addr: 0x00666a82
@@ -7374,6 +9006,32 @@ rows:
     expr: "0x666A9C"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 8444
+  - id: "sp-bd8887fc.0"
+    op: "intercept_call"
+    addr: 0x00660248
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Add missing LSV taunt speech to CTaskComplexGangLeader::DoGangAbuseSpeech"
+    scope: "Patch_SA_10"
+    cond: "HasGameBindings_DoGangAbuseSpeech()"
+    target: "HookEach_DoGangAbuseSpeech"
+    expr: "HookEach(do_gang_abuse_speech)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8452
+  - id: "sp-bd8887fc.1"
+    op: "intercept_call"
+    addr: 0x0066069e
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Add missing LSV taunt speech to CTaskComplexGangLeader::DoGangAbuseSpeech"
+    scope: "Patch_SA_10"
+    cond: "HasGameBindings_DoGangAbuseSpeech()"
+    target: "HookEach_DoGangAbuseSpeech"
+    expr: "HookEach(do_gang_abuse_speech)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8452
   - id: "sp-b3ef02af"
     op: "intercept_call"
     addr: 0x00626a5b
@@ -7387,6 +9045,30 @@ rows:
     expr: "0x626A5B"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 8459
+  - id: "sp-0a839eee.0"
+    op: "intercept_call"
+    addr: 0x006a8254
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Add a CRASH_GENERIC fallback, as not everyone has CRASH_CAR or CRASH_BIKE"
+    scope: "Patch_SA_10"
+    target: "HookEach_VehicleDamageFallback"
+    expr: "HookEach(vehicle_damage_fallback)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8467
+  - id: "sp-0a839eee.1"
+    op: "intercept_call"
+    addr: 0x006b9145
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Add a CRASH_GENERIC fallback, as not everyone has CRASH_CAR or CRASH_BIKE"
+    scope: "Patch_SA_10"
+    target: "HookEach_VehicleDamageFallback"
+    expr: "HookEach(vehicle_damage_fallback)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8467
   - id: "sp-1d647cc3"
     op: "inject_jump"
     addr: 0x004b3349
@@ -7471,6 +9153,54 @@ rows:
     expr: "0x62740B"
     file: "SilentPatchSA/SilentPatchSA.cpp"
     line: 8487
+  - id: "sp-7f3c33e9.0"
+    op: "intercept_call"
+    addr: 0x00627587
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Enable SURROUNDED and COVER ME lines for cops"
+    scope: "Patch_SA_10"
+    target: "HookEach_GetPedGroupsForCops"
+    expr: "HookEach(get_peds_group)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8492
+  - id: "sp-7f3c33e9.1"
+    op: "intercept_call"
+    addr: 0x0062c96c
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Enable SURROUNDED and COVER ME lines for cops"
+    scope: "Patch_SA_10"
+    target: "HookEach_GetPedGroupsForCops"
+    expr: "HookEach(get_peds_group)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8492
+  - id: "sp-7f3c33e9.2"
+    op: "intercept_call"
+    addr: 0x0062d21b
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Enable SURROUNDED and COVER ME lines for cops"
+    scope: "Patch_SA_10"
+    target: "HookEach_GetPedGroupsForCops"
+    expr: "HookEach(get_peds_group)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8492
+  - id: "sp-7f3c33e9.3"
+    op: "intercept_call"
+    addr: 0x0062cf5a
+    span: 5
+    pin: "literal+multi"
+    version: "1.0"
+    group: "Enable SURROUNDED and COVER ME lines for cops"
+    scope: "Patch_SA_10"
+    target: "HookEach_GetPedGroupsForCops"
+    expr: "HookEach(get_peds_group)"
+    file: "SilentPatchSA/SilentPatchSA.cpp"
+    line: 8492
   - id: "sp-91753129"
     op: "write_offset"
     addr: 0x0043bc15
@@ -7525,7 +9255,7 @@ rows:
     span: 1
     pin: "literal"
     version: "1.0"
-    group: "Replace a legacy flag check with a fleeing event check, and play GOOD_CITIZEN on"
+    group: "Good Citizen Bonus"
     scope: "Patch_SA_10"
     cond: "GoodCitizenBonus::HasGameBindings()"
     value: "0x57"
@@ -7538,7 +9268,7 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Replace a legacy flag check with a fleeing event check, and play GOOD_CITIZEN on"
+    group: "Good Citizen Bonus"
     scope: "Patch_SA_10"
     cond: "GoodCitizenBonus::HasGameBindings()"
     target: "IsPedFleeingFromCops_PlayAudio"
@@ -7551,7 +9281,7 @@ rows:
     span: 4
     pin: "literal"
     version: "1.0"
-    group: "Replace a legacy flag check with a fleeing event check, and play GOOD_CITIZEN on"
+    group: "Good Citizen Bonus"
     scope: "Patch_SA_10"
     cond: "GoodCitizenBonus::HasGameBindings()"
     value: "{ 0x84, 0xC0, 0x90, 0x90 }"
@@ -7564,7 +9294,7 @@ rows:
     span: 1
     pin: "literal"
     version: "1.0"
-    group: "Prevent the player from getting punished for defending against the criminal they"
+    group: "Good Citizen Bonus"
     scope: "Patch_SA_10"
     cond: "GoodCitizenBonus::HasGameBindings()"
     value: "0x57"
@@ -7577,7 +9307,7 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Prevent the player from getting punished for defending against the criminal they"
+    group: "Good Citizen Bonus"
     scope: "Patch_SA_10"
     cond: "GoodCitizenBonus::HasGameBindings()"
     target: "IsNotDying_AndBonusNotGiven"
@@ -7590,7 +9320,7 @@ rows:
     span: 3
     pin: "literal"
     version: "1.0"
-    group: "Prevent the player from getting punished for defending against the criminal they"
+    group: "Good Citizen Bonus"
     scope: "Patch_SA_10"
     cond: "GoodCitizenBonus::HasGameBindings()"
     value: "{ 0x84, 0xC0, 0x90 }"
@@ -7603,7 +9333,7 @@ rows:
     span: 6
     pin: "literal"
     version: "1.0"
-    group: "Prevent the player from getting punished for defending against the criminal they"
+    group: "Good Citizen Bonus"
     scope: "Patch_SA_10"
     cond: "GoodCitizenBonus::HasGameBindings()"
     expr: "0x5320B0"
@@ -7615,7 +9345,7 @@ rows:
     span: 5
     pin: "literal"
     version: "1.0"
-    group: "Inject a fallback text as GOODBOY doesn't exist by default"
+    group: "Good Citizen Bonus"
     scope: "Patch_SA_10"
     cond: "GoodCitizenBonus::HasGameBindings()"
     target: "GetText_Goodboy_Fallback"

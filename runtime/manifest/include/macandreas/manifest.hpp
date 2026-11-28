@@ -24,7 +24,19 @@ constexpr bool is_operand_slot_instruction(uint8_t opcode, uint8_t modrm) {
     return (modrm & 0xC7) == 0x05 && (opcode == 0xD8 || (opcode == 0xD9 && (modrm & 0x38) == 0));
 }
 
-enum class Kind { byte_patch, nop, data_poke, call_redirect, mid_hook, func_replace, operand_slot, data_slot, marker };
+enum class Kind {
+    byte_patch,
+    nop,
+    data_poke,
+    call_redirect,
+    mid_hook,
+    func_replace,
+    operand_slot,
+    data_slot,
+    vtable_redirect,
+    imm_redirect,
+    marker
+};
 enum class Source { silentpatch, widescreen, project2dfx, native };
 
 std::string_view to_string(Kind kind);

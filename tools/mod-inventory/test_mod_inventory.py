@@ -279,6 +279,37 @@ void Init()
         got = sorted((r.op, r.addr) for r in rows)
         self.assertEqual(got, [("make_call", 0x401030), ("make_call", 0x401040), ("patch", 0x401012), ("patch", 0x401022)])
 
+    def test_hook_each_lists_resets_and_table_reads(self):
+        text = """
+template<typename T>
+static void AddVariableToReset(T** ptr)
+{
+}
+void Patch_SA_10()
+{
+    // Hook these calls
+    std::array<uintptr_t, 2> calls = { 0x401010, 0x401020 };
+    Fix::HookEach_Calls(calls, InterceptCall);
+    // Scale these sizes
+    std::array<float**, 2> sizes = { (float**)(0x401030 + 2), (float**)(0x401040 + 2) };
+    HookEach_Sizes(sizes, InterceptMemDisplacement);
+    // Reset these
+    AddVariableToReset( (bool**)(0x401050+1) );
+    // Tables
+    auto table = *reinterpret_cast<int16_t (**)[8]>(0x401060 + 1);
+}
+"""
+        rows, _ = rows_for(SP_CFG, text, self.image)
+        got = sorted((r.op, r.addr, r.group) for r in rows)
+        self.assertEqual(got, [
+            ("intercept_call", 0x401010, "Hook these calls"),
+            ("intercept_call", 0x401020, "Hook these calls"),
+            ("intercept_displacement", 0x401032, "Scale these sizes"),
+            ("intercept_displacement", 0x401042, "Scale these sizes"),
+            ("read", 0x401051, "Reset these"),
+            ("read", 0x401061, "Tables"),
+        ])
+
 
 class TriageTests(unittest.TestCase):
     def rows(self):

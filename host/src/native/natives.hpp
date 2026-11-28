@@ -43,6 +43,7 @@ std::span<const MidHookSymbol> widescreen_mid_hooks();
 std::span<const NativeSymbol> widescreen_hud_symbols();
 std::span<const MidHookSymbol> widescreen_hud_mid_hooks();
 MidHookFn find_mid_hook(std::string_view name);
+std::span<const SlotSymbol> silentpatch_slots();
 std::span<const SlotSymbol> widescreen_slots();
 std::span<const SlotSymbol> widescreen_hud_slots();
 SlotFn find_slot(std::string_view name);

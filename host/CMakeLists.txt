@@ -44,6 +44,7 @@ add_library(sa-host-core OBJECT
     src/native/widescreen_hud.cpp
     src/mod_settings.cpp
     src/camera_pin.cpp
+    src/guest_calls.cpp
     src/manifest_runtime.cpp
     src/settings.cpp
     src/perf.cpp
@@ -62,6 +63,12 @@ set_source_files_properties(src/media/pl_mpeg_impl.c PROPERTIES COMPILE_OPTIONS 
 set_source_files_properties(src/gfx/renderer_metal.mm src/platform/window.mm src/audio/output.mm src/input/gamepad.mm
     PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
 target_include_directories(sa-host-core PUBLIC src)
+set(MA_LUNAR_PNG "${CMAKE_SOURCE_DIR}/mods/silentpatch/lunar64.png")
+file(READ "${MA_LUNAR_PNG}" MA_LUNAR_HEX HEX)
+string(REGEX REPLACE "([0-9a-f][0-9a-f])" "0x\\1," MA_LUNAR_BYTES "${MA_LUNAR_HEX}")
+file(CONFIGURE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/generated/lunar64_png.inc" CONTENT "${MA_LUNAR_BYTES}\n" @ONLY)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${MA_LUNAR_PNG}")
+target_include_directories(sa-host-core PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
 target_include_directories(sa-host-core SYSTEM PRIVATE "${CMAKE_SOURCE_DIR}/third_party/pl_mpeg")
 find_path(MA_VORBIS_INCLUDE vorbis/vorbisfile.h HINTS /opt/homebrew/opt/libvorbis/include REQUIRED)
 find_path(MA_OGG_INCLUDE ogg/ogg.h HINTS /opt/homebrew/opt/libogg/include REQUIRED)

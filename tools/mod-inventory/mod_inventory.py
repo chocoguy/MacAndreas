@@ -1067,6 +1067,34 @@ class Evaluator:
         expr = self.src.code[start:end]
         return self.eval(expr, best.start())
 
+    def list_value(self, name: str, pos: int) -> Value:
+        here_ids = {id(f) for f in frames_at(self.frames, pos)}
+        rx = re.compile(r"(?<![\w.>:])" + re.escape(name) + r"\s*=\s*\{")
+        best = None
+        for m in rx.finditer(self.src.masked, 0, pos):
+            if {id(f) for f in frames_at(self.frames, m.start())} <= here_ids:
+                best = m
+        if best is None:
+            return unknown(f"no list named {name}")
+        close = self._close_paren(self.src.masked, best.end() - 1, "{", "}")
+        if close < 0:
+            return unknown(f"unterminated list {name}")
+        addrs: List[int] = []
+        pins: List[str] = []
+        notes: List[str] = []
+        for item in split_top(self.src.code[best.end():close]):
+            if not item.strip():
+                continue
+            v = self.eval(item, best.start())
+            if v.kind != "addr":
+                return unknown(f"list element of {name}: {v.reason or v.kind}")
+            addrs.extend(v.addrs)
+            pins.extend(p for p in v.pins if p not in pins)
+            notes.extend(v.notes)
+        if not addrs:
+            return unknown(f"empty list {name}")
+        return Value("addr", addrs, pins + ["multi"], notes)
+
     def _via_callers(self, name: str, here: List[Frame], pos: int) -> Optional[Value]:
         owner = None
         for f in reversed(here):
@@ -1185,10 +1213,15 @@ OP_ALIASES = {
     "Memory::WriteMemDisplacement": "WriteMemDisplacement", "Memory::ReadMemDisplacement": "ReadMemDisplacement",
     "Memory::VP::WriteMemDisplacement": "WriteMemDisplacement", "Memory::VP::ReadMemDisplacement": "ReadMemDisplacement",
     "Memory::MemEquals": "MemEquals", "Memory::Verify": "Verify",
+    "VP::Patch": "Patch", "VP::Nop": "Nop", "VP::InjectHook": "InjectHook", "VP::InterceptCall": "InterceptCall",
+    "VP::ReadCall": "ReadCall", "VP::Read": "Read",
 }
 
 CALL_RX = re.compile(r"(?<![\w.>])((?:[A-Za-z_]\w*::)*[A-Za-z_]\w*)\s*(?=[<(])")
 BIND_RX = re.compile(r"(?<![\w.>])(?:Memory::)?(AddressByVersion|External(?:Ref|Func|Method|Var)\w*)\b")
+HOOK_EACH_RX = re.compile(r"(?<![\w.>])(?:[A-Za-z_]\w*(?:<[^<>;()]*>)?::)*HookEach_\w+\s*\(\s*([A-Za-z_]\w*)\s*,\s*((?:[\w:]+::)?(?:InterceptCall|InterceptMemDisplacement))\s*\)")
+RESET_RX = re.compile(r"(?<![\w.>])AddVariableToReset\s*\(")
+REINTERPRET_DEREF_RX = re.compile(r"\*\s*reinterpret_cast\s*<[^;]*?>\s*\(\s*(0[xX][0-9a-fA-F]{6,8})\s*\+\s*(\d+)\s*\)")
 DEREF_RX = re.compile(r"\*\s*\(\s*" + CAST_TYPES + r"\s*\)\s*\(?\s*(0[xX][0-9a-fA-F]{6,8})\b")
 
 
@@ -1406,6 +1439,48 @@ def scan_text(cfg: dict, rel: str, text: str, image: Optional[Image]) -> List[Si
             op="bind", file=rel, line=line, scope=scope_name(here), group=heading_for(src, frames, line, m.start()),
             cond=cond_text(here), expr=Evaluator.redact(expr)[:80], value="", target="", size=None, result=result,
             version=version_for(cfg, here, result), pos=m.start()))
+
+    for m in HOOK_EACH_RX.finditer(src.masked):
+        here = frames_at(frames, m.start())
+        if any(f.kind == "function" and f.name and "HookEach" in f.name for f in here):
+            continue
+        name, how = m.group(1), m.group(2).split("::")[-1]
+        op = "intercept_displacement" if how == "InterceptMemDisplacement" else "intercept_call"
+        result = ev.list_value(name, m.start())
+        line = src.line_of(m.start())
+        consumed.append((m.start(), m.end()))
+        sites.append(Site(
+            op=op, file=rel, line=line, scope=scope_name(here), group=heading_for(src, frames, line, m.start()),
+            cond=cond_text(here), expr=f"HookEach({name})", value="", target=m.group(0).split("(")[0].split("::")[-1][:60],
+            size=5 if op == "intercept_call" else 4, result=result, version=version_for(cfg, here, result), pos=m.start()))
+
+    for m in RESET_RX.finditer(src.masked):
+        here = frames_at(frames, m.start())
+        if re.search(r"\bvoid\s*$", src.masked[max(0, m.start() - 20):m.start()]):
+            continue
+        open_pos = m.end() - 1
+        end = Evaluator._close_paren(src.masked, open_pos)
+        if end < 0:
+            continue
+        expr = src.code[open_pos + 1:end]
+        result = ev.eval(expr, m.start())
+        line = src.line_of(m.start())
+        consumed.append((m.start(), end))
+        sites.append(Site(
+            op="read", file=rel, line=line, scope=scope_name(here), group=heading_for(src, frames, line, m.start()),
+            cond=cond_text(here), expr=Evaluator.redact(expr)[:80], value="", target="AddVariableToReset", size=4,
+            result=result, version=version_for(cfg, here, result), pos=m.start()))
+
+    for m in REINTERPRET_DEREF_RX.finditer(src.masked):
+        if inside_op(m.start()):
+            continue
+        here = frames_at(frames, m.start())
+        line = src.line_of(m.start())
+        result = Value("addr", [int(m.group(1), 16) + int(m.group(2))], ["literal"])
+        sites.append(Site(
+            op="read", file=rel, line=line, scope=scope_name(here), group=heading_for(src, frames, line, m.start()),
+            cond=cond_text(here), expr=Evaluator.redact(src.code[m.start():m.end()])[:80], value="", target="",
+            size=4, result=result, version=version_for(cfg, here, result), pos=m.start()))
 
     for m in DEREF_RX.finditer(src.masked):
         if inside_op(m.start()):
@@ -1909,7 +1984,7 @@ def manifest_span(e: dict) -> int:
         return int(e.get("len") or 5)
     if kind == "operand_slot":
         return 6
-    if kind == "data_slot":
+    if kind in ("data_slot", "vtable_redirect", "imm_redirect"):
         return 4
     return 1
 

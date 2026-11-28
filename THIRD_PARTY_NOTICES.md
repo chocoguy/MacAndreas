@@ -17,6 +17,8 @@ MacAndreas contains no Grand Theft Auto: San Andreas code or assets. Users suppl
 | Project2DFX (SA) | https://github.com/ThirteenAG/III.VC.SA.IV.Project2DFX | GPL-3.0 | `16509fcac44f0d0ea9eccc25d047055877c020b8` |
 
 Pinned commits are the upstream revisions the inventory and port are based on (M7–M10).
+SilentPatch's moon phase mask (`mods/silentpatch/lunar64.png`, by aap) is bundled unchanged and
+compiled into `sa-host`.
 
 ## Linked or bundled libraries
 

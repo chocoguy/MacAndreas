@@ -17,6 +17,7 @@ constexpr std::pair<std::string_view, Kind> kKinds[] = {
     {"byte_patch", Kind::byte_patch},       {"nop", Kind::nop},           {"data_poke", Kind::data_poke},
     {"call_redirect", Kind::call_redirect}, {"mid_hook", Kind::mid_hook}, {"func_replace", Kind::func_replace},
     {"operand_slot", Kind::operand_slot}, {"data_slot", Kind::data_slot},       {"marker", Kind::marker},
+    {"vtable_redirect", Kind::vtable_redirect}, {"imm_redirect", Kind::imm_redirect},
 };
 
 constexpr std::pair<std::string_view, Source> kSources[] = {
@@ -275,6 +276,15 @@ void finish_entry(Pending& p, std::vector<Diagnostic>& errors, Manifest& manifes
             add(errors, f, line, "call_redirect len must be 5 (call rel32) or 6 (call [mem])");
         }
         break;
+    case Kind::vtable_redirect:
+    case Kind::imm_redirect:
+        if (!has_target) {
+            add(errors, f, line, std::format("{} needs a target symbol", to_string(e.kind)));
+        }
+        if (has_bytes || e.len != 0) {
+            add(errors, f, line, std::format("{} takes no bytes or len", to_string(e.kind)));
+        }
+        break;
     case Kind::operand_slot:
     case Kind::data_slot:
         if (!has_target) {
@@ -340,6 +350,8 @@ uint32_t Entry::span() const {
     case Kind::func_replace: return 1;
     case Kind::operand_slot: return 6;
     case Kind::data_slot: return 4;
+    case Kind::vtable_redirect:
+    case Kind::imm_redirect: return 4;
     case Kind::marker: return 0;
     }
     return 1;
@@ -347,7 +359,7 @@ uint32_t Entry::span() const {
 
 bool Entry::lift_time() const {
     return kind == Kind::byte_patch || kind == Kind::nop || kind == Kind::call_redirect || kind == Kind::mid_hook ||
-           kind == Kind::operand_slot;
+           kind == Kind::operand_slot || kind == Kind::imm_redirect;
 }
 
 std::string Diagnostic::text() const { return std::format("{}:{}: {}", file, line, message); }

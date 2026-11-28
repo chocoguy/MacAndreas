@@ -267,6 +267,27 @@ bool op_uses_texture(uint8_t op, uint8_t a0, uint8_t a1, uint8_t a2) {
            (op_uses_arg2(op) && arg_is_texture(a2));
 }
 
+std::array<int, kMaxLights> active_light_slots(const FixedFunctionState& s) {
+    std::array<int, kMaxLights> slots{};
+    for (unsigned i = 0; i < kMaxLights; ++i) {
+        slots[i] = s.light_enabled[i] ? static_cast<int>(i) : -1;
+    }
+    unsigned free = 0;
+    for (unsigned i = kMaxLights; i < kStoredLights; ++i) {
+        if (!s.light_enabled[i]) {
+            continue;
+        }
+        while (free < kMaxLights && slots[free] >= 0) {
+            ++free;
+        }
+        if (free == kMaxLights) {
+            break;
+        }
+        slots[free] = static_cast<int>(i);
+    }
+    return slots;
+}
+
 uint8_t material_source(const FixedFunctionState& s, uint32_t state, const VertexLayout& l) {
     uint32_t src = s.rs[state];
     if (!s.rs[rs::colorvertex] || src == 0 || src > 2) {
@@ -308,8 +329,9 @@ PipelineKey build_pipeline_key(const FixedFunctionState& s, const VertexLayout& 
         k.ambient_source = material_source(s, rs::ambientmaterialsource, layout);
         k.specular_source = material_source(s, rs::specularmaterialsource, layout);
         k.emissive_source = material_source(s, rs::emissivematerialsource, layout);
+        auto slots = active_light_slots(s);
         for (unsigned i = 0; i < kMaxLights; ++i) {
-            k.light_types[i] = s.light_enabled[i] ? static_cast<uint8_t>(s.lights[i].type) : 0;
+            k.light_types[i] = slots[i] >= 0 ? static_cast<uint8_t>(s.lights[static_cast<unsigned>(slots[i])].type) : 0;
         }
     }
     k.specular_enable = s.rs[rs::specularenable] ? 1 : 0;
@@ -467,8 +489,9 @@ void build_uniforms(const FixedFunctionState& s, VertexUniforms& vs, FragmentUni
     std::memcpy(vs.mat_emissive, s.material.emissive, 16);
     vs.mat_power[0] = s.material.power;
     vs.mat_power[1] = vs.mat_power[2] = vs.mat_power[3] = 0;
+    auto slots = active_light_slots(s);
     for (unsigned i = 0; i < kMaxLights; ++i) {
-        const Light& l = s.lights[i];
+        const Light& l = s.lights[slots[i] >= 0 ? static_cast<unsigned>(slots[i]) : i];
         LightUniform& u = vs.lights[i];
         std::memcpy(u.diffuse, l.diffuse, 16);
         std::memcpy(u.specular, l.specular, 16);

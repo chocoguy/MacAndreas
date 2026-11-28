@@ -53,3 +53,11 @@
   group: cdstream-tso
   tso: true
   notes: "CdStreamGetStatus polls channel status and nSectorsToRead without a lock"
+
+- addr: 0x00748d1f
+  kind: mid_hook
+  source: native
+  group: frame-limiter
+  target: sp_frame_pacing
+  resume: 0x00748d98, 0x00748da3
+  notes: "Replaces SilentPatch's frame limiter: the main loop's limiter test (menu Frame Limiter, forced limit, cutscene audio) sleeps on the host clock until the next frame at silentpatch.frame_limit, then renders; it never spins the loop"

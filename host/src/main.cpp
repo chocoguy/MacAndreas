@@ -1,6 +1,7 @@
 #include "crash.hpp"
 #include "difftest.hpp"
 #include "camera_pin.hpp"
+#include "guest_calls.hpp"
 #include "dispatch.hpp"
 #include "guest_memory.hpp"
 #include "input/keys.hpp"
@@ -156,6 +157,13 @@ bool parse(int argc, char** argv, Options& o) {
             o.diff.verbose = true;
         } else if (a == "--diff-seed" && i + 1 < argc) {
             o.diff.seed = std::stoull(argv[++i], nullptr, 0);
+        } else if (a == "--call" && i + 1 < argc) {
+            auto call = ma::host::calls::parse_call(argv[++i]);
+            if (!call) {
+                std::fprintf(stderr, "sa-host: --call expects FRAME:ADDR:cdecl|stdcall|thiscall[:ARG,...] (ARG is an integer, 0x hex, a float with an f suffix, *ADDR for the 32-bit value at ADDR when the call runs, $TEXT for a guest string, or @ / @+N for the previous call's result plus N)\n");
+                return false;
+            }
+            ma::host::calls::add_call(std::move(*call));
         } else if (a == "--pin-camera" && i + 1 < argc) {
             auto pin = ma::host::camera::parse_pin(argv[++i]);
             if (!pin) {
@@ -271,7 +279,7 @@ int main(int argc, char** argv) {
     Options options;
     if (!parse(argc, argv, options)) {
         std::println(stderr, "usage: sa-host --game <game dir> --native <libgta_sa_native.dylib> [--manifest <dir>] [--settings-schema FILE] [--settings FILE] [--set KEY=VALUE]... "
-                     "[--trace-imports] [--trace-interp] [--interpret ADDR,...] [--interpret-range LO-HI,...] [--trace-pc ADDR,...] [--trap-nan] [--watch ADDR,...] [--watch-chain ADDR>OFF>...,...] [--pin-camera FRAME:X,Y,Z:TX,TY,TZ|FRAME:restore] [--diff-test LIST [--diff-iterations N] [--diff-seed N] [--diff-x87-args N] [--diff-deep] [--diff-verbose]] [--shadow LO-HI,... [--shadow-from FRAME] [--shadow-samples N] [--shadow-every N] [--shadow-deep]] [--dump-memory FRAME:ADDR:SIZE:FILE] [--pool-stats] [--pool-detail FRAME,...] [--probe ADDR,...] [--touch VALUE LO-HI,...] [--resolution WxH] [--modes WxH,...] [--skip-intro] [--ignore-focus-loss] [--capture-dir DIR] "
+                     "[--trace-imports] [--trace-interp] [--interpret ADDR,...] [--interpret-range LO-HI,...] [--trace-pc ADDR,...] [--trap-nan] [--watch ADDR,...] [--watch-chain ADDR>OFF>...,...] [--pin-camera FRAME:X,Y,Z:TX,TY,TZ|FRAME:restore] [--call FRAME:ADDR:CONV[:ARG,...]] [--diff-test LIST [--diff-iterations N] [--diff-seed N] [--diff-x87-args N] [--diff-deep] [--diff-verbose]] [--shadow LO-HI,... [--shadow-from FRAME] [--shadow-samples N] [--shadow-every N] [--shadow-deep]] [--dump-memory FRAME:ADDR:SIZE:FILE] [--pool-stats] [--pool-detail FRAME,...] [--probe ADDR,...] [--touch VALUE LO-HI,...] [--resolution WxH] [--modes WxH,...] [--skip-intro] [--ignore-focus-loss] [--capture-dir DIR] "
                      "[--capture-frames N,M,...|all] [--exit-after-frames N] [--keys FRAME[m]:KEY[+|-],...] [--dump-shaders DIR] [--ignore-user-input] [--no-audio] [--audio-capture FILE.wav] "
                      "[--window-mode windowed|borderless|fullscreen] [--display N] [--no-mouse-capture] [--frame-times FILE.csv]");
         return 64;

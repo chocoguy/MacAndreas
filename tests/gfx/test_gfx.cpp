@@ -139,6 +139,32 @@ void test_lighting_key_and_uniforms() {
     CHECK(fs.texture_factor[3] == 1.0f);
 }
 
+void test_lights_above_eight() {
+    FixedFunctionState s;
+    reset_state(s);
+    VertexLayout l = layout_from_fvf(D::fvf::xyz | D::fvf::normal | (1u << D::fvf::texcount_shift));
+    s.light_enabled[0] = 1;
+    s.lights[0].type = D::light::directional;
+    s.light_enabled[8] = 1;
+    s.lights[8].type = D::light::point;
+    s.lights[8].range = 7.0f;
+    auto key = build_pipeline_key(s, l, stride0(32), one_texture(), true, true);
+    CHECK(key.shader.light_types[0] == D::light::directional);
+    CHECK(key.shader.light_types[1] == D::light::point);
+    VertexUniforms vs{};
+    FragmentUniforms fs{};
+    build_uniforms(s, vs, fs);
+    CHECK(vs.lights[1].params0[0] == 7.0f);
+    for (unsigned i = 0; i < 8; ++i) {
+        s.light_enabled[i] = 1;
+        s.lights[i].type = D::light::directional;
+    }
+    auto full = build_pipeline_key(s, l, stride0(32), one_texture(), true, true);
+    for (unsigned i = 0; i < 8; ++i) {
+        CHECK(full.shader.light_types[i] == D::light::directional);
+    }
+}
+
 void test_formats() {
     CHECK(level_pitch(D::fmt::dxt1, 256) == 512);
     CHECK(level_pitch(D::fmt::dxt5, 2) == 16);
@@ -411,6 +437,7 @@ int main() {
     test_declaration_layout();
     test_pipeline_key();
     test_lighting_key_and_uniforms();
+    test_lights_above_eight();
     test_formats();
     test_generated_msl();
     test_shader_parse();

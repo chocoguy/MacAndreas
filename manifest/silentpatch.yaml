@@ -62,3 +62,2132 @@
   group: resolution-string-fallback
   target: sp_ascii_to_gxt_null_check
   notes: "Advanced Display Options: AsciiToGxtChar gets \"-\" instead of a null resolution string, which crashed 1.0 with little VRAM; the native mode list makes the null case unlikely, so this is a safety net"
+
+- addr: 0x007271cb
+  kind: byte_patch
+  source: silentpatch
+  group: mirrors-crash
+  bytes: "85c0743483c404"
+  notes: "Fixed mirrors crash: when beginning the mirror camera update fails (minimized window), je goes to 0x727203, which puts Scene.camera's raster and z-raster back, instead of 0x727222, which left the camera on the mirror rasters; add esp, 4 moves after the je because 0x727203 pops the argument itself"
+
+- addr: 0x005c25d3
+  kind: nop
+  source: silentpatch
+  group: heap-corruption
+  len: 5
+  notes: "Heap corruption fix: the call at 0x5c25d3 (to 0x4a9cd0) is skipped, as SilentPatch does"
+
+- addr: 0x005e03d4
+  kind: byte_patch
+  source: silentpatch
+  group: delayed-prop-destruction
+  bytes: "814e1c00080000eb0f90909090"
+  notes: "Delay destroying cigarettes and bottles dropped by recruited homies: or [esi+1Ch], 800h (bRemoveFromWorld) and jmp 0x5e03ec, so CWorld::Process removes the prop later instead of the moving list losing a node it has cached; the four nops pad to the next instruction"
+
+- addr: 0x01561793
+  kind: call_redirect
+  source: silentpatch
+  group: collision-data-init
+  target: sp_coldata_malloc_init
+  notes: "Car explosion crash: CColModel::AllocateData (DRM-moved, 0x40f870 -> 0x1561730) mallocs CColData; the flags and the shadow mesh count and pointers are cleared, so stencil shadows never read stale data"
+
+- addr: 0x01564a1c, 0x0156debd
+  kind: call_redirect
+  source: silentpatch
+  group: collision-data-init
+  target: sp_coldata_new_init
+  notes: "The two CColData allocations with operator new (0x40f740 -> 0x1564a10, 0x40f810 -> 0x156deb0) clear the flags byte"
+
+- addr: 0x007185b5
+  kind: mid_hook
+  source: silentpatch
+  group: escalators-crash
+  target: sp_escalators_update
+  notes: "Fixed escalators crash: before the tail jump to CEscalators::Update, the steps switched off since the last update are removed from the world and deleted"
+
+- addr: 0x0071791f
+  kind: call_redirect
+  source: silentpatch
+  group: escalators-crash
+  target: sp_escalator_switch_off
+  notes: "CEscalator::SwitchOff queues the steps instead of deleting them while the escalator list is being walked"
+
+- addr: 0x005a1840
+  kind: func_replace
+  source: silentpatch
+  group: temp-objects-vending
+  target: sp_try_to_free_up_temp_objects
+  notes: "Vending crash: CObject::TryToFreeUpTempObjects frees invisible temp objects first, then visible ones when that is not enough"
+
+- addr: 0x007453ce, 0x007453d6
+  kind: mid_hook
+  source: silentpatch
+  group: photo-memory-leak
+  target: sp_grab_screen_release_surface
+  notes: "Photo memory leak: psGrabScreen unlocks and releases the back buffer surface on both of its return paths"
+
+- addr: 0x0045f060
+  kind: call_redirect
+  source: silentpatch
+  group: replay-player-crashes
+  target: sp_restore_replay_rebuild_player
+  notes: "Replay crash with different clothes: after CReplay::RestoreStuffFromMem, CClothes::RebuildPlayer(FindPlayerPed(), false)"
+
+- addr: 0x0156ee68
+  kind: call_redirect
+  source: silentpatch
+  group: replay-player-crashes
+  target: sp_rebuild_player_load_motion_groups
+  notes: "Replay crash with a different body type: the DRM-moved DealWithNewPedPacket's RebuildPlayer call also streams the fat and muscular motion groups"
+
+- addr: 0x005b6fc7
+  kind: call_redirect
+  source: silentpatch
+  group: vehicles-ide-defaults
+  target: sp_vehicles_ide_defaults
+  notes: "Skimmer spawn fix: CFileLoader::LoadVehicleObject's sscanf gets defaults for the optional wheel model, sizes and upgrade class, which the Skimmer line lacks and which otherwise come from stale stack"
+
+- addr: 0x004480d0
+  kind: call_redirect
+  source: silentpatch
+  group: trains-in-garages
+  target: sp_automobile_ctor_or_train
+  notes: "CStoredCar::RestoreCar constructs a derailed CTrain for train models instead of a CAutomobile"
+
+- addr: 0x00561c32, 0x00561902, 0x0056191a, 0x0046a036
+  kind: call_redirect
+  source: silentpatch
+  group: timers-fraction
+  target: sp_timer_ftol
+  notes: "New timers fix: the four _ftol calls that turn frame times into milliseconds (pause mode, non-clipped, clipped, SCM delta) carry the fraction to the next frame, so timers do not stall above 1000 fps"
+
+- addr: 0x00572130
+  kind: func_replace
+  source: silentpatch
+  group: zones-bounds
+  target: sp_zone_locked_or_unlocked
+  notes: "Zones fix: CTheZones::GetCurrentZoneLockedOrUnlocked checks the grid bounds; outside the map counts as unlocked instead of indexing past the visited-zones array"
+
+- addr: 0x01561d4d
+  kind: mid_hook
+  source: silentpatch
+  group: player-ped-data-assignment
+  target: sp_player_ped_data_assignment
+  notes: "Gang recruiting after replays: the HOODLUM CPlayerPedData::operator= (0x45c4b0 -> 0x1561cf0) leaves five nops where flag bits 0x1-0x100 are copied; the hook copies them as 1.0 retail does"
+
+- addr: 0x0156cd9d
+  kind: mid_hook
+  source: silentpatch
+  group: cdstream-race
+  target: sp_cdstream_sync
+  resume: 0x0156cdbb
+  notes: "Streaming deadlock: CdStreamSync (DRM-moved, 0x406460 -> 0x156cd80) tests nSectorsToRead and sets bLocked under one lock with the stream thread, then waits on the semaphore unlocked"
+
+- addr: 0x00406669
+  kind: mid_hook
+  source: silentpatch
+  group: cdstream-race
+  target: sp_cdstream_thread_done
+  resume: 0x00406681
+  notes: "CdStreamThread clears nSectorsToRead and tests bLocked under the same lock, so a waiter is always released"
+
+- addr: 0x00470b03
+  kind: mid_hook
+  source: silentpatch
+  group: gym-glitch
+  target: sp_gym_glitch_get_date
+  resume: 0x00470b11
+  setting: silentpatch.script_fixes
+  notes: "Gym glitch: GET_CURRENT_DATE returns month -1 and the workout-day stat + 1 to the gym scripts, so the daily limit resets"
+
+- addr: 0x005d18f0
+  kind: call_redirect
+  source: silentpatch
+  group: script-fixes
+  target: sp_scripts_load_basketball_fix
+  setting: silentpatch.script_fixes
+  notes: "After CTheScripts::Load: the Madd Dogg basketball save point moves out of the court, and the quadruple stunt bonus compares the integer height"
+
+- addr: 0x00489a70, 0x004899f0
+  kind: call_redirect
+  source: silentpatch
+  group: script-fixes
+  target: sp_start_mission_script_fixes
+  setting: silentpatch.script_fixes
+  notes: "After a mission script is loaded: Sweet's Girl, Mountain Cloud Boys, Ice Cold Killa birds, driving and bike school cones, Air Raid weapon, Supply Lines and Beefy Baron fixes, matched by mission number and byte patterns"
+
+- addr: 0x0053e923
+  kind: byte_patch
+  source: silentpatch
+  group: no-frame-delay
+  bytes: "eb43909090"
+  notes: "No framedelay: Idle jumps over its 14 ms busy wait (0x53e968), so the game reaches 30 fps with the frame limiter instead of 25"
+
+- addr: 0x0053e99c
+  kind: byte_patch
+  source: silentpatch
+  group: no-frame-delay
+  bytes: "8b442410"
+  notes: "With push esi skipped, Idle's argument is at [esp+10h]"
+
+- addr: 0x0053e9a5
+  kind: nop
+  source: silentpatch
+  group: no-frame-delay
+  len: 1
+  notes: "pop esi has no matching push any more"
+
+- addr: 0x0050f046, 0x0050fb26, 0x00510c26, 0x00511e08, 0x0052228c
+  kind: byte_patch
+  source: silentpatch
+  group: mouse-y-sensitivity
+  bytes: "d80d1cecb600"
+  notes: "Y axis sensitivity fix (by ThirteenAG): the five camera modes multiply mouse Y by the X sensitivity (0xb6ec1c) instead of the separate, smaller Y value (0xb6ec18)"
+
+- addr: 0x0050fbb4
+  kind: byte_patch
+  source: silentpatch
+  group: mouse-y-fade-lock
+  bytes: "eb27909090"
+  notes: "Don't lock mouse Y during fade-ins: CCam::Process_FollowPed jumps over the fade check (0x50fbdd)"
+
+- addr: 0x00510512
+  kind: byte_patch
+  source: silentpatch
+  group: mouse-y-fade-lock
+  bytes: "90e99b000000"
+  notes: "The aim-weapon camera always takes the branch to 0x5105b3 that skips the fade check"
+
+- addr: 0x00524071
+  kind: byte_patch
+  source: silentpatch
+  group: mouse-y-fade-lock
+  bytes: "e9c30000009090"
+  notes: "The vehicle follow camera jumps to 0x524139, past the fade check; two nops pad to the next instruction"
+
+- addr: 0x006fb17c
+  kind: nop
+  source: silentpatch
+  group: corona-ztest
+  len: 3
+  notes: "PS2 sun: CCoronas::Render no longer forces the Z test on (RwRenderStateSet call removed), so the sun glare shows as on the PS2"
+
+- addr: 0x0070f454
+  kind: byte_patch
+  source: silentpatch
+  group: lens-flare
+  bytes: "c7055ca1c60000000000"
+  notes: "Fixed lens flare: CSprite::RenderBufferedOneXLUSprite2D stores 0 instead of 1 in its flush flag (0xc6a15c)"
+
+- addr: 0x006fb5ff
+  kind: byte_patch
+  source: silentpatch
+  group: lens-flare
+  bytes: "eb21"
+  notes: "The flare loop's end jumps to 0x6fb622, which flushes the sprite buffer and loops back to 0x6fb605"
+
+- addr: 0x006fb621
+  kind: byte_patch
+  source: silentpatch
+  group: lens-flare
+  bytes: "c3e8f9180100ebdc"
+  notes: "ret instead of the tail jump to FlushSpriteBuffer, then call FlushSpriteBuffer (0x70cf20) and jmp 0x6fb605"
+
+- addr: 0x006fb480
+  kind: mid_hook
+  source: silentpatch
+  group: lens-flare
+  target: sp_lens_flush_before_ztest
+  notes: "The sprite buffer is flushed before the Z test is switched back on"
+
+- addr: 0x006faf35
+  kind: mid_hook
+  source: silentpatch
+  group: lens-flare
+  target: sp_lens_init_after_ztest
+  site: sp-a425ca93
+  notes: "After the Z test is switched, the 2D sprite buffer is initialised again: the hook does CSprite::InitSpriteBuffer2D's work (0x70cfd0: reciprocal near plane and the z-buffer near and far values), which is not a lifted trace head"
+
+- addr: 0x006fb461, 0x006fb561, 0x006fb5ea
+  kind: call_redirect
+  source: silentpatch
+  group: corona-flare-scaling
+  target: sp_corona_flare_scale
+  notes: "Flare sprites scale to the screen: width and height times RsGlobal's size times the 2D scale constants (0x859520, 0x859524), as SilentPatch's UIScales::Stuff2d, which the Widescreen Fix narrows"
+
+- addr: 0x004c51a9
+  kind: call_redirect
+  source: silentpatch
+  group: streaming-memory-bug
+  target: sp_anim_set_current_anim
+  notes: "Streaming memory bug: RtAnimInterpolatorSetCurrentAnim without the loop that writes key frame pointers into each interpolated frame, as SilentPatch's GTARtAnimInterpolatorSetCurrentAnim"
+
+- addr: 0x0057dc55
+  kind: nop
+  source: silentpatch
+  group: bindable-num5
+  len: 2
+  notes: "Bindable NUM5: the key name lookup no longer skips VK 0x408 (Num5)"
+
+- addr: 0x006e2b6e
+  kind: call_redirect
+  source: silentpatch
+  group: impound-deleted-vehicles
+  target: sp_record_vehicle_deleted
+  notes: "Random cars impounded: CVehicle's destructor also removes the vehicle from CGarages' interesting vehicle list"
+
+- addr: 0x00566794, 0x0056a378
+  kind: call_redirect
+  source: silentpatch
+  group: impound-vehicle-types
+  target: sp_interesting_and_impoundable
+  notes: "Only cars and bikes are impounded: helicopters, planes, trailers, boats and trains are never interesting to the impound garage"
+
+- addr: 0x00425179
+  kind: byte_patch
+  source: silentpatch
+  group: impound-garages
+  bytes: "e812380200"
+  notes: "Impound garages: the three checks call CGarages::IsPointWithinAnyGarage (0x448990) instead of 0x448900"
+
+- addr: 0x00425369
+  kind: byte_patch
+  source: silentpatch
+  group: impound-garages
+  bytes: "e822360200"
+  notes: "Second IsPointWithinAnyGarage call"
+
+- addr: 0x00425411
+  kind: byte_patch
+  source: silentpatch
+  group: impound-garages
+  bytes: "e87a350200"
+  notes: "Third IsPointWithinAnyGarage call"
+
+- addr: 0x00443292
+  kind: nop
+  source: silentpatch
+  group: impound-after-busted
+  len: 5
+  notes: "Impounding after busted: the call that clears the player's car before impounding is skipped"
+
+- addr: 0x0061ecdc
+  kind: byte_patch
+  source: silentpatch
+  group: muzzle-flash-last-bullet
+  bytes: "90909090909084c07414"
+  notes: "Muzzle flash from the last bullet: the flash follows CWeapon::Fire's result (test al, al / je) instead of requiring ammo left in the clip"
+
+- addr: 0x005bbce2
+  kind: call_redirect
+  source: silentpatch
+  group: timecyc-missing-data
+  target: sp_timecyc_line
+  notes: "timecyc.dat: the directional multiplier defaults to 1.0 when absent (PC timecyc.dat), and the broken RAINY_COUNTRYSIDE line is reparsed with its own format, keeping the last valid ambient colour"
+
+- addr: 0x005bbfc9
+  kind: byte_patch
+  source: silentpatch
+  group: timecyc-float-multiplier
+  bytes: "eb14909090"
+  notes: "The directional multiplier stays a float instead of being truncated to 0, 1 or 2 (jmp over _ftol and the integer reload)"
+
+- addr: 0x0058c092
+  kind: call_redirect
+  source: silentpatch
+  group: script-sprites-linear
+  target: sp_script_sprites_linear
+  notes: "Script sprites and rectangles are drawn with linear texture filtering, restoring the previous filter afterwards"
+
+- addr: 0x006f3e2c
+  kind: byte_patch
+  source: silentpatch
+  group: cargen-counter
+  bytes: "0fbfc8"
+  notes: "014C car generator counter fix (by spaceeinstein): movsx instead of movzx, so -1 means infinite"
+
+- addr: 0x006f3e32
+  kind: byte_patch
+  source: silentpatch
+  group: cargen-counter
+  bytes: "7405"
+  notes: "jz instead of jge: only the -1 counter skips the decrement"
+
+- addr: 0x0044e82e, 0x0044ecee, 0x00666ea0
+  kind: call_redirect
+  source: silentpatch
+  group: random-31bit
+  target: sp_rand31
+  notes: "Proper randomizations: ped path selection (2) and prostitute solicitation use the PS2's 31-bit random instead of the PC's 15-bit rand"
+
+- addr: 0x0058ba8f
+  kind: nop
+  source: silentpatch
+  group: help-box-with-big-message
+  len: 6
+  notes: "Help boxes show together with a big message (Mission Passed)"
+
+- addr: 0x0072701d
+  kind: call_redirect
+  source: silentpatch
+  group: mirror-buffers
+  target: sp_create_mirror_buffers
+  notes: "Mirror buffers get their own z-buffer raster and no MSAA, sized by visual FX quality (2048x1024 at Very High, 1024x512 Medium, 512x256 Low)"
+
+- addr: 0x005428ea
+  kind: mid_hook
+  source: silentpatch
+  group: car-collision-damage
+  target: sp_car_damage_component
+  resume: 0x005428ef
+  notes: "Car collisions: the damaged component comes from the collision's own side (+0x21 for a positive impulse, +0x24 otherwise), so the car being hit is damaged where it is hit"
+
+- addr: 0x00711dd5
+  kind: mid_hook
+  source: silentpatch
+  group: stencil-shadow-pads
+  target: sp_stencil_shadow_pads
+  resume: 0x00711e08
+  notes: "Stencil shadows: the three 24 KB pads are allocated once instead of every frame"
+
+- addr: 0x00711e0d
+  kind: nop
+  source: silentpatch
+  group: stencil-shadow-pads
+  len: 3
+  notes: "The six skipped pushes need no add esp, 18h"
+
+- addr: 0x00711e5f
+  kind: byte_patch
+  source: silentpatch
+  group: stencil-shadow-pads
+  bytes: "5f5dc39090"
+  notes: "The pads are no longer freed at the end of the frame: pop edi / pop ebp / ret"
+
+- addr: 0x0073b3ae
+  kind: mid_hook
+  source: silentpatch
+  group: ai-accuracy
+  target: sp_weapon_range_vehicle_check
+  resume: 0x0073b3b4
+  notes: "AI accuracy: the weapon range multiplier reads the ped's vehicle only while the ped is in it, not the last vehicle it left"
+
+- addr: 0x0055942f, 0x0055aa96
+  kind: operand_slot
+  source: silentpatch
+  group: metric-imperial-constants
+  target: sp_meters_to_feet
+  notes: "Proper metric-imperial conversion: the two stats pages multiply by 3.280839895 feet per metre instead of the game's rounded constant"
+
+- addr: 0x004d9e80
+  kind: func_replace
+  source: silentpatch
+  group: audio-utility-timers
+  target: sp_audio_utility_time_ms
+  notes: "CAEAudioUtility::GetCurrentTimeInMs counts whole milliseconds on the host's monotonic clock as a 64-bit integer, instead of a float division of the performance counter that loses precision with uptime (dancing minigame timing)"
+
+- addr: 0x006f3b30
+  kind: call_redirect
+  source: silentpatch
+  group: cargen-interior-area
+  target: sp_set_position_and_area_code
+  notes: "Car generators: a vehicle placed at z 950 or higher also gets area code 13, so the two cars in Madd Dogg's mansion show inside it instead of everywhere"
+
+- addr: 0x0055574b
+  kind: call_redirect
+  source: silentpatch
+  group: rc-streaming
+  target: sp_find_player_entity_with_rc
+  notes: "Streaming with an RC vehicle: the streaming focus is the RC vehicle, then the player's vehicle, then the player, instead of always the player"
+
+- addr: 0x005557c3
+  kind: call_redirect
+  source: silentpatch
+  group: rc-streaming
+  target: sp_find_player_vehicle_with_rc
+  notes: "The vehicle speed check for streaming includes the RC vehicle (FindPlayerVehicle's second argument forced true)"
+
+- addr: 0x0060bc52
+  kind: byte_patch
+  source: silentpatch
+  group: recruit-triangle
+  bytes: "83f808"
+  notes: "Fixed triangle above recruitable peds' heads: the upside-down health triangle covers ped types up to GANG2 (cmp eax, 8)"
+
+- addr: 0x0047d335
+  kind: call_redirect
+  source: silentpatch
+  group: scm-weapon-ammo
+  target: sp_give_weapon_min_ammo
+  notes: "Fixed ammo from SCM: GIVE_WEAPON_TO_CHAR with 0 ammo gives 1, so the weapon is kept"
+
+- addr: 0x0053a9a7
+  kind: mid_hook
+  source: silentpatch
+  group: bicycle-fire
+  target: sp_bicycle_fire_driver
+  resume: 0x0053a9ae
+  notes: "Setting a bicycle on fire: the fire's target is the bicycle's driver instead of FindPlayerPed (the pushed argument is kept for the following add esp, 4)"
+
+- addr: 0x0053a990
+  kind: call_redirect
+  source: silentpatch
+  group: bicycle-fire
+  target: sp_bicycle_fire_noop
+  notes: "The player is no longer made to react as if on fire"
+
+- addr: 0x0053a9b7
+  kind: call_redirect
+  source: silentpatch
+  group: bicycle-fire
+  target: sp_start_fire_null_check
+  notes: "CFireManager::StartFire is skipped for a bicycle without a driver"
+
+- addr: 0x006fb277
+  kind: nop
+  source: silentpatch
+  group: corona-rotation
+  len: 6
+  notes: "Corona rotation: recipz is kept unscaled (fmul by 20 removed)"
+
+- addr: 0x006fb2e6
+  kind: call_redirect
+  source: silentpatch
+  group: corona-rotation
+  target: sp_corona_rotate_aspect
+  notes: "RenderOneXLUSprite_Rotate_Aspect gets 20 x recipz as its rotation argument and the unscaled recipz, so coronas rotate as the camera gets closer, as on the PS2"
+
+- addr: 0x0053e0c3
+  kind: call_redirect
+  source: silentpatch
+  group: static-shadow-alpha
+  target: sp_render_shadows_alpha_always
+  notes: "Static shadows render with the alpha test function set to always, restoring it afterwards, so shadows of fire and pickups show"
+
+- addr: 0x0053e0c8
+  kind: call_redirect
+  source: silentpatch
+  group: stored-shadow-alpha
+  target: sp_render_shadows_alpha_always
+  notes: "Stored shadows render with the alpha test disabled the same way (SilentPatch skips this only when the Stencil Shadows mod is present)"
+
+- addr: 0x004c97b1
+  kind: mid_hook
+  source: silentpatch
+  group: reset-comps-for-no-extras
+  target: sp_reset_comps_for_no_extras
+  resume: 0x004c97bf
+  notes: "A vehicle with no extras also resets the requested components (ms_compsToUse to -2), so the next vehicle does not inherit them (lightless taxis, bikes without engines)"
+
+- addr: 0x004c8010
+  kind: byte_patch
+  source: silentpatch
+  group: extra6-any-rule
+  bytes: "c744240806000000"
+  notes: "Component rule 4 (any) picks from extras 0-5 instead of 0-4"
+
+- addr: 0x00525615
+  kind: mid_hook
+  source: silentpatch
+  group: follow-car-mouse-cam
+  target: sp_follow_car_mouse_forward
+  resume: 0x0052561a
+  notes: "In-car camera: mouse pitch applies only while looking forward (look direction 3), not while looking left, right or behind"
+
+- addr: 0x005e69bc
+  kind: mid_hook
+  source: silentpatch
+  group: quadbike-wind
+  target: sp_open_top_or_quad
+  resume: 0x005e69c4
+  notes: "Wind animations on CJ's clothes also on the Quadbike (open-top car or vehicle subclass quad), by Wesser"
+
+- addr: 0x006b7932
+  kind: mid_hook
+  source: silentpatch
+  group: quadbike-handlebar
+  target: sp_quad_handlebar_interp
+  resume: 0x006b7938
+  notes: "Quadbike handlebar: the steering blend is zeroed when reversing, in a drive-by or below 0.02 speed, then loads 0.86 as the original fld did, by Wesser"
+
+- addr: 0x0058e842
+  kind: call_redirect
+  source: silentpatch
+  group: camera-crosshair
+  target: sp_weapon_info_or_camera
+  notes: "Photo crosshair: while the camera crosshair is drawn (bDrawCrossHair 2), the weapon info is the camera's, so a gang member's photo with a sniper rifle equipped does not draw the sniper scope, by Wesser"
+
+- addr: 0x00464f68
+  kind: mid_hook
+  source: silentpatch
+  group: lapdm1-biker-cop
+  target: sp_biker_cop_model
+  site: sp-b7a6de39
+  notes: "Spawn lapdm1 correctly: model lapdm1 (switch case 4) with PEDTYPE_COP gets cop type 1 (biker cop) instead of 0; the jump table entry SilentPatch patches is shared with cases 0-2, so the hook checks the case, by Wesser"
+
+- addr: 0x006d5612
+  kind: operand_slot
+  source: silentpatch
+  group: vehicle-lights-randomness
+  target: sp_light_status_randomness
+  notes: "Vehicle light switching: the randomness scale becomes 1/25000, so the PS2's 50000-in-65535 threshold is reachable with the PC's 15-bit rand, including a low chance of never turning lights on"
+
+- addr: 0x006d1955
+  kind: mid_hook
+  source: silentpatch
+  group: explode-twice
+  target: sp_remove_driver_status
+  resume: 0x006d195c
+  notes: "Vehicles exploding twice: CVehicle::RemoveDriver sets STATUS_ABANDONED only if the vehicle is not wrecked"
+
+- addr: 0x0064c8ce
+  kind: call_redirect
+  source: silentpatch
+  group: explode-twice
+  target: sp_prepare_vehicle_for_ped_exit
+  notes: "CTaskComplexCarSlowBeDraggedOut skips preparing a wrecked vehicle for the ped's exit"
+
+- addr: 0x0048628d, 0x00647e21
+  kind: nop
+  source: silentpatch
+  group: explode-twice
+  len: 3
+  notes: "RemoveDriver already sets the status, so these redundant STATUS_ABANDONED stores are removed"
+
+- addr: 0x004674fe, 0x00467533
+  kind: call_redirect
+  source: silentpatch
+  group: script-rand16
+  target: sp_rand16
+  notes: "Script randomness is 16-bit as on the PS2: a second rand() call supplies bit 15"
+
+- addr: 0x00714610
+  kind: call_redirect
+  source: silentpatch
+  group: shooting-stars
+  target: sp_shooting_stars_untextured
+  notes: "Shooting stars: the texture raster is unset before RwIm3DTransform, so they render white instead of black"
+
+- addr: 0x006cd2b8
+  kind: call_redirect
+  source: silentpatch
+  group: plane-spawn-sectors
+  target: sp_plane_sector_numbers
+  notes: "Plane spawning: CPlane::FindPlaneCreationCoors passes a position, which is converted to the sector numbers CCollision::CheckCameraCollisionBuildings expects, with the game's own sector constants"
+
+- addr: 0x006cd545
+  kind: mid_hook
+  source: silentpatch
+  group: riot-player-group
+  target: sp_riot_skip_player_group
+  resume: 0x006cd7f4
+  notes: "During riots, the police helicopter skips the player's group members while a mission runs, so recruited homies don't panic and leave"
+
+- addr: 0x0063f576
+  kind: byte_patch
+  source: silentpatch
+  group: enter-car-isalive
+  bytes: "753a"
+  notes: "CTaskComplexEnterCar::CreateNextSubTask: the IsAlive check is inverted, so alive drivers are not given CTaskComplexLeaveCarAndDie when the car is stolen from the passenger side"
+
+- addr: 0x005a8660
+  kind: mid_hook
+  source: silentpatch
+  group: credits-scaling
+  target: sp_credits_fixed_height
+  resume: 0x005a8666
+  notes: "Credits scale to resolution: CCredits::PrintCreditText places lines on a fixed 448-unit screen height (fild RsGlobal.maximumHeight becomes 448), and the text is scaled when it is printed"
+
+- addr: 0x005af8c9
+  kind: mid_hook
+  source: silentpatch
+  group: credits-scaling
+  target: sp_credits_end_fixed_height
+  resume: 0x005af8cf
+  notes: "The end-of-credits check in CCredits::Render uses the same fixed 448-unit height"
+
+- addr: 0x005a8689
+  kind: operand_slot
+  source: silentpatch
+  group: credits-scaling
+  target: sp_credits_top_margin
+  notes: "The credits are drawn down to a top margin of 1 instead of 20 units"
+
+- addr: 0x005a869a
+  kind: operand_slot
+  source: silentpatch
+  group: credits-scaling
+  target: sp_credits_bottom_margin
+  notes: "The credits start from 20 units below the bottom edge instead of 20 above it, so they no longer cut off early at the bottom (as in GTA III)"
+
+- addr: 0x005a86c0
+  kind: call_redirect
+  source: silentpatch
+  group: credits-scaling
+  target: sp_credits_set_scale
+  notes: "CFont::SetScale for the credits is scaled by the 2D width and height scales"
+
+- addr: 0x005a8707
+  kind: call_redirect
+  source: silentpatch
+  group: credits-scaling
+  target: sp_credits_print
+  notes: "CFont::PrintString for a credits line scales its y to the screen height"
+
+- addr: 0x005a8785
+  kind: call_redirect
+  source: silentpatch
+  group: credits-scaling
+  target: sp_credits_print_shadow
+  notes: "The second CFont::PrintString (one unit to the left) scales its y, and its x offset of 1 becomes one scaled unit"
+
+- addr: 0x0058d2e9
+  kind: byte_patch
+  source: silentpatch
+  group: sliding-text-thresholds
+  bytes: "b880020000"
+  notes: "Mission title and 'Mission Passed' texts stay on screen for the same time at any resolution: the odd-job slide threshold uses a width of 640 (mov eax, 640) instead of RsGlobal.maximumWidth"
+
+- addr: 0x0058c90e
+  kind: mid_hook
+  source: silentpatch
+  group: sliding-text-thresholds
+  target: sp_big_message_fixed_width
+  resume: 0x0058c916
+  notes: "The big message slide-out compares against 620 (640 - 20) instead of the screen width minus 20"
+
+- addr: 0x00745c7d
+  kind: nop
+  source: silentpatch
+  group: post-effects-scaling
+  len: 5
+  notes: "The heat haze rescales after a resolution change: SetCurrentVideoMode no longer sets up the back buffer vertices before RsGlobal has the new size"
+
+- addr: 0x00745c9f
+  kind: mid_hook
+  source: silentpatch
+  group: post-effects-scaling
+  target: sp_video_mode_post_fx
+  site: sp-ed4afaa7.0
+  notes: "At SetCurrentVideoMode's ret, after RsGlobal is updated, the heat haze is forced to reinitialise and CPostEffects::SetupBackBufferVertex runs. SilentPatch wraps the four menu callers; three of those calls are the Widescreen Fix's call_redirects, so the port hooks the callee instead"
+
+- addr: 0x0070529c
+  kind: call_redirect
+  source: silentpatch
+  group: post-effects-scaling
+  target: sp_underwater_ripple_frequency
+  notes: "The underwater ripple is consistent across resolutions: its frequency is divided by height/480, as the effect already scales the sine wave by the height"
+
+- addr: 0x00742eaf, 0x00742f45, 0x00743073, 0x0074311d, 0x00743a0a, 0x00743bd4
+  kind: call_redirect
+  source: silentpatch
+  group: crosshair-scaling
+  target: sp_crosshair_sprite_scale
+  notes: "Heat-seeking missile and co-op in-car crosshairs scale to resolution: RenderOneXLUSprite_Rotate_Aspect's width and height are multiplied by the 2D width and height scales"
+
+- addr: 0x007436f1, 0x007436ff, 0x0074370d, 0x0074374b, 0x00743797, 0x007437d0, 0x007437fb, 0x00743819,
+    0x0074386f, 0x00743212, 0x0074321e, 0x00743259, 0x00743266
+  kind: operand_slot
+  source: silentpatch
+  group: crosshair-scaling
+  target: sp_crosshair_triangle
+  notes: "The triangular gamepad crosshairs (co-op offscreen and regular) scale their sizes to the screen height"
+
+- addr: 0x00588251, 0x00588265
+  kind: operand_slot
+  source: silentpatch
+  group: map-cursor-scaling
+  target: sp_map_cursor_x
+  notes: "The Map screen cursor's vertical line width scales to the menu width (contributed by Wesser)"
+
+- addr: 0x005882a8, 0x005882c6
+  kind: operand_slot
+  source: silentpatch
+  group: map-cursor-scaling
+  target: sp_map_cursor_y
+  notes: "The Map screen cursor's horizontal line height scales to the menu height"
+
+- addr: 0x0058822d
+  kind: call_redirect
+  source: silentpatch
+  group: map-cursor-scaling
+  target: sp_map_limit_scaled
+  notes: "The Map screen's cursor boundaries scale to resolution: LimitToMap compares against scaled map edges, so the cursor is scaled for the call and unscaled after it, as the caller expects"
+
+- addr: 0x0071a653, 0x0071a66b, 0x0071a69d, 0x0071a6ab
+  kind: operand_slot
+  source: silentpatch
+  group: text-padding-scaling
+  target: sp_text_padding_x
+  notes: "The inner padding of text boxes with a background scales to resolution: the horizontal padding is multiplied by the font width scale (contributed by Wesser)"
+
+- addr: 0x0071a6bf, 0x0071a6ec
+  kind: operand_slot
+  source: silentpatch
+  group: text-padding-scaling
+  target: sp_text_padding_y
+  notes: "The vertical padding is multiplied by the font height scale"
+
+- addr: 0x00575e72
+  kind: call_redirect
+  source: silentpatch
+  group: line-wrap-scaling
+  target: sp_wrap_full_width
+  notes: "CMenuManager::PrintMap: the full-width wrap is the screen width instead of 640"
+
+- addr: 0x005760ba, 0x005762c5, 0x005794e6, 0x005796ce, 0x00579894
+  kind: call_redirect
+  source: silentpatch
+  group: line-wrap-scaling
+  target: sp_wrap_menu_right
+  notes: "PrintMap and DrawStandardMenus: wraps measured from the right edge scale their distance from it by the menu width scale"
+
+- addr: 0x005760c4, 0x005762cf, 0x005794f0, 0x0057989e
+  kind: call_redirect
+  source: silentpatch
+  group: line-wrap-scaling
+  target: sp_wrap_menu_left
+  notes: "PrintMap and DrawStandardMenus: wraps measured from the left edge are scaled by the menu width scale"
+
+- addr: 0x0045c28f
+  kind: call_redirect
+  source: silentpatch
+  group: line-wrap-scaling
+  target: sp_wrap_replay_right
+  notes: "CReplay::Display: the centre size measured from the right edge scales by the replay text's width scale"
+
+- addr: 0x006a407b
+  kind: mid_hook
+  source: silentpatch
+  group: nitrous-reverse
+  target: sp_nitrous_reverse
+  resume: 0x006a4081
+  notes: "Nitrous no longer regenerates faster when reversing: the recharge rate 1 - gas pedal only subtracts a non-negative gas pedal (contributed by Wesser)"
+
+- addr: 0x006ca09f, 0x006ca122, 0x006ca1b2, 0x006ca242
+  kind: call_redirect
+  source: silentpatch
+  group: jet-thrusters
+  target: sp_jet_matrix_flags
+  notes: "Hydra's jet thrusters no longer randomly fail to appear: the matrix product built on the stack gets its uninitialised RwMatrix flags cleared (contributed by B1ack_Wh1te)"
+
+- addr: 0x004c9638
+  kind: call_redirect
+  source: silentpatch
+  group: hunter-door
+  target: sp_hunter_door_unmark
+  notes: "Hunter's interior does not vanish through the glass door: after PreprocessHierarchy, vehicles using the rustler animations clear ATOMIC_IS_LEFT on door_lf"
+
+- addr: 0x0064ffad
+  kind: byte_patch
+  source: silentpatch
+  group: bike-front-jump
+  bytes: "d8642424"
+  notes: "CJ no longer sinks into a bike when jumping on from the front: the z offset is subtracted (fsub) instead of added (contributed by B1ack_Wh1te)"
+
+- addr: 0x0064e77b
+  kind: byte_patch
+  source: silentpatch
+  group: van-rear-doors
+  bytes: "80b9de0000000d"
+  notes: "CCarEnterExit::GetPositionToOpenCarDoor special-cases the rear van doors: the anim group compare uses 13 (ANIM_VEH_VAN - ANIM_VEH_STD) instead of 0x65 (contributed by B1ack_Wh1te)"
+
+- addr: 0x0061e52e, 0x00625434
+  kind: byte_patch
+  source: silentpatch
+  group: cop-one-handed-guns
+  bytes: "83f811"
+  notes: "Cops no longer hold one-handed weapons like gangsters: the gang ped type range ends at PED_TYPE_DEALER (17) instead of 15, so dealers get the stance (contributed by iFarbod)"
+
+- addr: 0x0061e533, 0x00625439
+  kind: byte_patch
+  source: silentpatch
+  group: cop-one-handed-guns
+  bytes: "83f814"
+  notes: "The extra ped type with the stance is PED_TYPE_CRIMINAL (20) instead of PED_TYPE_COP (6)"
+
+- addr: 0x004613c2
+  kind: byte_patch
+  source: silentpatch
+  group: roadblock-clones
+  bytes: "395c2414"
+  notes: "Gang roadblocks in neutral zones ('End of the Line') no longer spawn CJ clones: the gang count compares against ebx (zero) instead of ebp"
+
+- addr: 0x004613c6
+  kind: byte_patch
+  source: silentpatch
+  group: roadblock-clones
+  bytes: "7f"
+  notes: "jg instead of jne, so a roadblock only spawns when a gang is present"
+
+- addr: 0x005d3da8
+  kind: byte_patch
+  source: silentpatch
+  group: gang-tags-savegame
+  bytes: "e853d5ffff"
+  notes: "Additional gang tags from mods load from the save file: the tag count is read with the same loader as the tags (0x5d1300, the call at 0x5d3dc4) instead of 0x5d1270"
+
+- addr: 0x00471967, 0x00471979, 0x0047198e, 0x004719a0, 0x004719b3, 0x004719c7
+  kind: byte_patch
+  source: silentpatch
+  group: create-birds
+  bytes: "d905"
+  notes: "CREATE_BIRDS reads its coordinate arguments as floats (fld) instead of integers (fild), so birds spawn in the skylight cutscene of 'Ice Cold Killa'"
+
+- addr: 0x00588581
+  kind: byte_patch
+  source: silentpatch
+  group: two-player-blips
+  bytes: "9056"
+  notes: "Second player's blip displays in the right place: CRadar::DrawBlips passes the player index (push esi) to FindPlayerCentreOfWorld instead of 0"
+
+- addr: 0x0056e2a4
+  kind: byte_patch
+  source: silentpatch
+  group: two-player-blips
+  bytes: "8b90"
+  notes: "FindPlayerCentreOfWorld reads CWorld::Players[index].pPed with the requested index (eax) instead of the player in focus"
+
+- addr: 0x0056e2cb
+  kind: byte_patch
+  source: silentpatch
+  group: two-player-blips
+  bytes: "8b88"
+  notes: "The same for the vehicle check"
+
+- addr: 0x01560b5b
+  kind: mid_hook
+  source: silentpatch
+  group: gang-war-blips
+  target: sp_gang_war_friendly_blips
+  resume: 0x01560b61
+  notes: "Gang wars no longer remove blips of the player's gang: in the DRM-moved ReleasePedsInAttackWave (0x445c30 -> 0x15609c0), bClearRadarBlipOnDeath counts only for peds not in the player's group"
+
+- addr: 0x00748710
+  kind: mid_hook
+  source: silentpatch
+  group: speech-lookup-tables
+  target: sp_speech_lookup_tables
+  site: sp-bb227d95
+  notes: "Speech lookup tables, patched once at WinMain as SilentPatch does at load: CJ's turf takeover cheers, the girlfriend and shopkeeper lines, SHOOT_GENERIC for pedestrians and girlfriends, the Triad, Rifa and Da Nang taunts, the typo'd generic, emergency, girlfriend, player and gang contexts (VBFYST2, VWMOTR1's MUGGED, ARREST_CRIM, SHOP_CLOSED, JACKING_CAR_FEM, ATTACK_BY_PLAYER_LIKE), and a special voice slot for Maccer"
+
+- addr: 0x0043b341
+  kind: byte_patch
+  source: silentpatch
+  group: speech-weather
+  bytes: "6a08"
+  notes: "Pedestrians can start conversations about the weather: the topic pick includes AE_CONV_WEATHER (push 8 instead of 7)"
+
+- addr: 0x0043be4a
+  kind: call_redirect
+  source: silentpatch
+  group: speech-weather
+  target: sp_say_weather_reply
+  notes: "A positive reply to a negative weather comment says WEATHER_DISL_REPLY instead of LIKE_DISMISS"
+
+- addr: 0x004e67e2
+  kind: call_redirect
+  source: silentpatch
+  group: speech-weather
+  target: sp_sound_bank_weather_fallback
+  notes: "CJ's weather replies: when no sample is found, the lookup is retried with the CD mood, the only mood besides CF that has these lines"
+
+- addr: 0x004e5a67
+  kind: call_redirect
+  source: silentpatch
+  group: speech-weather
+  target: sp_cj_mood_override
+  notes: "GetCurrentCJMood returns MOOD_CD during that retry"
+
+- addr: 0x004b9bb9
+  kind: byte_patch
+  source: silentpatch
+  group: speech-criminals-fleeing
+  bytes: "6a00"
+  notes: "Criminals running from cops play their dialogue instead of screaming (contributed by iFarbod)"
+
+- addr: 0x005b75ab, 0x005b75bd
+  kind: call_redirect
+  source: silentpatch
+  group: speech-voice-names
+  target: sp_get_voice_typos
+  notes: "WMYSGRD and BMYPIMP have voices: peds.ide's VOICE_GEN_WMYSGRAD and VOICE_GEN_BMYPI are looked up as the audio tables spell them"
+
+- addr: 0x005b749d
+  kind: call_redirect
+  source: silentpatch
+  group: speech-voice-names
+  target: sp_peds_ide_voice_names
+  notes: "SBFYSTR and SWFYSTR get their own voices instead of VOICE_GEN_SBFYST and VOICE_GEN_SWFYST"
+
+- addr: 0x00444059
+  kind: byte_patch
+  source: silentpatch
+  group: turf-takeover-cheers
+  bytes: "890424eb18"
+  notes: "CJ cheers after taking over certain districts: the speaker is the player (mov [esp], eax) instead of a gang member found with FindMaxNumberOfGroupMembers, and the jump skips that call"
+
+- addr: 0x00444078
+  kind: nop
+  source: silentpatch
+  group: turf-takeover-cheers
+  len: 2
+  notes: "fstp st(0) has nothing to pop without that call"
+
+- addr: 0x0044408b, 0x004440bc, 0x004440ed, 0x0044411d, 0x0044414e, 0x0044417f, 0x004441af, 0x004441e0,
+    0x00444211, 0x00444241, 0x00444272, 0x004442a3
+  kind: call_redirect
+  source: silentpatch
+  group: turf-takeover-cheers
+  target: sp_turf_text_label_stricmp
+  notes: "The district is picked from the zone's text label (8 bytes in) instead of its info label"
+
+- addr: 0x00666a82
+  kind: call_redirect
+  source: silentpatch
+  group: solicit-mood
+  target: sp_cj_mood_store
+  notes: "CJ's comments after soliciting are not forced to Wisecracking: SetCJMood's arguments are kept instead of applied"
+
+- addr: 0x00666a9c
+  kind: call_redirect
+  source: silentpatch
+  group: solicit-mood
+  target: sp_say_solicit_then_mood
+  notes: "The solicit line plays first, then the stored mood is applied"
+
+- addr: 0x00660248, 0x0066069e
+  kind: call_redirect
+  source: silentpatch
+  group: gang-taunt-lsv
+  target: sp_gang_abuse_lsv
+  notes: "CTaskComplexGangLeader::DoGangAbuseSpeech: gang members taunt the Los Santos Vagos (ABUSE_GANG_LSV)"
+
+- addr: 0x00626a5b
+  kind: call_redirect
+  source: silentpatch
+  group: gang-attack-player
+  target: sp_gang_attack_player
+  notes: "DoGangAttackSpeech: hostile gang members say ATTACK_PLAYER when attacking CJ"
+
+- addr: 0x006a8254, 0x006b9145
+  kind: call_redirect
+  source: silentpatch
+  group: crash-generic-fallback
+  target: sp_say_crash_generic_fallback
+  notes: "CJ comments on crashes on a motorbike: CRASH_CAR and CRASH_BIKE fall back to CRASH_GENERIC"
+
+- addr: 0x004b3349
+  kind: mid_hook
+  source: silentpatch
+  group: pain-sprayed
+  target: sp_pain_sprayed
+  resume: 0x004b3342
+  notes: "Peds hit by tear gas, a spray can or an extinguisher say PAIN_SPRAYED (not when pistol-whipped with the can) and the damage response returns through its epilogue"
+
+- addr: 0x0068d82f
+  kind: call_redirect
+  source: silentpatch
+  group: arrest-chased-reply
+  target: sp_arrest_cj_chased_reply
+  notes: "CJ answers a cop's arrest order on foot with a CHASED line (3.5 s later, probability 0.6), so 1-star quotes play"
+
+- addr: 0x007427ef
+  kind: mid_hook
+  source: silentpatch
+  group: shoot-lines-mouse
+  target: sp_shoot_store_target
+  resume: 0x007427f6
+  notes: "CJ's SHOOT lines with mouse and keyboard: the target entity is stored instead of requiring the auto-aim target"
+
+- addr: 0x007427fc
+  kind: nop
+  source: silentpatch
+  group: shoot-lines-mouse
+  len: 2
+  notes: "The ped type check moves into the Say hook"
+
+- addr: 0x0074281a
+  kind: call_redirect
+  source: silentpatch
+  group: shoot-lines-mouse
+  target: sp_shoot_context_check_target
+  notes: "The SHOOT line plays when the stored target, or the mouse lock-on recruit ped, is a ped"
+
+- addr: 0x00627587, 0x0062c96c, 0x0062d21b, 0x0062cf5a
+  kind: call_redirect
+  source: silentpatch
+  group: cop-surrounded-lines
+  target: sp_peds_group_for_cops
+  notes: "Cops use SURROUNDED and COVER ME: GetPedsGroup gives cops a dummy group while more than one cop chases the player"
+
+- addr: 0x0043bc13
+  kind: byte_patch
+  source: silentpatch
+  group: where-you-from-reply
+  bytes: "0f8db4020000"
+  notes: "Hostile gangsters respond to CJ's positive WHERE_YOU_FROM answer: the reply path jumps to 0x43becd"
+
+- addr: 0x0043be14
+  kind: byte_patch
+  source: silentpatch
+  group: where-you-from-reply
+  bytes: "e9b4000000"
+  notes: "The second jump to the reply path"
+
+- addr: 0x0043c0c7
+  kind: call_redirect
+  source: silentpatch
+  group: where-you-from-reply
+  target: sp_dismiss_reply_where_you_from
+  notes: "The dismiss reply says WHERE_YOU_FROM_POS_REPLY for that topic and nothing for gang-banging"
+
+- addr: 0x0060c87a
+  kind: call_redirect
+  source: silentpatch
+  group: drugged-ignore
+  target: sp_drugged_ignore_on_homie
+  notes: "Drugged GSF members refusing to join say DRUGGED_IGNORE themselves instead of CJ (ecx = edi)"
+
+- addr: 0x00532092
+  kind: mid_hook
+  source: silentpatch
+  group: good-citizen
+  target: sp_good_citizen_check
+  resume: 0x00532102, 0x00532226, 0x005320b6
+  notes: "'Good Citizen Bonus' re-enabled: a ped killed while fleeing from a cop (EVENT_PED_TO_FLEE) gives the bonus once; the cop says GOOD_CITIZEN; a dying or already counted ped is skipped"
+
+- addr: 0x005320c7
+  kind: call_redirect
+  source: silentpatch
+  group: good-citizen
+  target: sp_good_citizen_text
+  notes: "GOODBOY is missing from the GXT, so an empty text falls back to '$50 Good Citizen Bonus!'"
+
+- addr: 0x00709821
+  kind: mid_hook
+  source: silentpatch
+  group: shadow-rotated-objects
+  target: sp_shadow_point_transform
+  resume: 0x007098c3
+  notes: "CShadows::CastShadowEntityXY transforms each point by the entity's full matrix, so shadows and lights cast correctly on objects rotated along X"
+
+- addr: 0x007098c7, 0x007098d2
+  kind: nop
+  source: silentpatch
+  group: shadow-rotated-objects
+  len: 3
+  notes: "The position add and store are part of the full transform"
+
+- addr: 0x004e9f7a
+  kind: call_redirect
+  source: silentpatch
+  group: radio-name-wrap
+  target: sp_radio_name_centre_size
+  notes: "Script draws can't make the radio station name wrap: its centre size is set to the screen width after its drop colour"
+
+- addr: 0x006a806f
+  kind: byte_patch
+  source: silentpatch
+  group: securicar-damage
+  bytes: "eb"
+  notes: "Securicars are no longer very fragile against the player: a GTA III leftover branch is always skipped"
+
+- addr: 0x00406267
+  kind: call_redirect
+  source: silentpatch
+  group: fort-carson-beagle
+  target: sp_fort_carson_beagle
+  notes: "The binary IPL car generator with the misplaced Beagle's exact position, rotation and model becomes a BMX"
+
+- addr: 0x00461ba7
+  kind: byte_patch
+  source: silentpatch
+  group: roadblock-law-order
+  bytes: "e894031000"
+  notes: "CRoadBlocks::GenerateRoadBlocks checks for SWAT first, like the other call sites (the call becomes AreSwatRequired, 0x561f40)"
+
+- addr: 0x00461bb0
+  kind: byte_patch
+  source: silentpatch
+  group: roadblock-law-order
+  bytes: "bdab010000"
+  notes: "...with the Enforcer (427)"
+
+- addr: 0x00461bdd
+  kind: byte_patch
+  source: silentpatch
+  group: roadblock-law-order
+  bytes: "e89e031000"
+  notes: "The army check (AreArmyRequired, 0x561f80) moves to the third place"
+
+- addr: 0x00461be6
+  kind: byte_patch
+  source: silentpatch
+  group: roadblock-law-order
+  bytes: "bdb1010000"
+  notes: "...with the Barracks (433)"
+
+- addr: 0x0057e023
+  kind: byte_patch
+  source: silentpatch
+  group: stats-html-sections
+  bytes: "68ec5b8600"
+  notes: "stats.html: section 3 (crimes) gets the CRIMES heading (contributed by sndth)"
+
+- addr: 0x0057e02c
+  kind: byte_patch
+  source: silentpatch
+  group: stats-html-sections
+  bytes: "68f45b8600"
+  notes: "...and section 4 (gangs) the GANGS heading"
+
+- addr: 0x006a2eab, 0x006abc81
+  kind: byte_patch
+  source: silentpatch
+  group: rhino-lights
+  bytes: "663dfeff"
+  notes: "Rhino has functional lights: the model check against 432 (a III/VC leftover) compares against -2 (contributed by rx)"
+
+- addr: 0x0059f1ea
+  kind: mid_hook
+  source: silentpatch
+  group: detached-part-colours
+  target: sp_detached_part_render
+  resume: 0x0059f1f2
+  site: sp-b4e54c16
+  notes: "Detached vehicle parts keep the vehicle's colours and are drawn from both sides: CObject::Render applies the editable materials (SetEditableMaterialsCB) and turns off backface culling around CEntity::Render, then restores both, instead of the tail jump at 0x59f1ed"
+
+- addr: 0x006a8bbe
+  kind: call_redirect
+  source: silentpatch
+  group: lit-flying-components
+  target: sp_lit_flying_component
+  notes: "Flying car components are lit by directional lights: bLightObject is set before CWorld::Add"
+
+- addr: 0x00575cd6
+  kind: byte_patch
+  source: silentpatch
+  group: map-screen-seams
+  bytes: "c7442454000000bf"
+  notes: "No single-pixel seams on the Map screen with anti-aliasing: the map tile rectangles start at -0.5 instead of 0"
+
+- addr: 0x00575d08
+  kind: byte_patch
+  source: silentpatch
+  group: map-screen-seams
+  bytes: "c7442470000000bf"
+  notes: "Another tile edge at -0.5"
+
+- addr: 0x00575d58
+  kind: byte_patch
+  source: silentpatch
+  group: map-screen-seams
+  bytes: "c7442464000000bf"
+  notes: "Another tile edge at -0.5"
+
+- addr: 0x00575da3
+  kind: byte_patch
+  source: silentpatch
+  group: map-screen-seams
+  bytes: "c7442464000000bf"
+  notes: "Another tile edge at -0.5"
+
+- addr: 0x00575dab
+  kind: byte_patch
+  source: silentpatch
+  group: map-screen-seams
+  bytes: "c7442470000000bf"
+  notes: "Another tile edge at -0.5"
+
+- addr: 0x00575de3
+  kind: byte_patch
+  source: silentpatch
+  group: map-screen-seams
+  bytes: "c7442468000000bf"
+  notes: "Another tile edge at -0.5"
+
+- addr: 0x00871164
+  kind: vtable_redirect
+  source: silentpatch
+  group: extra-vehicle-animations
+  target: sp_automobile_pre_render
+  notes: "CAutomobile::PreRender (vtable slot 17): the engine component speed is set before it, and after it the Phoenix hood scoops, Sweeper brushes and Newsvan antenna animate (SilentPatch's SVF features for models 603, 574 and 582)"
+
+- addr: 0x006c7e7a, 0x006ceaec, 0x006cfadc
+  kind: call_redirect
+  source: silentpatch
+  group: extra-vehicle-animations
+  target: sp_automobile_pre_render
+  notes: "The subclasses' direct calls to CAutomobile::PreRender get the same wrapper"
+
+- addr: 0x0087198c
+  kind: vtable_redirect
+  source: silentpatch
+  group: extra-vehicle-animations
+  target: sp_plane_pre_render
+  notes: "CPlane::PreRender (vtable slot 17): the extra flaps of the Beagle (511) and Stuntplane (513) copy the aileron rotations"
+
+- addr: 0x006ac2be, 0x006acb91
+  kind: operand_slot
+  source: silentpatch
+  group: engine-components-off
+  target: sp_engine_comp_speed
+  notes: "Animated engine components on Bandito, BF Injection and Hotknife rotate by the time step only while the engine is on; the PreRender wrapper writes the speed for each car"
+
+- addr: 0x006b1fbf
+  kind: mid_hook
+  source: silentpatch
+  group: firela-ladder
+  target: sp_firela_hydraulics_test
+  resume: 0x006b200f
+  notes: "Firetruck (firela) ladder: the hydraulics test takes the moving collision path for the firela, so Num2 or the right stick raises the ladder"
+
+- addr: 0x005254f6
+  kind: mid_hook
+  source: silentpatch
+  group: firela-ladder
+  target: sp_firela_camera_control
+  resume: 0x0052551e
+  notes: "The follow-car camera ignores the right stick while it controls the firela ladder"
+
+- addr: 0x00871d18
+  kind: vtable_redirect
+  source: silentpatch
+  group: artict3-double-trailer
+  target: sp_trailer_tow_bar_pos
+  notes: "artict3 trailers can be chained: CTrailer::GetTowBarPos (vtable slot 60) returns the hook dummy's position for model 591, or a point behind the bounding box"
+
+- addr: 0x004c5311
+  kind: call_redirect
+  source: silentpatch
+  group: hierarchy-typos
+  target: sp_hierarchy_typos
+  notes: "Typos in vehicle hierarchies are accepted (DFT-30 wheel_lm, Dumper and Uranus misca/miscb and tailights, transmision, boat_moving, elevator), so those parts display and animate"
+
+- addr: 0x006af2cc
+  kind: mid_hook
+  source: silentpatch
+  group: tug-tow-bar
+  target: sp_tug_tow_bar_frame
+  resume: 0x006af2d2
+  notes: "Tug has a functional tow bar: the tow bar frame falls back to misc_b when misc_a is absent"
+
+- addr: 0x00863f04
+  kind: data_poke
+  source: silentpatch
+  group: kg-stats
+  bytes: "252e30666b6700"
+  site: sp-e0a6c86c
+  notes: "Stats in kilograms display correctly: the format is %.0fkg, as the two stats pages pass a double (the string is used only by them)"
+
+- addr: 0x006fb99e
+  kind: mid_hook
+  source: silentpatch
+  group: road-reflections
+  target: sp_road_reflection_depth
+  resume: 0x006fb9a1
+  notes: "Wet road reflections render again (RefFix): the reflection quad's depth is 1.0 instead of RwEngineInstance's near-plane value; SilentPatch repoints the engine pointer at 0x6fb97a to a fake whose +0 is 1.0 and the fld offset to 0, and the port loads 1.0 directly"
+
+- addr: 0x004c830c
+  kind: mid_hook
+  source: silentpatch
+  group: light-materials
+  target: sp_light_materials_save
+  resume: 0x004c8311
+  notes: "Holding a weapon no longer lights some objects wrongly: when a material's surface properties are changed for lighting, the two following values are saved for restore too (SilentPatch's LightMaterialsFix, with its register results)"
+
+- addr: 0x005d993f
+  kind: call_redirect
+  source: silentpatch
+  group: blown-up-cars
+  target: sp_dark_vehicle_check
+  notes: "Blown-up vehicles are coloured correctly and don't shine (as in 1.01 and Steam): a wrecked car's atomic (bit 14) is dark when the directional light does not light atomics"
+
+- addr: 0x005d9a74
+  kind: mid_hook
+  source: silentpatch
+  group: blown-up-cars
+  target: sp_dark_vehicle_branch_a
+  resume: 0x005d9b09, 0x005d9a7a
+  notes: "The first material branch takes the dark path for such cars"
+
+- addr: 0x005d9b44
+  kind: mid_hook
+  source: silentpatch
+  group: blown-up-cars
+  target: sp_dark_vehicle_branch_b
+  resume: 0x005d9cac, 0x005d9b4a
+  notes: "The second branch takes the dark path too"
+
+- addr: 0x005d9cb2
+  kind: mid_hook
+  source: silentpatch
+  group: blown-up-cars
+  target: sp_dark_vehicle_branch_c
+  resume: 0x005d9e0d, 0x005d9cb8
+  notes: "The third branch takes the dark path too"
+
+- addr: 0x004c9648
+  kind: mid_hook
+  source: silentpatch
+  group: dirty-cars
+  target: sp_find_editable_material_list
+  resume: 0x004c9660
+  notes: "Dirty cars can get clean (as in 1.01): every vehiclegrunge256 material of the clump and its extras is listed, 30 in the model info and the rest in a host-side list (SilentPatch allocates them), and the colours reset to -1"
+
+- addr: 0x005d5db0
+  kind: func_replace
+  source: silentpatch
+  group: dirty-cars
+  target: sp_remap_dirt
+  notes: "RemapDirt sets the dirt level's texture on all of those materials, not just the first 16"
+
+- addr: 0x0085c5e4
+  kind: vtable_redirect
+  source: silentpatch
+  group: dirty-cars
+  target: sp_vehicle_model_shutdown
+  notes: "CVehicleModelInfo::Shutdown (vtable slot 7) drops the extra dirt material list"
+
+- addr: 0x004c9660
+  kind: call_redirect
+  source: silentpatch
+  group: number-plates
+  target: sp_set_car_custom_plate
+  notes: "Each car has a unique number plate: a model's custom plate text and type are reset when its clump is set"
+
+- addr: 0x006d6a58
+  kind: call_redirect
+  source: silentpatch
+  group: number-plates
+  target: sp_plate_texture_create
+  notes: "Every vehicle creates its own plate texture from the model's custom text or a generated one; law enforcement vehicles use the region's design, others mostly too with a 1-in-20 random design"
+
+- addr: 0x006d6517
+  kind: nop
+  source: silentpatch
+  group: number-plates
+  len: 2
+  notes: "Custom plates are set up for bikes too, not only automobiles"
+
+- addr: 0x006d651c
+  kind: call_redirect
+  source: silentpatch
+  group: number-plates
+  target: sp_plate_before_render
+  notes: "Before rendering, the carplate and carpback materials get the vehicle's plate texture and design; the originals are kept"
+
+- addr: 0x006d0e43
+  kind: nop
+  source: silentpatch
+  group: number-plates
+  len: 2
+  notes: "...and restored for bikes too"
+
+- addr: 0x006d0e53
+  kind: call_redirect
+  source: silentpatch
+  group: number-plates
+  target: sp_plate_after_render
+  notes: "After rendering, the plate materials are restored"
+
+- addr: 0x006fdfe0
+  kind: func_replace
+  source: silentpatch
+  group: number-plates
+  target: sp_plate_setup_after_upgrade
+  notes: "CCustomCarPlateMgr::SetupClumpAfterVehicleUpgrade does nothing, as the plates are applied per render"
+
+- addr: 0x006fdf44
+  kind: byte_patch
+  source: silentpatch
+  group: plate-filtering
+  bytes: "c6465002"
+  notes: "Number plates are bilinear filtered (rwFILTERLINEAR instead of nearest)"
+
+- addr: 0x006e0f60
+  kind: mid_hook
+  source: silentpatch
+  group: lightbeam
+  target: sp_lightbeam_push_state
+  resume: 0x006e0f63
+  site: sp-5b8359de
+  notes: "Vehicle head light beams: before the beam, each render state it changes is saved first; SilentPatch points the engine pointer operands at its own RenderStateSet, the port handles the call [reg+0x20] itself. This one: z write"
+
+- addr: 0x006e0f6c
+  kind: mid_hook
+  source: silentpatch
+  group: lightbeam
+  target: sp_lightbeam_push_state
+  resume: 0x006e0f6f
+  site: sp-2dfc95dc
+  notes: "Saves and sets the z test"
+
+- addr: 0x006e0f79
+  kind: mid_hook
+  source: silentpatch
+  group: lightbeam
+  target: sp_lightbeam_push_state
+  resume: 0x006e0f7c
+  site: sp-b4666854
+  notes: "Saves and sets the vertex alpha"
+
+- addr: 0x006e0f86
+  kind: mid_hook
+  source: silentpatch
+  group: lightbeam
+  target: sp_lightbeam_push_state
+  resume: 0x006e0f89
+  site: sp-4334fa5b
+  notes: "Saves and sets the source blend"
+
+- addr: 0x006e0f92
+  kind: mid_hook
+  source: silentpatch
+  group: lightbeam
+  target: sp_lightbeam_push_state
+  resume: 0x006e0f95
+  site: sp-23d69c55
+  notes: "Saves and sets the destination blend"
+
+- addr: 0x006e0f9f
+  kind: mid_hook
+  source: silentpatch
+  group: lightbeam
+  target: sp_lightbeam_push_state
+  resume: 0x006e0fa2
+  site: sp-e3837541
+  notes: "Saves and sets the shade mode"
+
+- addr: 0x006e0fb8
+  kind: mid_hook
+  source: silentpatch
+  group: lightbeam
+  target: sp_lightbeam_push_state
+  resume: 0x006e0fbb
+  site: sp-15e47c90
+  notes: "Saves and sets the cull mode"
+
+- addr: 0x006e0fc8
+  kind: mid_hook
+  source: silentpatch
+  group: lightbeam
+  target: sp_lightbeam_push_state
+  resume: 0x006e0fcb
+  site: sp-3513c3b0
+  notes: "Saves and sets the alpha test function"
+
+- addr: 0x006e0fd5
+  kind: mid_hook
+  source: silentpatch
+  group: lightbeam
+  target: sp_lightbeam_push_state
+  resume: 0x006e0fd8
+  site: sp-d5fa27f9
+  notes: "Saves and sets the alpha test reference"
+
+- addr: 0x006e13ea
+  kind: mid_hook
+  source: silentpatch
+  group: lightbeam
+  target: sp_lightbeam_pop_state
+  resume: 0x006e13ed
+  site: sp-8ce2dd49
+  notes: "After the beam, the saved states are restored instead of fixed defaults, including the shade mode, culling and alpha test the game left changed, so lights don't get dark after being lit and windows stay visible from inside. This one: z write"
+
+- addr: 0x006e13f7
+  kind: mid_hook
+  source: silentpatch
+  group: lightbeam
+  target: sp_lightbeam_pop_state
+  resume: 0x006e13fa
+  site: sp-d07271da
+  notes: "Restores the z test"
+
+- addr: 0x006e1403
+  kind: mid_hook
+  source: silentpatch
+  group: lightbeam
+  target: sp_lightbeam_pop_state
+  resume: 0x006e1406
+  site: sp-c66030db
+  notes: "Restores the source blend"
+
+- addr: 0x006e1410
+  kind: mid_hook
+  source: silentpatch
+  group: lightbeam
+  target: sp_lightbeam_pop_state
+  resume: 0x006e1413
+  site: sp-fc6a90c2
+  notes: "Restores the destination blend, then shade mode"
+
+- addr: 0x006e141c
+  kind: mid_hook
+  source: silentpatch
+  group: lightbeam
+  target: sp_lightbeam_pop_state
+  resume: 0x006e141f
+  site: sp-e6f12df8
+  notes: "Restores the vertex alpha"
+
+- addr: 0x006e1428
+  kind: mid_hook
+  source: silentpatch
+  group: lightbeam
+  target: sp_lightbeam_pop_state
+  resume: 0x006e142b
+  site: sp-dff025e5
+  notes: "Restores the cull mode, then the alpha test function and reference"
+
+- addr: 0x005d9a87, 0x005d9a90
+  kind: byte_patch
+  source: silentpatch
+  group: lights-on-vehicles
+  bytes: "6a08"
+  notes: "Lights are cast on vehicles and peds properly: the car pipeline sets and enables its own light as D3D light 8 instead of 1, so it no longer overwrites a light the scene set"
+
+- addr: 0x005d9f1e
+  kind: byte_patch
+  source: silentpatch
+  group: lights-on-vehicles
+  bytes: "6a08"
+  notes: "The same for the second place that enables it"
+
+- addr: 0x005d88d1
+  kind: byte_patch
+  source: silentpatch
+  group: vehicle-extra-light
+  bytes: "c705b42cc00000000000"
+  notes: "No extra D3DLIGHT on vehicles now that the directional light is fixed (by aap): the extra light's colour is 0"
+
+- addr: 0x005d88db
+  kind: byte_patch
+  source: silentpatch
+  group: vehicle-extra-light
+  bytes: "c705b82cc00000000000"
+  notes: "Green 0"
+
+- addr: 0x005d88e5
+  kind: byte_patch
+  source: silentpatch
+  group: vehicle-extra-light
+  bytes: "c705bc2cc00000000000"
+  notes: "Blue 0"
+
+- addr: 0x005d88f9
+  kind: byte_patch
+  source: silentpatch
+  group: vehicle-extra-light
+  bytes: "c705d42cc00000000000"
+  notes: "The second colour's red 0"
+
+- addr: 0x005d8903
+  kind: byte_patch
+  source: silentpatch
+  group: vehicle-extra-light
+  bytes: "c705d82cc00000000000"
+  notes: "Green 0"
+
+- addr: 0x005d890d
+  kind: byte_patch
+  source: silentpatch
+  group: vehicle-extra-light
+  bytes: "c705dc2cc00000000000"
+  notes: "Blue 0"
+
+- addr: 0x008c8520
+  kind: data_poke
+  source: silentpatch
+  group: police-scanner-names
+  bytes: "57455354500000"
+  site: sp-d04b49d7
+  notes: "Temple is called on the police scanner: its name slot (113, ????) becomes WESTP"
+
+- addr: 0x008c85c8
+  kind: data_poke
+  source: silentpatch
+  group: police-scanner-names
+  bytes: "3f3f3f3f00"
+  site: sp-d04b49d7
+  notes: "Queens no longer uses a duplicate SUN sample: slot 134 becomes ????"
+
+- addr: 0x005b8e54
+  kind: byte_patch
+  source: silentpatch
+  group: streamed-entity-lists
+  bytes: "68983a0000"
+  notes: "The streamed entity linked list holds 15000 entries instead of 12000, so the world doesn't flicker when looking down with high draw distance"
+
+- addr: 0x005b8eaf
+  kind: byte_patch
+  source: silentpatch
+  group: streamed-entity-lists
+  bytes: "b9983a0000"
+  notes: "The list's node count matches"
+
+- addr: 0x006b4ebf, 0x006ce826
+  kind: byte_patch
+  source: silentpatch
+  group: mouse-airborne-car
+  bytes: "a002ccc100"
+  notes: "The mouse rotates an airborne car or bike only with Steer with Mouse enabled: the check reads CVehicle::m_bEnableMouseSteering (0xc1cc02) instead of the 3rd person mouse flag"
+
+- addr: 0x006a34c9
+  kind: byte_patch
+  source: silentpatch
+  group: automobile-fix
+  bytes: "eb5e"
+  notes: "CAutomobile::Fix: the loop that zeroes the rotation of frames 8-24 is skipped (misc parts like Rumpo's bumper and Bandito's prop no longer glitch); the frames are reset from the model below"
+
+- addr: 0x006a3555
+  kind: mid_hook
+  source: silentpatch
+  group: automobile-fix
+  target: sp_automobile_fix
+  resume: 0x006a356f
+  notes: "At CAutomobile::Fix's epilogue: frames 8-24 copy the model's original matrices; bouncing panels reset, except the Towtruck's and Tractor's hook; the Rhino's extra wheels are reset and hidden. SilentPatch rewrites the epilogue to tail-jump to its Fix; the port does that work, pops the four saved registers and resumes at the SEH epilogue"
+
+- addr: 0x006cac05
+  kind: mid_hook
+  source: silentpatch
+  group: plane-fix
+  target: sp_plane_fix
+  notes: "CPlane::Fix resets the bouncing panels (plane doors don't corrupt, props reset), except the Vortex exhaust"
+
+- addr: 0x006c268d
+  kind: nop
+  source: silentpatch
+  group: fuck-car-completely-panels
+  len: 3
+  notes: "FuckCarCompletely no longer zeroes the panels' damage state, so a later fix repairs them"
+
+- addr: 0x0058e210, 0x0058eab7, 0x0058eae1
+  kind: nop
+  source: silentpatch
+  group: weapon-icon-zwrite
+  len: 3
+  notes: "The crosshair doesn't mess up the weapon icon on a jetpack: three RwRenderStateSet(ZWRITEENABLE) calls are skipped, their arguments still popped by the caller"
+
+- addr: 0x005e7859
+  kind: call_redirect
+  source: silentpatch
+  group: weapon-rendering
+  target: sp_render_weapon_with_ped
+  notes: "CPed::Render: the weapon is drawn right after the ped, before the vehicle alpha pass, so it shows through a vehicle window; the ped still joins the weapon list for its muzzle flash"
+
+- addr: 0x00732f30
+  kind: func_replace
+  source: silentpatch
+  group: weapon-rendering
+  target: sp_render_weapon_peds_for_pc
+  notes: "CVisibilityPlugins::RenderWeaponPedsForPC draws only the muzzle flashes, with Z writes off, each ped lit and unlit around it, and restores the render states it changes"
+
+- addr: 0x0070665c
+  kind: byte_patch
+  source: silentpatch
+  group: shadow-camera-update
+  bytes: "90909052"
+  notes: "CRealTimeShadow::Update passes the owner entity (push edx) instead of its clump to CShadowCamera::Update"
+
+- addr: 0x00706662
+  kind: call_redirect
+  source: silentpatch
+  group: shadow-camera-update
+  target: sp_shadow_camera_update
+  notes: "CShadowCamera::Update takes the entity: a ped's weapon and jetpack are drawn into its shadow; instanced geometry renders with its flags stripped"
+
+- addr: 0x006c4523
+  kind: call_redirect
+  source: silentpatch
+  group: rotors
+  target: sp_heli_render_rotors
+  notes: "CHeli::Render: the static and moving rotor alphas follow the rotor speed before CEntity::Render (blurred rotors, as in Vice City and on the PS2)"
+
+- addr: 0x006cab80
+  kind: mid_hook
+  source: silentpatch
+  group: rotors
+  target: sp_plane_render_rotors
+  resume: 0x006d0e60
+  notes: "CPlane::Render: the propeller alphas follow the propeller speed, then the tail jump to CVehicle::Render continues"
+
+- addr: 0x007341d9
+  kind: imm_redirect
+  source: silentpatch
+  group: rotors
+  target: sp_heli_rotor_alpha_render
+  notes: "CVisibilityPlugins::RenderHeliRotorAlphaCB: the alpha list entry's render callback draws with vertex alpha on and alpha ref 0"
+
+- addr: 0x0073421d
+  kind: call_redirect
+  source: silentpatch
+  group: rotors
+  target: sp_heli_rotor_alpha_render
+  notes: "The same rotor, drawn at once when the alpha list is full"
+
+- addr: 0x00734127
+  kind: imm_redirect
+  source: silentpatch
+  group: rotors
+  target: sp_heli_rotor_alpha_render
+  notes: "CVisibilityPlugins::RenderHeliTailRotorAlphaCB: the tail rotor's alpha list callback"
+
+- addr: 0x0073414d
+  kind: call_redirect
+  source: silentpatch
+  group: rotors
+  target: sp_heli_rotor_alpha_render
+  notes: "The tail rotor, drawn at once when the alpha list is full"
+
+- addr: 0x0073445e
+  kind: imm_redirect
+  source: silentpatch
+  group: rotors
+  target: sp_plane_prop_alpha_render
+  notes: "CVisibilityPlugins::RenderVehicleHiDetailAlphaCB_BigVehicle: atomics on a _prop frame draw with vertex alpha on and alpha ref 0"
+
+- addr: 0x0073448c
+  kind: call_redirect
+  source: silentpatch
+  group: rotors
+  target: sp_plane_prop_alpha_render
+  notes: "The same atomic, drawn at once when the alpha list is full"
+
+- addr: 0x004c7b77
+  kind: imm_redirect
+  source: silentpatch
+  group: rotors
+  target: sp_set_renderer_plane_or_big_vehicle
+  notes: "CVehicleModelInfo::SetAtomicRenderCallbacks for planes and big vehicles: after the stock choice, _prop atomics get the big vehicle alpha callback"
+
+- addr: 0x004c7b54
+  kind: imm_redirect
+  source: silentpatch
+  group: rotors
+  target: sp_set_renderer_heli_static_rotor
+  notes: "The same for helicopters: static_rotor and static_rotor2 get the rotor alpha callbacks, so the static rotor fades too"
+
+- addr: 0x004c9290
+  kind: byte_patch
+  source: silentpatch
+  group: double-rwheels
+  bytes: "81e2fcfffdff"
+  notes: "CVehicleModelInfo::PreprocessHierarchy (DOUBLE_RWHEELS): the copied wheel frame's matrix flags are masked (and edx, ~(rwMATRIXTYPEMASK|rwMATRIXINTERNALIDENTITY)) instead of set, so the second rear wheel is transformed"
+
+- addr: 0x004c9223
+  kind: mid_hook
+  source: silentpatch
+  group: double-rwheels
+  target: sp_trailer_double_rwheels
+  resume: 0x004c9235, 0x004c9333
+  notes: "Trailers get dual rear wheels on every wheel, not only on the rear ones"
+
+- addr: 0x004c92f4
+  kind: mid_hook
+  source: silentpatch
+  group: double-rwheels
+  target: sp_trailer_double_rwheels_mirrored
+  resume: 0x004c9235, 0x004c9333
+  notes: "The mirrored-wheel path also reaches the dual rear wheel check (the stack and wheel id are restored as SilentPatch's stub does)"
+
+- addr: 0x00590ade
+  kind: mid_hook
+  source: silentpatch
+  group: loop-loading-screens
+  target: sp_loading_screen_change
+  resume: 0x00590ae4
+  len: 6
+  notes: "CLoadingScreen::DoPCScreenChange: the splash index wraps to the first screen after the last one instead of running past the list (fading to white)"
+
+- addr: 0x00590042
+  kind: mid_hook
+  source: silentpatch
+  group: loop-loading-screens
+  target: sp_loading_screen_last_splash
+  resume: 0x00590048
+  len: 6
+  notes: "CLoadingScreen::RenderSplash: the splash faded out is the one shown before the wrap"
+
+- addr: 0x008a5d50
+  kind: data_poke
+  source: silentpatch
+  group: cars-on-water-cheat
+  bytes: "c392fce5"
+  notes: "Cheat hash 34 (cars drive on water, PS2 only) gets SEAROADER's hash, so it can be typed"
+
+- addr: 0x005f05ca
+  kind: call_redirect
+  source: silentpatch
+  group: passenger-hit-ped-lines
+  target: sp_ped_hit_passenger_line
+  notes: "CPed::KillPedWithCar: when the player's car runs a ped over, a random passenger says CAR_HIT_PED (or TAXI_HIT_PED)"
+
+- addr: 0x006a8298
+  kind: call_redirect
+  source: silentpatch
+  group: passenger-hit-ped-lines
+  target: sp_say_without_car_hit_ped
+  notes: "CAutomobile::VehicleDamage: CAR_HIT_PED is no longer said when the car only pushes a ped (the passenger line moves to CPed::KillPedWithCar)"
+
+- addr: 0x0053c6db, 0x0053c76d
+  kind: call_redirect
+  source: silentpatch
+  group: new-game-resets
+  target: sp_reinit_game_object_variables
+  notes: "CGame::InitialiseWhenRestarting's two calls to CGame::ReInitGameObjectVariables (New Game): free resprays and bombs, the ambulance and fire truck timers, stat counters, the quit-car help text, the mad driver timer and the death and arrest penalties reset first; afterwards pickups, car generators and stunt jumps from text IPLs are loaded again"
+
+- addr: 0x005b89e4
+  kind: call_redirect
+  source: silentpatch
+  group: new-game-resets
+  target: sp_load_pickup_save_line
+  notes: "Text IPL pickup lines are kept for the New Game reload"
+
+- addr: 0x005b89ee
+  kind: call_redirect
+  source: silentpatch
+  group: new-game-resets
+  target: sp_load_car_generator_save_line
+  notes: "Text IPL car generator lines are kept for the New Game reload"
+
+- addr: 0x005b89f9
+  kind: call_redirect
+  source: silentpatch
+  group: new-game-resets
+  target: sp_load_stunt_jump_save_line
+  notes: "Text IPL stunt jump lines are kept for the New Game reload"
+
+- addr: 0x0044acdc
+  kind: nop
+  source: silentpatch
+  group: pay-n-spray-clean
+  len: 6
+  notes: "Pay 'n Spray no longer cleans the car before the doors close; it is cleaned while hidden behind them"
+
+- addr: 0x006d0b70
+  kind: func_replace
+  source: silentpatch
+  group: paintjob-remap-index
+  target: sp_get_remap_index
+  notes: "CVehicle::GetRemapIndex falls back to the remap still waiting to load, so a paint job is kept when a garage stores the car before it was rendered"
+
+- addr: 0x00735881
+  kind: mid_hook
+  source: silentpatch
+  group: extra-directionals
+  target: sp_extra_directionals
+  resume: 0x0073588f
+  len: 14
+  notes: "The per-entity light setup (0x735840): up to 6 extra directional lights per model on Medium and higher Visual FX, indoors and outdoors; Low keeps the stock 4 outdoors and 6 indoors"
+
+- addr: 0x0058adbe
+  kind: byte_patch
+  source: silentpatch
+  group: coloured-zone-names
+  bytes: "750e"
+  notes: "CHud::DrawAreaName: a zone colour with any non-zero component goes to the colour constructor (jne), instead of needing all three"
+
+- addr: 0x0058adc5
+  kind: byte_patch
+  source: silentpatch
+  group: coloured-zone-names
+  bytes: "7507"
+  notes: "The same for the green component"
+
+- addr: 0x0058ade4
+  kind: call_redirect
+  source: silentpatch
+  group: coloured-zone-names
+  target: sp_zone_name_colour
+  notes: "The zone name colour: with silentpatch.coloured_zone_names, the HUD's zone colour blended towards the gang colour by its alpha (up to 120); off, always the HUD's zone colour"
+
+- addr: 0x00735618
+  kind: mid_hook
+  source: silentpatch
+  group: directional-from-sun
+  target: sp_directional_from_sun
+  resume: 0x00735629
+  len: 17
+  setting: silentpatch.directional_from_sun
+  notes: "SetLightsWithTimeOfDayColour: the directional light's direction is the current vector to the sun"
+
+- addr: 0x006fc5a8
+  kind: mid_hook
+  source: silentpatch
+  group: sun-size-hack
+  target: sp_sun_size_far_clip
+  resume: 0x006fc5ae
+  len: 6
+  setting: silentpatch.sun_size_hack
+  notes: "CCoronas::DoSunAndMoon places the sun at the far clip, at most 600, which draws it bigger"
+
+- addr: 0x0058950e
+  kind: byte_patch
+  source: silentpatch
+  group: minimal-hud
+  bytes: "90ff74241c"
+  notes: "CHud::DrawAmmo: the fading weapon item's float alpha is pushed instead of 255"
+
+- addr: 0x0058951d
+  kind: call_redirect
+  source: silentpatch
+  group: minimal-hud
+  target: sp_hud_rgba_float_alpha
+  notes: "The CRGBA is built from the float alpha"
+
+- addr: 0x0058d88a
+  kind: byte_patch
+  source: silentpatch
+  group: minimal-hud
+  bytes: "90ff742430"
+  notes: "The fading HUD sprite drawn at 0x58d7d0: its float alpha is pushed instead of 255"
+
+- addr: 0x0058d8fd
+  kind: call_redirect
+  source: silentpatch
+  group: minimal-hud
+  target: sp_xlu_sprite_float_alpha
+  notes: "CSprite::RenderOneXLUSprite gets the float alpha as a byte"
+
+- addr: 0x00588905
+  kind: mid_hook
+  source: silentpatch
+  group: minimal-hud-mode
+  target: sp_minimal_hud_mode
+  resume: 0x0058890a
+  setting: silentpatch.minimal_hud
+  notes: "CHud::ReInitialise: the HUD starts in the minimal mode (0 instead of 5), so health, armour, weapon and money fade when inactive"
+
+- addr: 0x004b322e
+  kind: mid_hook
+  source: silentpatch
+  group: true-invincibility
+  target: sp_true_invincibility
+  resume: 0x004b3238, 0x004b339c
+  len: 10
+  setting: silentpatch.true_invincibility
+  notes: "CEventDamage::ComputeWillKillPed with an invincibility cheat: the police helicopter's drive-by Uzi no longer kills CJ, as no weapon does"
+
+- addr: 0x0058d470
+  kind: call_redirect
+  source: silentpatch
+  group: sliding-mission-title
+  target: sp_sliding_mission_title
+  setting: silentpatch.sliding_mission_title
+  notes: "CHud's big message drawing (0x58d240): the mission title is printed at its slide position (BigMessageX[1] in 640 units, scaled to the screen)"
+
+- addr: 0x0058d2a9
+  kind: call_redirect
+  source: silentpatch
+  group: sliding-mission-title
+  target: sp_sliding_mission_title_wrap
+  setting: silentpatch.sliding_mission_title
+  notes: "The title's right-justify wrap is -500 HUD message units, so it is not cut while sliding"
+
+- addr: 0x0058d21a
+  kind: call_redirect
+  source: silentpatch
+  group: sliding-odd-job-text
+  target: sp_sliding_odd_job_text
+  setting: silentpatch.sliding_odd_job_text
+  notes: "The odd job text drawing (0x58d12f): the text is printed offset by its slide position (OddJob2XOffset in 640 units, scaled to the screen)"
+
+- addr: 0x00713c4c
+  kind: call_redirect
+  source: silentpatch
+  group: moon-phases
+  target: sp_moon_phases_mask
+  notes: "CClouds::Render: the moon's mask sprite is drawn with SilentPatch's lunar mask (mods/silentpatch/lunar64.png, decoded on the host into a 64x64 raster) into the alpha channel only, so the moon shows its phase as on the PS2"
+
+- addr: 0x005d7f1e
+  kind: call_redirect
+  source: silentpatch
+  group: skinned-building-pipeline
+  target: sp_building_pipeline_skip_skinned
+  notes: "CCustomBuildingDNPipeline::CustomPipeAtomicSetup is skipped for atomics that use the skin pipeline (the parachute), so they keep it"
+
+- addr: 0x006df4f4
+  kind: call_redirect
+  source: silentpatch
+  group: radio-change-anim
+  target: sp_radio_change_anim
+  notes: "The radio station change animation (CAnimManager::BlendAnimation from 0x6df3d0) keeps only the head and right arm bones; it is skipped in the Kart, and its partial flag is cleared when driving a boat"
+
+- addr: 0x01561366
+  kind: call_redirect
+  source: silentpatch
+  group: biker-cop-drive-by
+  target: sp_biker_cop_abort_drive_by
+  notes: "CCarAI::BackToCruisingIfNoWantedLevel (DRM-moved): after JoinCarWithRoadSystem, a driver whose primary task is a sequence holding TASK_SIMPLE_GANG_DRIVEBY has it made abortable, so biker cops stop shooting once the wanted level is gone"
+
+- addr: 0x00721520
+  kind: call_redirect
+  source: silentpatch
+  group: racing-checkpoints
+  target: sp_checkpoint_modulate_colour
+  notes: "C3dMarker rendering: the marker's geometries modulate their material colour, so racing checkpoints are coloured even when no other marker was drawn first"
+
+- addr: 0x006b38ca, 0x006b3ccb, 0x006c6ebe, 0x006ccef9
+  kind: call_redirect
+  source: silentpatch
+  group: exploding-car-wheels
+  target: sp_spawn_flying_wheels
+  notes: "The BlowUpCar paths spawn and hide the wheels the damage manager detached (and the middle rear wheels with them), instead of always the front left one"
+
+- addr: 0x006b38e4, 0x006b3cf1, 0x006c6ed8, 0x006ccf17
+  kind: nop
+  source: silentpatch
+  group: exploding-car-wheels
+  len: 5
+  notes: "The front left wheel is no longer hidden unconditionally"
+
+- addr: 0x006c25f5
+  kind: operand_slot
+  source: silentpatch
+  group: exploding-car-wheels
+  target: sp_exploding_wheel_randomness
+  notes: "CDamageManager::FuckCarCompletely picks the wheel to detach from rand * -4 instead of -3, so the rear right wheel can be picked"
+
+- addr: 0x0058d7d9
+  kind: byte_patch
+  source: silentpatch
+  group: weapon-icon-filtering
+  bytes: "6a04"
+  notes: "Weapon icons are drawn with rwFILTERMIPLINEAR (push 4, was push 2: linear without mipmaps)"
+
+- addr: 0x004c7633
+  kind: call_redirect
+  source: silentpatch
+  group: vehicle-model-info-init
+  target: sp_vehicle_model_info_init
+  notes: "CVehicleModelInfo's constructor: after the CClumpModelInfo base, the colour and dirt material lists are cleared and the dirt list is empty; the removed per-model plate material points at a dummy, as SilentPatch does, so the remaining null checks pass"
+
+- addr: 0x0156d8ea, 0x015614ab
+  kind: call_redirect
+  source: silentpatch
+  group: stored-car-bombs
+  target: sp_restore_car_bomb_owner
+  notes: "The garage restore loops (0x448550 and 0x4485c0, DRM-moved): a restored car or bike gets its stored bomb back, owned by CJ, so bikes keep their bombs and a car bomb still counts as the player's"
+
+- addr: 0x006f4f58
+  kind: call_redirect
+  source: silentpatch
+  group: handling-name-matching
+  target: sp_handling_name_keep_pointer
+  notes: "CHandlingDataMgr::FindExactWord: the name is kept as a pointer instead of a strncpy of the line's word length"
+
+- addr: 0x006f4f64
+  kind: call_redirect
+  source: silentpatch
+  group: handling-name-matching
+  target: sp_handling_name_compare
+  notes: "The handling.cfg name is compared whole (strcmp), so names no longer need unique prefixes"
+
+- addr: 0x006e1d4e
+  kind: byte_patch
+  source: silentpatch
+  group: rear-light-damage
+  bytes: "6a02"
+  notes: "The left rear light's damage state uses LEFT_TAIL_LIGHT (push 2), not RIGHT_TAIL_LIGHT (3) like the right one"

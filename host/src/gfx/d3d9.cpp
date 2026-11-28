@@ -8,6 +8,7 @@
 
 #include "../audio/output.hpp"
 #include "../camera_pin.hpp"
+#include "../guest_calls.hpp"
 #include "../manifest_runtime.hpp"
 #include "../perf.hpp"
 #include "../input/keys.hpp"
@@ -1494,6 +1495,7 @@ uint32_t dev_present(uint32_t self, uint32_t src, uint32_t dst, uint32_t hwnd, u
     }
     log_watched(frame);
     camera::apply_pins(frame);
+    calls::apply_calls(frame);
     refresh_operand_slots();
     shadow::note_frame(frame);
     input::run_key_script(false, frame);
@@ -1962,8 +1964,8 @@ uint32_t dev_set_light(uint32_t self, uint32_t index, uint32_t l) {
     if (!d || l == 0) {
         return D::kInvalidCall;
     }
-    if (index >= kMaxLights) {
-        log_once("SetLight index >= 8 ignored");
+    if (index >= kStoredLights) {
+        log_once("SetLight index >= 16 ignored");
         return D::kOk;
     }
     std::memcpy(&d->st.lights[index], mem::ptr(l), sizeof(Light));
@@ -1972,7 +1974,7 @@ uint32_t dev_set_light(uint32_t self, uint32_t index, uint32_t l) {
 
 uint32_t dev_get_light(uint32_t self, uint32_t index, uint32_t l) {
     Device* d = dev(self);
-    if (!d || l == 0 || index >= kMaxLights) {
+    if (!d || l == 0 || index >= kStoredLights) {
         return D::kInvalidCall;
     }
     std::memcpy(mem::ptr(l), &d->st.lights[index], sizeof(Light));
@@ -1984,17 +1986,17 @@ uint32_t dev_light_enable(uint32_t self, uint32_t index, uint32_t enable) {
     if (!d) {
         return D::kInvalidCall;
     }
-    if (index < kMaxLights) {
+    if (index < kStoredLights) {
         d->st.light_enabled[index] = enable ? 1 : 0;
     } else if (enable) {
-        log_once("LightEnable index >= 8 ignored");
+        log_once("LightEnable index >= 16 ignored");
     }
     return D::kOk;
 }
 
 uint32_t dev_get_light_enable(uint32_t self, uint32_t index, uint32_t out) {
     Device* d = dev(self);
-    if (!d || out == 0 || index >= kMaxLights) {
+    if (!d || out == 0 || index >= kStoredLights) {
         return D::kInvalidCall;
     }
     mem::write<uint32_t>(out, d->st.light_enabled[index]);

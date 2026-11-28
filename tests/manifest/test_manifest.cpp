@@ -287,6 +287,46 @@ void test_resume_addresses() {
     CHECK(!far && has_error(far.error(), "resume \"+16\" is not a 32-bit address or an offset +1 to +15"));
 }
 
+void test_vtable_redirect() {
+    auto ok = parse(R"(- addr: 0x00871164
+  kind: vtable_redirect
+  source: silentpatch
+  group: extra-animations
+  target: sp_automobile_pre_render
+)", "vtable.yaml");
+    CHECK(ok.has_value());
+    CHECK(ok && ok->entries[0].kind == ma::manifest::Kind::vtable_redirect);
+    CHECK(ok && ok->entries[0].span() == 4 && !ok->entries[0].lift_time());
+    auto bad = parse(R"(- addr: 0x00871164
+  kind: vtable_redirect
+  source: silentpatch
+  group: extra-animations
+  bytes: "00"
+)", "vtable_bad.yaml");
+    CHECK(!bad && has_error(bad.error(), "vtable_redirect needs a target symbol") &&
+          has_error(bad.error(), "vtable_redirect takes no bytes or len"));
+}
+
+void test_imm_redirect() {
+    auto ok = parse(R"(- addr: 0x00734127
+  kind: imm_redirect
+  source: silentpatch
+  group: rotors
+  target: sp_heli_rotor_alpha
+)", "imm.yaml");
+    CHECK(ok.has_value());
+    CHECK(ok && ok->entries[0].kind == ma::manifest::Kind::imm_redirect);
+    CHECK(ok && ok->entries[0].span() == 4 && ok->entries[0].lift_time());
+    auto bad = parse(R"(- addr: 0x00734127
+  kind: imm_redirect
+  source: silentpatch
+  group: rotors
+  len: 4
+)", "imm_bad.yaml");
+    CHECK(!bad && has_error(bad.error(), "imm_redirect needs a target symbol") &&
+          has_error(bad.error(), "imm_redirect takes no bytes or len"));
+}
+
 void test_operand_slots() {
     auto ok = parse(R"(- addr: 0x0058eb3f, 0x0058ec0c,
     0x0058f55c
@@ -395,6 +435,8 @@ int main() {
     test_groups_and_settings();
     test_resume_addresses();
     test_operand_slots();
+    test_vtable_redirect();
+    test_imm_redirect();
     test_marker();
     test_parse_errors();
     test_conflicts();

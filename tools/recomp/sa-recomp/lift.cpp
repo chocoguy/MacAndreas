@@ -289,6 +289,21 @@ std::expected<size_t, std::string> apply_manifest(const std::filesystem::path& d
             ++applied;
             continue;
         }
+        if (e.kind == ma::manifest::Kind::imm_redirect) {
+            if (!image.is_exec(e.addr)) {
+                report += std::format("{}:{}: imm_redirect 0x{:08x} is not in executable code\n", e.file, e.line, e.addr);
+                continue;
+            }
+            uint32_t thunk = ma::manifest::redirect_address(e.addr);
+            std::vector<uint8_t> imm = {static_cast<uint8_t>(thunk), static_cast<uint8_t>(thunk >> 8),
+                                        static_cast<uint8_t>(thunk >> 16), static_cast<uint8_t>(thunk >> 24)};
+            if (!image.patch(e.addr, imm)) {
+                report += std::format("{}:{}: 0x{:08x} is not backed by file data\n", e.file, e.line, e.addr);
+                continue;
+            }
+            ++applied;
+            continue;
+        }
         if (e.kind == ma::manifest::Kind::operand_slot) {
             uint8_t opcode = 0;
             uint8_t modrm = 0;

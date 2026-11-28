@@ -92,7 +92,7 @@ MidHookFn find_mid_hook(std::string_view name) {
 }
 
 SlotFn find_slot(std::string_view name) {
-    for (auto table : {widescreen_slots(), widescreen_hud_slots()}) {
+    for (auto table : {silentpatch_slots(), widescreen_slots(), widescreen_hud_slots()}) {
         for (const auto& slot : table) {
             if (slot.name == name) {
                 return slot.fn;

@@ -4,6 +4,7 @@
 #include "audio/mix.hpp"
 #include "audio/stream.hpp"
 #include "camera_pin.hpp"
+#include "guest_calls.hpp"
 #include "dispatch.hpp"
 #include "guest_memory.hpp"
 #include "input/input_state.hpp"
@@ -1162,6 +1163,25 @@ void test_camera_pin_parse() {
     CHECK(!camera::parse_pin("1820"));
 }
 
+void test_scripted_call_parse() {
+    auto call = calls::parse_call("1830:0x572130:cdecl:9000f,-1680.5f");
+    CHECK(call && call->frame == 1830 && call->target == 0x572130 && call->conv == "cdecl");
+    CHECK(call && call->args.size() == 2 && call->args[1] == "-1680.5f");
+    auto method = calls::parse_call("2600:0x5e6080:thiscall:*0xb7cd98,43,50,1");
+    CHECK(method && method->conv == "thiscall" && method->args.size() == 4 && method->args[0] == "*0xb7cd98");
+    auto bare = calls::parse_call("10:0x53e580:cdecl");
+    CHECK(bare && bare->args.empty());
+    CHECK(!calls::parse_call("10:0x53e580:fastcall"));
+    CHECK(!calls::parse_call("10:0x53e580:thiscall"));
+    CHECK(!calls::parse_call("10:0x53e580:cdecl:1,x"));
+    auto chained = calls::parse_call("12:0x4087e0:cdecl:@+25255,2");
+    CHECK(chained && chained->args.size() == 2 && chained->args[0] == "@+25255");
+    auto named = calls::parse_call("11:0x404ac0:cdecl:$countn2_stream1");
+    CHECK(named && named->args.size() == 1 && named->args[0] == "$countn2_stream1");
+    CHECK(!calls::parse_call("12:0x4087e0:cdecl:@-1"));
+    CHECK(!calls::parse_call("x:0x53e580:cdecl"));
+}
+
 int main() {
     if (!reserve_guest_space()) {
         std::fprintf(stderr, "cannot reserve guest space\n");
@@ -1191,6 +1211,7 @@ int main() {
     test_interpreter(s);
     test_redirects_and_mid_hooks(s);
     test_camera_pin_parse();
+    test_scripted_call_parse();
     test_wsprintf();
     test_allocator_realloc();
     test_mode_list();

@@ -12,6 +12,77 @@
   title: "Jetpack hover with keyboard and mouse"
   notes: "The look-behind key hovers the jetpack, as the controller's does"
 
+- key: silentpatch.script_fixes
+  type: bool
+  default: true
+  title: "Mission script fixes"
+  notes: "Gym glitch, basketball save point, Sweet's Girl and Mountain Cloud Boys soft locks, school cones, Air Raid weapon and other mission script fixes"
+  replaces: "SilentPatchSA.ini [SilentPatch] EnableScriptFixes"
+
+- key: silentpatch.rotor_fix
+  type: bool
+  default: true
+  title: "Blurred rotors and propellers"
+  notes: "Spinning helicopter rotors and plane propellers fade into a blurred disc, as in Vice City and the PS2 version. Maverick and Skimmer keep their static rotors, as in SilentPatch's default list"
+  replaces: "SilentPatchSA.ini [RotorFixExceptions] and the Rotors fix debug menu option"
+
+- key: silentpatch.sun_size_hack
+  type: bool
+  default: true
+  title: "Bigger sun"
+  notes: "The sun is drawn at a far clip of at most 600, which makes it a bit bigger, as SilentPatch's default"
+  replaces: "SilentPatchSA.ini [SilentPatch] SunSizeHack"
+
+- key: silentpatch.coloured_zone_names
+  type: bool
+  default: false
+  title: "Coloured zone names"
+  notes: "A zone's name is shown in the colour of the gang that owns it. Off, zone names are never coloured"
+  replaces: "SilentPatchSA.ini [SilentPatch] ColouredZoneNames"
+
+- key: silentpatch.directional_from_sun
+  type: bool
+  default: false
+  title: "Sun reflections follow the time of day"
+  notes: "Sun reflections on peds and vehicles change direction with the time of day, as in III and Vice City"
+  replaces: "SilentPatchSA.ini [SilentPatch] DirectionalFromSun"
+
+- key: silentpatch.true_invincibility
+  type: bool
+  default: false
+  title: "True invincibility"
+  notes: "With an invincibility cheat on, police helicopter bullets don't hurt CJ either"
+  replaces: "SilentPatchSA.ini [SilentPatch] TrueInvincibility"
+
+- key: silentpatch.minimal_hud
+  type: bool
+  default: false
+  title: "Minimal HUD"
+  notes: "The unfinished minimal HUD: health, armour, weapon and money fade out when inactive"
+  replaces: "SilentPatchSA.ini [SilentPatch] MinimalHUD"
+
+- key: silentpatch.sliding_mission_title
+  type: bool
+  default: false
+  title: "Sliding mission titles"
+  notes: "Mission titles slide across the screen, from remnants of the feature in the game code"
+  replaces: "SilentPatchSA.ini [SilentPatch] SlidingMissionTitleText"
+
+- key: silentpatch.sliding_odd_job_text
+  type: bool
+  default: false
+  title: "Sliding odd job text"
+  notes: "Odd job texts slide in, as in a GTA III beta clip"
+  replaces: "SilentPatchSA.ini [SilentPatch] SlidingOddJobText"
+
+- key: silentpatch.frame_limit
+  type: choice
+  default: 30
+  choices: [30, 60, uncapped]
+  title: "Frame limit"
+  notes: "With the in-game Frame Limiter on, frames are paced on the Mac's clock at this rate; uncapped leaves only the display's refresh. The game's 14 ms frame delay is removed, as in SilentPatch"
+  replaces: "SilentPatch's frame limiter and frame delay fixes"
+
 - key: widescreen.aspect_fov
   type: bool
   default: true

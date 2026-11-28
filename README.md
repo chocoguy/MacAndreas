@@ -151,6 +151,11 @@ Display and debugging options:
 - `--pin-camera FRAME:X,Y,Z:TX,TY,TZ` fixes the game camera at a world position looking at a point,
   starting at that frame (the same calls as the `SET_FIXED_CAMERA_POSITION` and
   `POINT_CAMERA_AT_POINT` script commands). `--pin-camera FRAME:restore` hands it back. Repeatable.
+- `--call FRAME:ADDR:CONV[:ARG,…]` calls a game function from the guest thread at a frame (`cdecl`,
+  `stdcall` or `thiscall`, whose first argument is `this`) and logs the result as `[CALL]`. An argument is an
+  integer, `0x` hex, a float with an `f` suffix (`9000f`), `*ADDR` for the 32-bit value at ADDR when the
+  call runs (`*0xb7cd98` is the player ped), `$TEXT` for a string allocated in guest memory, or `@` / `@+N` for
+  the previous call's result (plus N). Repeatable.
 - `--settings FILE` reads mod settings (`key = value` lines, written by the launcher as
   `~/Library/Application Support/MacAndreas/mods.conf`). `--set KEY=VALUE` overrides one setting for
   this run. Keys, types and defaults come from `mods/settings.yaml` (`--settings-schema FILE`; by
@@ -305,6 +310,10 @@ build/dev/host/sa-host --game "gamefiles/Grand Theft Auto San Andreas" --native 
   1 ammo, the jetpack hovers on the look-behind key, and the units function is replaced. It pins the
   camera for each reference view and captures it; `--reference DIR` diffs those captures against
   another run.
+- `tools/route/m9_silentpatch.py` plays New Game at `silentpatch.frame_limit` 30, 60 and uncapped (the last
+  with `silentpatch.script_fixes=false`) and checks the frame pacing, that the game clock keeps real time,
+  the zone bounds fix (through `--call`), the INITIAL script fixes, the vehicles.ide defaults and, at 30 fps,
+  that a camera photo releases its back buffer surface. The fix records are in `tests/fixes/silentpatch/`.
 
 ### License
 
